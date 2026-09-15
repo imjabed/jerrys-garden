@@ -1,0 +1,6 @@
+{
+  "name": "Jerry's Garden",
+  "description": "Handcrafted ribbon flower bouquets, custom floral arrangements, seamless ordering, and artisan boutique management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
