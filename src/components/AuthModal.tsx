@@ -20,6 +20,8 @@ import { UserAccount } from '../types';
 import { registerUser, loginUser, OWNER_CREDENTIALS, verifyAndLoginOwner } from '../services/storage';
 import { apiRegisterCustomer, apiLoginCustomer } from '../services/api';
 
+const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -80,7 +82,7 @@ export default function AuthModal({
     setError('');
     setIsSendingOtp(true);
     try {
-      const response = await fetch('/api/send-otp', {
+      const response = await fetch(`${API_URL}/api/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: targetEmail, name: targetName }),
@@ -132,7 +134,7 @@ export default function AuthModal({
 
     setIsVerifyingOtp(true);
     try {
-      const response = await fetch('/api/verify-otp', {
+      const response = await fetch(`${API_URL}/api/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
