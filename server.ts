@@ -108,6 +108,7 @@ async function startServer() {
 
   // Body parsing for base64 uploads (up to 30mb)
   app.use(express.json({ limit: '30mb' }));
+
   app.use(express.urlencoded({ extended: true, limit: '30mb' }));
 
   // API Health check
