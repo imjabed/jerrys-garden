@@ -52,12 +52,18 @@ function getTransporter() {
   }
   if (!transporter) {
     transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: SMTP_EMAIL,
-        pass: SMTP_APP_PASSWORD,
-      },
-    });
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  requireTLS: true,
+  auth: {
+    user: SMTP_EMAIL,
+    pass: SMTP_APP_PASSWORD,
+  },
+  connectionTimeout: 30000,
+  greetingTimeout: 30000,
+  socketTimeout: 60000,
+});
   }
   return transporter;
 }
