@@ -104,6 +104,21 @@ export async function apiLoginCustomer(email: string, password?: string) {
   } catch (err: any) { return { success: false, connected: false, error: err.message, fallbackToClient: false }; }
 }
 
+export async function apiCustomerSession() {
+  try {
+    const res = await fetch(`${API_URL}/api/customers/session`, { credentials: 'include' });
+    return await parseResponse<{ authenticated: boolean; user?: UserAccount }>(res);
+  } catch { return { authenticated: false }; }
+}
+
+export async function apiGetMyOrders(): Promise<{ connected: boolean; orders: Order[] }> {
+  try {
+    const res = await fetch(`${API_URL}/api/customers/orders`, { headers: { 'X-JG-Client': '1' }, credentials: 'include' });
+    const data = await parseResponse<any>(res);
+    return { connected: data.connected ?? false, orders: data.orders || [] };
+  } catch { return { connected: false, orders: [] }; }
+}
+
 export async function apiLogoutCustomer() {
   try { await fetch(`${API_URL}/api/customers/logout`, { method: 'POST', headers: jsonHeaders, credentials: 'include' }); } catch { /* ignore */ }
 }

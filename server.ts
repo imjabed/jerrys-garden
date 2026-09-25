@@ -19,6 +19,8 @@ import {
   mongoDeleteBouquet,
   mongoGetOrders,
   mongoFindOrderForCustomer,
+  mongoFindCustomerByEmail,
+  mongoGetOrdersForCustomer,
   mongoCreateOrder,
   getMongoDb,
   mongoUpdateOrderStatus,
@@ -557,6 +559,32 @@ async function startServer() {
   });
 
   app.post('/api/customers/logout', requireClientHeader, (req, res) => { clearAuthCookie(res, CUSTOMER_COOKIE); return res.json({ success: true }); });
+  app.get('/api/customers/session', async (req, res) => {
+    const auth = getCustomerAuth(req);
+    if (!auth || auth.role !== 'customer' || !auth.email) return res.json({ authenticated: false });
+    try {
+      const customer = await mongoFindCustomerByEmail(auth.email);
+      if (!customer) {
+        clearAuthCookie(res, CUSTOMER_COOKIE);
+        return res.json({ authenticated: false });
+      }
+      return res.json({ authenticated: true, user: customer });
+    } catch (err: any) {
+      return res.status(500).json({ authenticated: false, error: err.message });
+    }
+  });
+
+  app.get('/api/customers/orders', requireClientHeader, async (req, res) => {
+    try {
+      const auth = getCustomerAuth(req);
+      if (!auth || auth.role !== 'customer' || !auth.email) return res.status(401).json({ success: false, error: 'Customer authentication required.' });
+      const orders = await mongoGetOrdersForCustomer(auth.email);
+      if (orders === null) return res.status(503).json({ success: false, connected: false, orders: [] });
+      return res.json({ success: true, connected: true, orders });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
 
   // Public catalogue read; writes require owner auth.
   app.get('/api/bouquets', async (req, res) => {

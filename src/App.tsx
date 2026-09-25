@@ -24,6 +24,9 @@ import {
 import {
   apiGetBouquets,
   apiGetOrders,
+  apiGetMyOrders,
+  apiCustomerSession,
+  apiLogoutCustomer,
   apiCreateOrder,
   apiUpdateOrderStatus,
   apiSaveBouquet,
@@ -107,6 +110,13 @@ export default function App() {
           setIsOwner(true);
           const oRes = await apiGetOrders();
           if (oRes.connected) setOrders(oRes.orders);
+        } else {
+          const customer = await apiCustomerSession();
+          if (customer.authenticated && customer.user) {
+            setUser(customer.user);
+            const oRes = await apiGetMyOrders();
+            if (oRes.connected) setOrders(oRes.orders);
+          }
         }
       } catch (e) {
         setIsOwner(false);
@@ -248,17 +258,88 @@ export default function App() {
     showToast('Signed out of owner mode.');
   };
 
-  // Filter bouquets
+  // Smart bouquet search. The UI stays unchanged; search now understands
+  // multiple words, product metadata, simple price queries, and small typos.
+  const normalizeSearchText = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/&/g, ' and ')
+      .replace(/[^a-z0-9₹.\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const levenshteinDistance = (a: string, b: string) => {
+    if (a === b) return 0;
+    if (!a.length) return b.length;
+    if (!b.length) return a.length;
+    let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const current = [i];
+      for (let j = 1; j <= b.length; j++) {
+        current[j] = Math.min(
+          current[j - 1] + 1,
+          previous[j] + 1,
+          previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+        );
+      }
+      previous = current;
+    }
+    return previous[b.length];
+  };
+
+  const matchesSearchTerm = (term: string, searchableWords: string[]) => {
+    if (!term) return true;
+    if (searchableWords.some((word) => word.includes(term) || term.includes(word))) return true;
+
+    // Allow a small typo for normal words (e.g. lavendar -> lavender),
+    // while avoiding fuzzy matches for very short terms.
+    if (term.length >= 5) {
+      const maxDistance = term.length >= 8 ? 2 : 1;
+      return searchableWords.some((word) => {
+        if (Math.abs(word.length - term.length) > maxDistance) return false;
+        return levenshteinDistance(term, word) <= maxDistance;
+      });
+    }
+    return false;
+  };
+
   const filteredBouquets = bouquets.filter((b) => {
     const matchesCategory =
       selectedCategory === 'ALL' || b.category.toLowerCase() === selectedCategory.toLowerCase();
-    const q = searchQuery.trim().toLowerCase();
-    const matchesSearch =
-      !q ||
-      b.title.toLowerCase().includes(q) ||
-      b.description.toLowerCase().includes(q) ||
-      b.ribbonColors.some((c) => c.toLowerCase().includes(q));
-    return matchesCategory && matchesSearch;
+
+    const rawQuery = normalizeSearchText(searchQuery);
+    if (!rawQuery) return matchesCategory;
+
+    // Handle useful price searches without changing the search UI.
+    const priceMatch = rawQuery.match(/(?:under|below|less than|upto|up to|within|under ₹|below ₹)\s*₹?\s*(\d+(?:\.\d+)?)/i);
+    const overPriceMatch = rawQuery.match(/(?:over|above|more than)\s*₹?\s*(\d+(?:\.\d+)?)/i);
+    const exactPriceMatch = rawQuery.match(/^(?:₹\s*)?(\d+(?:\.\d+)?)$/);
+
+    if (priceMatch && b.price > Number(priceMatch[1])) return false;
+    if (overPriceMatch && b.price < Number(overPriceMatch[1])) return false;
+    if (exactPriceMatch && b.price !== Number(exactPriceMatch[1])) return false;
+
+    const searchableText = normalizeSearchText([
+      b.title,
+      b.description,
+      b.category,
+      b.ribbonColors.join(' '),
+      b.ribbonMaterial,
+      `${b.flowerCount} flowers`,
+      `₹${b.price}`,
+      b.originalPrice ? `₹${b.originalPrice}` : '',
+    ].join(' '));
+
+    const searchableWords = searchableText.split(' ').filter(Boolean);
+    const queryTerms = rawQuery
+      .replace(/(?:under|below|less than|upto|up to|within|over|above|more than)\s*₹?\s*\d+(?:\.\d+)?/gi, ' ')
+      .split(' ')
+      .filter((term) => term.length > 0);
+
+    // Every meaningful word must have a match, so "pink rose" doesn't return
+    // unrelated pink-only or rose-only products.
+    const matchesAllTerms = queryTerms.every((term) => matchesSearchTerm(term, searchableWords));
+    return matchesCategory && matchesAllTerms;
   });
 
   // Navigation scroll helpers
@@ -331,9 +412,12 @@ export default function App() {
             onNavigateToShop={() => scrollToSection('shop-section')}
             onNavigateToStory={() => scrollToSection('ribbon-story')}
             activeUser={activeUser}
-            onLogoutUser={() => {
+            onLogoutUser={async () => {
+              await apiLogoutCustomer();
               setActiveUser(null);
               setUser(null);
+              setOrders([]);
+              setPreselectedTrackingId(undefined);
               showToast('Logged out of customer account.');
             }}
             isOwner={isOwner}
@@ -523,8 +607,10 @@ export default function App() {
         <AuthModal
           isOpen={authModalOpen}
           onClose={() => setAuthModalOpen(false)}
-          onLoginSuccess={(u) => {
+          onLoginSuccess={async (u) => {
             setUser(u);
+            const oRes = await apiGetMyOrders();
+            setOrders(oRes.connected ? oRes.orders : []);
             showToast(`Welcome back, ${u.name}!`);
           }}
           onRegisterSuccess={() => {

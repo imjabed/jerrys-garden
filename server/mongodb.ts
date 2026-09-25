@@ -459,7 +459,7 @@ export async function mongoFindCustomerByEmail(email: string) {
   if (!user) {
     user = await database.collection('Customerinfo').findOne({ email: normalized });
   }
-  return user;
+  return sanitizeCustomer(user);
 }
 
 export async function mongoSaveCustomer(customerData: {
@@ -582,6 +582,12 @@ export async function mongoGetOrders() {
   if (!database) return null;
 
   return await database.collection('orders').find({}).sort({ createdAt: -1 }).toArray();
+}
+
+export async function mongoGetOrdersForCustomer(email: string) {
+  const database = await getMongoDb();
+  if (!database) return null;
+  return await database.collection('orders').find({ customerEmail: String(email).trim().toLowerCase() }).sort({ createdAt: -1 }).toArray();
 }
 
 export async function mongoFindOrderForCustomer(orderNumber: string, customerEmail?: string) {
