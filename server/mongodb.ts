@@ -662,8 +662,16 @@ export async function mongoSaveCoupon(coupon: any) {
   const database = await getMongoDb();
   if (!database) return null;
   const now = new Date().toISOString();
-  const doc = { ...coupon, code: String(coupon.code).trim().toUpperCase(), updatedAt: now, createdAt: coupon.createdAt || now };
-  await database.collection('coupons').updateOne({ id: doc.id }, { $set: doc }, { upsert: true });
+  const doc: any = { ...coupon, code: String(coupon.code).trim().toUpperCase(), updatedAt: now, createdAt: coupon.createdAt || now };
+  const update: any = { $set: doc };
+  // MongoDB driver v7 rejects undefined BSON values by default. Also remove an
+  // old usage limit when an owner edits a coupon and clears the field.
+  if (doc.usageLimitPerCustomer === undefined) {
+    delete doc.usageLimitPerCustomer;
+    update.$set = doc;
+    update.$unset = { usageLimitPerCustomer: '' };
+  }
+  await database.collection('coupons').updateOne({ id: doc.id }, update, { upsert: true });
   return await database.collection('coupons').findOne({ id: doc.id });
 }
 

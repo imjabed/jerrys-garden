@@ -198,13 +198,52 @@ function indiaTodayPlusDays(days: number) {
 }
 
 function calculateCouponDiscount(coupon: any, items: any[]) {
-  const applicableIds = Array.isArray(coupon.applicableProductIds) ? coupon.applicableProductIds : [];
-  const applicable = items.filter(i => applicableIds.length === 0 || applicableIds.includes(String(i?.bouquet?.id || i?.productId)));
-  const base = applicable.reduce((sum, i) => sum + Number(i?.bouquet?.price || 0) * Number(i?.quantity || 0), 0);
+  const applicableIds = Array.isArray(coupon.applicableProductIds)
+    ? coupon.applicableProductIds.map((id: any) => String(id).trim()).filter(Boolean)
+    : [];
+
+  // An empty list means the coupon applies to every product. For a restricted
+  // coupon, compare normalized product IDs only. Items reaching this helper
+  // have already had their prices resolved from the database.
+  const applicable = items.filter((item: any) => {
+    const id = String(item?.bouquet?.id || item?.productId || '').trim();
+    return id && (applicableIds.length === 0 || applicableIds.some((allowed: string) => allowed === id));
+  });
+
+  const base = applicable.reduce((sum: number, item: any) => {
+    const price = Number(item?.bouquet?.price ?? item?.price ?? 0);
+    const quantity = Number(item?.quantity ?? 0);
+    return sum + (Number.isFinite(price) && price > 0 ? price : 0) * (Number.isFinite(quantity) ? quantity : 0);
+  }, 0);
+
   if (base <= 0) return 0;
   const value = Number(coupon.discountValue || 0);
+  if (!Number.isFinite(value) || value <= 0) return 0;
   const discount = coupon.discountType === 'PERCENT' ? base * value / 100 : value;
   return Math.min(Math.max(0, Math.round(discount * 100) / 100), base);
+}
+
+async function resolveCouponItems(items: any[], database: any) {
+  const pricedItems: any[] = [];
+  for (const item of items) {
+    const productId = String(item?.productId || item?.bouquet?.id || '').trim();
+    const quantity = Number(item?.quantity);
+    if (!productId || !Number.isInteger(quantity) || quantity < 1) continue;
+
+    if (productId.startsWith('custom-bouq-')) {
+      pricedItems.push({ productId, quantity, price: 899 });
+      continue;
+    }
+
+    // The catalogue can be read from `products` when `bouquets` is empty.
+    // Coupon validation must use the same fallback as the public catalogue.
+    let product = await database.collection('bouquets').findOne({ id: productId });
+    if (!product) product = await database.collection('products').findOne({ id: productId });
+    if (product) {
+      pricedItems.push({ productId: String(product.id || productId), quantity, price: Number(product.price || 0) });
+    }
+  }
+  return pricedItems;
 }
 
 async function startServer() {
@@ -660,7 +699,28 @@ async function startServer() {
       if (!['PERCENT','AMOUNT'].includes(c.discountType)) return res.status(400).json({ success: false, error: 'Invalid discount type.' });
       if (!Number.isFinite(value) || value <= 0 || (c.discountType === 'PERCENT' && value > 100)) return res.status(400).json({ success: false, error: 'Invalid discount value.' });
       if (!c.expiresAt || String(c.expiresAt) < indiaTodayPlusDays(0)) return res.status(400).json({ success: false, error: 'Expiry date must be today or later.' });
-      const coupon = { id: String(c.id || `coupon-${crypto.randomUUID()}`), code, discountType: c.discountType, discountValue: value, expiresAt: String(c.expiresAt).slice(0,10), applicableProductIds: Array.isArray(c.applicableProductIds) ? c.applicableProductIds.map(String) : [], usageLimitPerCustomer: c.usageLimitPerCustomer ? Math.max(1, Number(c.usageLimitPerCustomer)) : undefined, firstOrderOnly: Boolean(c.firstOrderOnly), active: c.active !== false, createdAt: c.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
+      const rawUsageLimit = c.usageLimitPerCustomer;
+      const hasUsageLimit = rawUsageLimit !== undefined && rawUsageLimit !== null && String(rawUsageLimit).trim() !== '';
+      const usageLimit = hasUsageLimit ? Number(rawUsageLimit) : undefined;
+      if (hasUsageLimit && (!Number.isInteger(usageLimit) || usageLimit < 1 || usageLimit > 1000000)) {
+        return res.status(400).json({ success: false, error: 'Uses per customer must be a whole number between 1 and 1,000,000.' });
+      }
+      const applicableProductIds = Array.isArray(c.applicableProductIds)
+        ? c.applicableProductIds.map(String).map((id: string) => id.trim()).filter(Boolean)
+        : [];
+      const coupon: any = {
+        id: String(c.id || `coupon-${crypto.randomUUID()}`),
+        code,
+        discountType: c.discountType,
+        discountValue: value,
+        expiresAt: String(c.expiresAt).slice(0,10),
+        applicableProductIds,
+        firstOrderOnly: Boolean(c.firstOrderOnly),
+        active: c.active !== false,
+        createdAt: c.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      if (usageLimit !== undefined) coupon.usageLimitPerCustomer = usageLimit;
       const saved = await mongoSaveCoupon(coupon);
       if (!saved) return res.status(503).json({ success: false, error: 'Database is unavailable.' });
       return res.json({ success: true, coupon: saved });
@@ -683,7 +743,12 @@ async function startServer() {
       if (String(coupon.expiresAt) < indiaTodayPlusDays(0)) return res.status(400).json({ success: false, error: 'This coupon has expired.' });
       if (coupon.firstOrderOnly && await mongoHasCustomerOrder(email)) return res.status(400).json({ success: false, error: 'This coupon is only valid on your first order.' });
       if (coupon.usageLimitPerCustomer) { const uses = await mongoCountCustomerCouponUses(code, email); if (uses === null) return res.status(503).json({ success: false, error: 'Database is unavailable.' }); if (uses >= Number(coupon.usageLimitPerCustomer)) return res.status(400).json({ success: false, error: 'You have reached the usage limit for this coupon.' }); }
-      const discountAmount = calculateCouponDiscount(coupon, items);
+
+      // Resolve product IDs against MongoDB so coupon validation has trusted prices.
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, error: 'Database is unavailable.' });
+      const pricedItems = await resolveCouponItems(items, database);
+      const discountAmount = calculateCouponDiscount(coupon, pricedItems);
       if (discountAmount <= 0) return res.status(400).json({ success: false, error: 'This coupon does not apply to the selected products.' });
       return res.json({ success: true, coupon, discountAmount });
     } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
@@ -746,7 +811,8 @@ async function startServer() {
         if (!couponDoc || couponDoc.active === false || String(couponDoc.expiresAt) < indiaTodayPlusDays(0)) return res.status(400).json({ success: false, error: 'Coupon is invalid or expired.' });
         if (couponDoc.firstOrderOnly && await mongoHasCustomerOrder(String(c.email))) return res.status(400).json({ success: false, error: 'This coupon is only valid on your first order.' });
         if (couponDoc.usageLimitPerCustomer) { const uses = await mongoCountCustomerCouponUses(couponCode, String(c.email)); if (uses === null || uses >= Number(couponDoc.usageLimitPerCustomer)) return res.status(400).json({ success: false, error: 'Coupon usage limit reached for this customer.' }); }
-        discountAmount = calculateCouponDiscount(couponDoc, normalizedItems);
+        const couponItems = await resolveCouponItems(rawItems, database);
+        discountAmount = calculateCouponDiscount(couponDoc, couponItems);
         if (discountAmount <= 0) return res.status(400).json({ success: false, error: 'This coupon does not apply to the selected products.' });
       }
       const totalAmount = Math.max(0, subtotal + deliveryFee + codHandlingCharge - discountAmount);

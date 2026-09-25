@@ -172,14 +172,15 @@ export default function CheckoutModal({
               {step === 'confirmed' && 'Order Placed Successfully!'}
             </h2>
           </div>
-          {step !== 'confirmed' && (
-            <button
-              onClick={onClose}
-              className="p-2 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close delivery details"
+            title="Close"
+            className="p-2 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Progress step indicators */}
