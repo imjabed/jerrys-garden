@@ -8,7 +8,7 @@ interface CheckoutModalProps {
   cartItems: CartItem[];
   storeSettings: StoreSettings;
   activeUser: UserAccount | null;
-  onOrderSuccess: (order: Order) => void;
+  onOrderSuccess: (order: Order) => Promise<Order>;
 }
 
 const STORE_UPI_ID = 'jerrysgarden@axl';
@@ -43,6 +43,7 @@ export default function CheckoutModal({
   const [utrError, setUtrError] = useState<string | null>(null);
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
@@ -72,7 +73,7 @@ export default function CheckoutModal({
     setStep('payment');
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     setUtrError(null);
 
     // Online payment mode requires a strictly valid 12-digit UTR
@@ -88,13 +89,12 @@ export default function CheckoutModal({
       }
     }
 
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const now = new Date().toISOString();
     const isCOD = paymentMethod === 'COD';
 
     const newOrder: Order = {
-      id: `ord-${Date.now()}`,
-      orderNumber: `JG-${randomSuffix}`,
+      id: '',
+      orderNumber: '',
       createdAt: now,
       updatedAt: now,
       status: 'Order Placed',
@@ -109,13 +109,20 @@ export default function CheckoutModal({
         upiIdUsed: isCOD ? undefined : activeUpiId,
         transactionRef: isCOD ? 'Cash on Delivery (Pending)' : utrNumber.trim(),
         paymentStatus: isCOD ? 'Pending on Delivery' : 'Awaiting Confirmation',
-        paidAt: now,
+        paidAt: '',
       },
     };
 
-    setCreatedOrder(newOrder);
-    setStep('confirmed');
-    onOrderSuccess(newOrder);
+    try {
+      setIsSubmitting(true);
+      const savedOrder = await onOrderSuccess(newOrder);
+      setCreatedOrder(savedOrder);
+      setStep('confirmed');
+    } catch (err: any) {
+      setUtrError(err.message || 'Could not place the order. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // UPI deep link
@@ -677,6 +684,7 @@ export default function CheckoutModal({
                   type="button"
                   id="confirm-order-payment-btn"
                   onClick={handlePlaceOrder}
+                  disabled={isSubmitting}
                   className={`px-6 py-3 rounded-xl text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer ${
                     paymentMethod === 'COD'
                       ? 'bg-amber-700 hover:bg-amber-800'
@@ -686,7 +694,7 @@ export default function CheckoutModal({
                   }`}
                 >
                   <Check className="w-4 h-4" />
-                  {paymentMethod === 'COD' ? (
+                  {isSubmitting ? <span>Placing Order...</span> : paymentMethod === 'COD' ? (
                     <span>Confirm Cash on Delivery (₹{totalAmount})</span>
                   ) : (
                     <span>Verify UTR & Place Order (₹{totalAmount})</span>

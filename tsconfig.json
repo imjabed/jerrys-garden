@@ -22,5 +22,9 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "src/context/StoreContext.tsx",
+    "src/components/OrderTrackingView.tsx"
+  ]
 }

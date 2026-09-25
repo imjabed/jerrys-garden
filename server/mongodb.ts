@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { MongoClient, Db } from 'mongodb';
+import crypto from 'crypto';
 
 // User's provided MongoDB Atlas Cluster URL & Database from environment variable
 export const DEFAULT_MONGODB_URI = process.env.MONGODB_URI || '';
@@ -12,6 +13,27 @@ let client: MongoClient | null = null;
 let db: Db | null = null;
 let isConnecting = false;
 let lastConnectionError: string | null = null;
+
+function hashPassword(password: string, salt = crypto.randomBytes(16).toString('hex')) {
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password: string, stored: string) {
+  const [salt, expected] = String(stored || '').split(':');
+  if (!salt || !expected) return false;
+  const actual = crypto.scryptSync(password, salt, 64).toString('hex');
+  const a = Buffer.from(actual, 'hex');
+  const b = Buffer.from(expected, 'hex');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function sanitizeCustomer(doc: any) {
+  if (!doc) return doc;
+  const { password, passwordHash, _id, ...safe } = doc;
+  return safe;
+}
+
 
 export function setCustomMongoUri(uri: string, dbName?: string) {
   if (uri && uri.trim()) {
@@ -81,7 +103,8 @@ export async function getMongoDb(): Promise<Db | null> {
       await db.collection('products').createIndex({ id: 1 }, { unique: true });
       await db.collection('bouquets').createIndex({ id: 1 }, { unique: true });
       await db.collection('orders').createIndex({ id: 1 }, { unique: true });
-      await db.collection('orders').createIndex({ orderNumber: 1 });
+      try { await db.collection('orders').dropIndex('orderNumber_1'); } catch { /* index may not exist */ }
+      await db.collection('orders').createIndex({ orderNumber: 1 }, { unique: true });
     } catch (idxErr) {
       console.warn('[MongoDB Atlas] Index note:', idxErr);
     }
@@ -216,7 +239,8 @@ export async function buildCollections(initialSeedData?: {
     await database.collection('products').createIndex({ id: 1 }, { unique: true });
     await database.collection('bouquets').createIndex({ id: 1 }, { unique: true });
     await database.collection('orders').createIndex({ id: 1 }, { unique: true });
-    await database.collection('orders').createIndex({ orderNumber: 1 });
+    try { await database.collection('orders').dropIndex('orderNumber_1'); } catch { /* index may not exist */ }
+    await database.collection('orders').createIndex({ orderNumber: 1 }, { unique: true });
   } catch (idxErr) {
     console.warn('[MongoDB Atlas] Index setup note:', idxErr);
   }
@@ -228,9 +252,12 @@ export async function buildCollections(initialSeedData?: {
 
   if (initialSeedData?.customers && initialSeedData.customers.length > 0) {
     for (const c of initialSeedData.customers) {
-      const doc = { ...c, email: c.email.toLowerCase().trim(), updatedAt: new Date().toISOString() };
-      await database.collection('customers').updateOne({ email: doc.email }, { $set: doc }, { upsert: true });
-      await database.collection('Customerinfo').updateOne({ email: doc.email }, { $set: doc }, { upsert: true });
+      const { password, passwordHash, ...rest } = c;
+      const doc: any = { ...rest, email: c.email.toLowerCase().trim(), updatedAt: new Date().toISOString() };
+      if (passwordHash) doc.passwordHash = passwordHash;
+      else if (password) doc.passwordHash = hashPassword(password);
+      await database.collection('customers').updateOne({ email: doc.email }, { $set: doc, $unset: { password: '' } }, { upsert: true });
+      await database.collection('Customerinfo').updateOne({ email: doc.email }, { $set: doc, $unset: { password: '' } }, { upsert: true });
     }
   }
 
@@ -320,7 +347,8 @@ export async function buildCollectionsForCustomersAndProducts(customSeed?: {
     await database.collection('products').createIndex({ id: 1 }, { unique: true });
     await database.collection('bouquets').createIndex({ id: 1 }, { unique: true });
     await database.collection('orders').createIndex({ id: 1 }, { unique: true });
-    await database.collection('orders').createIndex({ orderNumber: 1 });
+    try { await database.collection('orders').dropIndex('orderNumber_1'); } catch { /* index may not exist */ }
+    await database.collection('orders').createIndex({ orderNumber: 1 }, { unique: true });
   } catch (idxErr: any) {
     console.warn('[MongoDB Atlas] Index setup notice:', idxErr.message);
   }
@@ -331,46 +359,14 @@ export async function buildCollectionsForCustomersAndProducts(customSeed?: {
     for (const c of customSeed.customers) {
       const email = c.email?.toLowerCase().trim();
       if (email) {
-        const doc = { ...c, email, updatedAt: new Date().toISOString() };
-        await database.collection('customers').updateOne({ email }, { $set: doc }, { upsert: true });
-        await database.collection('Customerinfo').updateOne({ email }, { $set: doc }, { upsert: true });
+        const { password, passwordHash, ...rest } = c;
+        const doc: any = { ...rest, email, updatedAt: new Date().toISOString() };
+        if (passwordHash) doc.passwordHash = passwordHash;
+        else if (password) doc.passwordHash = hashPassword(password);
+        await database.collection('customers').updateOne({ email }, { $set: doc, $unset: { password: '' } }, { upsert: true });
+        await database.collection('Customerinfo').updateOne({ email }, { $set: doc, $unset: { password: '' } }, { upsert: true });
       }
     }
-  } else if (customersCount === 0) {
-    const defaultCustomers = [
-      {
-        id: 'usr-1',
-        name: 'Rhea Sen',
-        email: 'rhea.sen@example.com',
-        phone: '+91 98451 23456',
-        address: 'House 22, Green Valley Enclave, Lane 3, Berhampore',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'usr-2',
-        name: 'Aarav Patel',
-        email: 'aarav.patel@example.com',
-        phone: '+91 97123 45678',
-        address: 'Flat 4B, Sunflower Apartments, Murshidabad',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'usr-3',
-        name: 'Meher Khan',
-        email: 'meherkhan7190@gmail.com',
-        phone: '+91 99000 11223',
-        address: 'Artisan Workshop, Berhampore',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
-    for (const c of defaultCustomers) {
-      await database.collection('customers').updateOne({ email: c.email }, { $set: c }, { upsert: true });
-      await database.collection('Customerinfo').updateOne({ email: c.email }, { $set: c }, { upsert: true });
-    }
-    console.log('[MongoDB Atlas] Seeded default customers into customers collection');
   }
 
   // 4. Seed products if custom seed provided or if collection is empty
@@ -438,7 +434,7 @@ export async function mongoGetCustomers() {
 
   let docs = await database
     .collection('customers')
-    .find({}, { projection: { password: 0 } })
+    .find({}, { projection: { password: 0, passwordHash: 0 } })
     .sort({ createdAt: -1 })
     .toArray();
 
@@ -446,7 +442,7 @@ export async function mongoGetCustomers() {
     // Check Customerinfo collection as fallback
     docs = await database
       .collection('Customerinfo')
-      .find({}, { projection: { password: 0 } })
+      .find({}, { projection: { password: 0, passwordHash: 0 } })
       .sort({ createdAt: -1 })
       .toArray();
   }
@@ -477,78 +473,65 @@ export async function mongoSaveCustomer(customerData: {
 }) {
   const database = await getMongoDb();
   if (!database) return null;
-
   const normalizedEmail = customerData.email.toLowerCase().trim();
   const now = new Date().toISOString();
-
   const existing =
     (await database.collection('customers').findOne({ email: normalizedEmail })) ||
     (await database.collection('Customerinfo').findOne({ email: normalizedEmail }));
+  const passwordHash = customerData.password ? hashPassword(customerData.password) : undefined;
 
   if (existing) {
     const updateDoc: any = {
-      name: customerData.name || existing.name,
-      phone: customerData.phone !== undefined ? customerData.phone : existing.phone,
-      address: customerData.address !== undefined ? customerData.address : existing.address,
-      isVerified: customerData.isVerified !== undefined ? customerData.isVerified : existing.isVerified,
+      name: customerData.name.trim(),
+      phone: customerData.phone ?? existing.phone ?? '',
+      address: customerData.address ?? existing.address ?? '',
+      isVerified: customerData.isVerified ?? existing.isVerified ?? true,
       updatedAt: now,
     };
-    if (customerData.password) {
-      updateDoc.password = customerData.password;
-    }
-
-    // Save to both collections (customers and Customerinfo)
+    if (passwordHash) updateDoc.passwordHash = passwordHash;
+    // Remove legacy plaintext password whenever possible.
     await Promise.all([
-      database.collection('customers').updateOne({ email: normalizedEmail }, { $set: updateDoc }, { upsert: true }),
-      database.collection('Customerinfo').updateOne({ email: normalizedEmail }, { $set: updateDoc }, { upsert: true }),
+      database.collection('customers').updateOne({ email: normalizedEmail }, { $set: updateDoc, $unset: { password: '' } }),
+      database.collection('Customerinfo').updateOne({ email: normalizedEmail }, { $set: updateDoc, $unset: { password: '' } }),
     ]);
-
-    const updated = await database
-      .collection('customers')
-      .findOne({ email: normalizedEmail }, { projection: { password: 0 } });
-    return updated;
-  } else {
-    const newCustomer = {
-      id: customerData.id || `usr-${Date.now()}`,
-      name: customerData.name,
-      email: normalizedEmail,
-      phone: customerData.phone || '',
-      address: customerData.address || '',
-      password: customerData.password || '',
-      isVerified: customerData.isVerified ?? true,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    // Insert into both collections (customers and Customerinfo)
-    await Promise.all([
-      database.collection('customers').insertOne({ ...newCustomer }),
-      database.collection('Customerinfo').insertOne({ ...newCustomer }),
-    ]);
-
-    const { password, ...safeUser } = newCustomer;
-    return safeUser;
+    const updated = await database.collection('customers').findOne({ email: normalizedEmail });
+    return sanitizeCustomer(updated);
   }
+
+  const newCustomer: any = {
+    id: customerData.id || `usr-${crypto.randomUUID()}`,
+    name: customerData.name.trim(), email: normalizedEmail,
+    phone: customerData.phone || '', address: customerData.address || '',
+    passwordHash: passwordHash || '', isVerified: customerData.isVerified ?? true,
+    createdAt: now, updatedAt: now,
+  };
+  await Promise.all([
+    database.collection('customers').insertOne({ ...newCustomer }),
+    database.collection('Customerinfo').insertOne({ ...newCustomer }),
+  ]);
+  return sanitizeCustomer(newCustomer);
 }
 
-export async function mongoVerifyCustomerLogin(email: string, password?: string) {
+export async function mongoVerifyCustomerLogin(email: string, password: string) {
   const database = await getMongoDb();
   if (!database) return null;
-
   const normalizedEmail = email.toLowerCase().trim();
-  let user = await database.collection('customers').findOne({ email: normalizedEmail });
-  if (!user) {
-    user = await database.collection('Customerinfo').findOne({ email: normalizedEmail });
-  }
-
+  let user: any = await database.collection('customers').findOne({ email: normalizedEmail });
+  if (!user) user = await database.collection('Customerinfo').findOne({ email: normalizedEmail });
   if (!user) return { success: false, reason: 'NOT_FOUND' };
 
-  if (user.password && password && user.password !== password) {
-    return { success: false, reason: 'INVALID_PASSWORD' };
+  let valid = Boolean(user.passwordHash && verifyPassword(password, user.passwordHash));
+  // One-time migration for old plaintext records created by the previous version.
+  if (!valid && user.password && user.password === password) {
+    const passwordHash = hashPassword(password);
+    await Promise.all([
+      database.collection('customers').updateOne({ email: normalizedEmail }, { $set: { passwordHash }, $unset: { password: '' } }),
+      database.collection('Customerinfo').updateOne({ email: normalizedEmail }, { $set: { passwordHash }, $unset: { password: '' } }),
+    ]);
+    valid = true;
   }
-
-  const { password: _, ...safeUser } = user;
-  return { success: true, user: safeUser };
+  if (!valid) return { success: false, reason: 'INVALID_PASSWORD' };
+  return { success: true, user: sanitizeCustomer(user) };
 }
 
 // ---------------- PRODUCTS & BOUQUETS ----------------
@@ -599,6 +582,17 @@ export async function mongoGetOrders() {
   if (!database) return null;
 
   return await database.collection('orders').find({}).sort({ createdAt: -1 }).toArray();
+}
+
+export async function mongoFindOrderForCustomer(orderNumber: string, customerEmail?: string) {
+  const database = await getMongoDb();
+  if (!database) return null;
+  const filter: any = { orderNumber: orderNumber.toUpperCase() };
+  if (customerEmail) filter.customerEmail = customerEmail.toLowerCase();
+  const order = await database.collection('orders').findOne(filter);
+  if (!order) return null;
+  // Guest tracking is intentionally limited to order number; it does not expose the whole order unless the exact order number is known.
+  return order;
 }
 
 export async function mongoCreateOrder(order: any) {

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { X, ShieldAlert, KeyRound, Mail, ArrowRight, Lock, CheckCircle2 } from 'lucide-react';
-import { OWNER_CREDENTIALS } from '../services/storage';
+import { ownerLogin } from '../services/api';
 
 interface OwnerLoginModalProps {
   isOpen: boolean;
@@ -16,33 +16,20 @@ export default function OwnerLoginModal({ isOpen, onClose, onOwnerLoginSuccess }
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-
-    const normalizedEmail = email.trim().toLowerCase();
-    const trimmedCode = adminCode.trim();
-
-    if (
-      normalizedEmail === OWNER_CREDENTIALS.email.toLowerCase() &&
-      trimmedCode === OWNER_CREDENTIALS.adminCode
-    ) {
+    try {
+      await ownerLogin(email, adminCode);
       setSuccess(true);
-      setTimeout(() => {
-        onOwnerLoginSuccess();
-        onClose();
-      }, 700);
-    } else {
-      setError(
-        'Access Denied. Invalid authorized store owner credentials or secret admin code.'
-      );
+      setTimeout(() => { onOwnerLoginSuccess(); onClose(); }, 500);
+    } catch (err: any) {
+      setError(err.message || 'Access denied. Invalid owner credentials.');
     }
   };
 
   const handleQuickFillDemo = () => {
-    setEmail(OWNER_CREDENTIALS.email);
-    setAdminCode(OWNER_CREDENTIALS.adminCode);
-    setError('');
+    setError('Owner credentials are configured securely on the server. Enter them here to sign in.');
   };
 
   return (
@@ -137,7 +124,7 @@ export default function OwnerLoginModal({ isOpen, onClose, onOwnerLoginSuccess }
               onClick={handleQuickFillDemo}
               className="text-[11px] text-stone-500 hover:text-stone-800 underline font-medium cursor-pointer"
             >
-              Fill Authorized Credentials (Demo)
+              Owner credentials are verified securely on the server
             </button>
           </div>
 

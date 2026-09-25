@@ -37,7 +37,9 @@ export async function uploadImageToCloudinary(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'X-JG-Client': '1',
     },
+    credentials: 'include',
     body: JSON.stringify({
       image: base64Image,
       folder,

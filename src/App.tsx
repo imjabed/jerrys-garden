@@ -12,17 +12,10 @@ import {
   getBouquets,
   saveBouquet,
   deleteBouquet,
-  updateBouquetImage,
-  getOrders,
-  createOrder,
-  updateOrderStatus,
   getActiveUser,
   setActiveUser,
   registerUser,
   loginUser,
-  isOwnerAuthenticated,
-  verifyAndLoginOwner,
-  logoutOwner,
   getCart,
   setCart,
   getStoreSettings,
@@ -35,6 +28,10 @@ import {
   apiUpdateOrderStatus,
   apiSaveBouquet,
   apiDeleteBouquet,
+  ownerSession,
+  ownerLogout,
+  apiUpdateSettings,
+  apiGetSettings,
 } from './services/api';
 
 // Components
@@ -57,10 +54,10 @@ import Footer from './components/Footer';
 export default function App() {
   // Core App State
   const [bouquets, setBouquets] = useState<RibbonBouquet[]>(getBouquets);
-  const [orders, setOrders] = useState<Order[]>(getOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [cart, setCartItems] = useState<CartItem[]>(getCart);
   const [activeUser, setUser] = useState<UserAccount | null>(getActiveUser);
-  const [isOwner, setIsOwner] = useState<boolean>(isOwnerAuthenticated);
+  const [isOwner, setIsOwner] = useState<boolean>(false);
   const [isOwnerView, setIsOwnerView] = useState<boolean>(false);
   const [storeSettings, setSettings] = useState<StoreSettings>(getStoreSettings);
 
@@ -93,27 +90,26 @@ export default function App() {
   useEffect(() => {
     const handleStorageChange = () => {
       setBouquets(getBouquets());
-      setOrders(getOrders());
       setCartItems(getCart());
       setUser(getActiveUser());
-      setIsOwner(isOwnerAuthenticated());
       setSettings(getStoreSettings());
     };
 
     window.addEventListener('jg_storage_update', handleStorageChange);
 
-    // Initial check: if MongoDB is online and has records, merge them
     const initRemoteData = async () => {
       try {
-        const [bRes, oRes] = await Promise.all([apiGetBouquets(), apiGetOrders()]);
-        if (bRes.connected && bRes.bouquets.length > 0) {
-          setBouquets(bRes.bouquets);
-        }
-        if (oRes.connected && oRes.orders.length > 0) {
-          setOrders(oRes.orders);
+        const [bRes, sRes] = await Promise.all([apiGetBouquets(), apiGetSettings()]);
+        if (bRes.connected) setBouquets(bRes.bouquets);
+        if (sRes.connected && sRes.settings) { setSettings(sRes.settings); updateStoreSettings(sRes.settings); }
+        const owner = await ownerSession();
+        if (owner.authenticated) {
+          setIsOwner(true);
+          const oRes = await apiGetOrders();
+          if (oRes.connected) setOrders(oRes.orders);
         }
       } catch (e) {
-        console.warn('Initial remote fetch skipped:', e);
+        setIsOwner(false);
       }
     };
     initRemoteData();
@@ -177,53 +173,53 @@ export default function App() {
   };
 
   // Order Placement
-  const handleOrderSuccess = (newOrder: Order) => {
-    const created = createOrder(newOrder);
-    setOrders(getOrders());
-    // Clear cart
+  const handleOrderSuccess = async (newOrder: Order) => {
+    const result = await apiCreateOrder(newOrder);
+    if (!result.success || !result.order) {
+      showToast(result.error || 'Could not place the order. Please try again.');
+      throw new Error(result.error || 'Order creation failed');
+    }
     updateCart([]);
-    showToast(`Order #${created.orderNumber} placed successfully!`);
-    // Sync to MongoDB Atlas
-    apiCreateOrder(created).catch((err) => console.warn('Could not sync order to MongoDB Atlas:', err));
+    setOrders((current) => [result.order!, ...current]);
+    showToast(`Order #${result.order.orderNumber} placed successfully!`);
+    return result.order;
   };
 
   // Status updates by Owner
-  const handleUpdateOrderStatus = (orderId: string, status: OrderStatus) => {
-    const updated = updateOrderStatus(orderId, status);
-    setOrders(updated);
-    if (selectedOrderForDetails && selectedOrderForDetails.id === orderId) {
-      setSelectedOrderForDetails({ ...selectedOrderForDetails, status });
-    }
+  const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    const ok = await apiUpdateOrderStatus(orderId, status);
+    if (!ok) { showToast('Could not update order status. Please try again.'); return; }
+    setOrders((current) => current.map((order) => order.id === orderId ? { ...order, status, updatedAt: new Date().toISOString() } : order));
+    if (selectedOrderForDetails && selectedOrderForDetails.id === orderId) setSelectedOrderForDetails({ ...selectedOrderForDetails, status });
     showToast(`Order status updated to "${status}"`);
-    // Sync to MongoDB Atlas
-    apiUpdateOrderStatus(orderId, status).catch((err) => console.warn('Could not sync status update to MongoDB Atlas:', err));
   };
 
   // Bouquet Editor
-  const handleSaveBouquet = (saved: RibbonBouquet) => {
-    const updated = saveBouquet(saved);
-    setBouquets(updated);
+  const handleSaveBouquet = async (saved: RibbonBouquet) => {
+    const ok = await apiSaveBouquet(saved);
+    if (!ok) { showToast('Could not save bouquet. Please try again.'); return; }
+    setBouquets((current) => { const i = current.findIndex(b => b.id === saved.id); if (i < 0) return [saved, ...current]; const next = [...current]; next[i] = saved; return next; });
     showToast(`Bouquet "${saved.title}" saved to catalog!`);
-    // Sync to MongoDB Atlas
-    apiSaveBouquet(saved).catch((err) => console.warn('Could not sync bouquet save to MongoDB Atlas:', err));
   };
 
-  const handleDeleteBouquet = (id: string) => {
-    const updated = deleteBouquet(id);
-    setBouquets(updated);
+  const handleDeleteBouquet = async (id: string) => {
+    const ok = await apiDeleteBouquet(id);
+    if (!ok) { showToast('Could not remove bouquet. Please try again.'); return; }
+    setBouquets((current) => current.filter((b) => b.id !== id));
     showToast('Bouquet removed from catalog');
-    // Sync to MongoDB Atlas
-    apiDeleteBouquet(id).catch((err) => console.warn('Could not sync bouquet deletion to MongoDB Atlas:', err));
   };
 
   // Instant Cloudinary Photo Update for Any Bouquet
-  const handleUpdateBouquetImage = (bouquetId: string, newImageUrl: string) => {
-    const updated = updateBouquetImage(bouquetId, newImageUrl);
-    setBouquets(updated);
-    setCartItems(getCart());
-    if (detailModalBouquet && detailModalBouquet.id === bouquetId) {
-      setDetailModalBouquet({ ...detailModalBouquet, imageUrl: newImageUrl });
-    }
+  const handleUpdateBouquetImage = async (bouquetId: string, newImageUrl: string) => {
+    const current = bouquets.find((b) => b.id === bouquetId);
+    if (!current) return;
+    const updatedBouquet = { ...current, imageUrl: newImageUrl };
+    const ok = await apiSaveBouquet(updatedBouquet);
+    if (!ok) { showToast('Could not save bouquet image. Please try again.'); return; }
+    setBouquets((items) => items.map((b) => b.id === bouquetId ? updatedBouquet : b));
+    setCartItems((items) => items.map((item) => item.bouquet.id === bouquetId ? { ...item, bouquet: updatedBouquet } : item));
+    setCart((items) => items.map((item) => item.bouquet.id === bouquetId ? { ...item, bouquet: updatedBouquet } : item));
+    if (detailModalBouquet && detailModalBouquet.id === bouquetId) setDetailModalBouquet(updatedBouquet);
     showToast('✨ Photo saved to Cloudinary! Bouquet updated.');
   };
 
@@ -237,14 +233,16 @@ export default function App() {
   };
 
   // Owner Auth
-  const handleOwnerLoginSuccess = () => {
+  const handleOwnerLoginSuccess = async () => {
     setIsOwner(true);
     setIsOwnerView(true);
-    showToast('Owner mode verified! Welcome Meher.');
+    const oRes = await apiGetOrders();
+    if (oRes.connected) setOrders(oRes.orders);
+    showToast('Owner mode verified! Welcome to the owner dashboard.');
   };
 
-  const handleLogoutOwner = () => {
-    logoutOwner();
+  const handleLogoutOwner = async () => {
+    await ownerLogout();
     setIsOwner(false);
     setIsOwnerView(false);
     showToast('Signed out of owner mode.');
@@ -300,7 +298,9 @@ export default function App() {
             setBouquetEditorOpen(true);
           }}
           onDeleteBouquet={handleDeleteBouquet}
-          onUpdateSettings={(newSettings) => {
+          onUpdateSettings={async (newSettings) => {
+            const result = await apiUpdateSettings(newSettings);
+            if (!result.success) { showToast(result.error || 'Could not save settings.'); return; }
             updateStoreSettings(newSettings);
             setSettings(newSettings);
             showToast('Settings saved!');
@@ -476,13 +476,11 @@ export default function App() {
           cartItems={cart}
           storeSettings={storeSettings}
           activeUser={activeUser}
-          onOrderSuccess={(order) => {
-            handleOrderSuccess(order);
-            // Auto open order tracking for the newly placed order
-            setPreselectedTrackingId(order.orderNumber);
-            setTimeout(() => {
-              setTrackingModalOpen(true);
-            }, 800);
+          onOrderSuccess={async (order) => {
+            const savedOrder = await handleOrderSuccess(order);
+            setPreselectedTrackingId(savedOrder.orderNumber);
+            setTimeout(() => setTrackingModalOpen(true), 800);
+            return savedOrder;
           }}
         />
       )}
@@ -531,10 +529,6 @@ export default function App() {
           }}
           onRegisterSuccess={() => {
             showToast(`Account verified! You can now log in with your password.`);
-          }}
-          onOwnerLoginSuccess={() => {
-            handleOwnerLoginSuccess();
-            showToast('Store Owner verified & logged in!');
           }}
         />
       )}

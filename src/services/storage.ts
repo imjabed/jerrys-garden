@@ -1,20 +1,14 @@
-import { RibbonBouquet, Order, OrderStatus, UserAccount, StoreSettings, CartItem } from '../types';
-import { INITIAL_BOUQUETS, INITIAL_ORDERS, INITIAL_SETTINGS } from '../data/initialData';
+import { RibbonBouquet, UserAccount, StoreSettings, CartItem } from '../types';
+import { INITIAL_BOUQUETS, INITIAL_SETTINGS } from '../data/initialData';
 
 const KEYS = {
   BOUQUETS: 'jg_bouquets_v1',
-  ORDERS: 'jg_orders_v1',
   SETTINGS: 'jg_settings_v1',
   USER: 'jg_active_user_v1',
   USERS_LIST: 'jg_users_list_v1',
-  OWNER_AUTH: 'jg_owner_auth_v1',
   CART: 'jg_cart_v1',
 };
 
-export const OWNER_CREDENTIALS = {
-  email: 'meherkhan7190@gmail.com',
-  adminCode: 'jame007',
-};
 
 // Safe localStorage access
 const getStorageItem = <T>(key: string, fallback: T): T => {
@@ -79,60 +73,12 @@ export const updateBouquetImage = (id: string, imageUrl: string): RibbonBouquet[
   return updated;
 };
 
-// Orders
-export const getOrders = (): Order[] => {
-  return getStorageItem<Order[]>(KEYS.ORDERS, INITIAL_ORDERS);
-};
-
-export const createOrder = (orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt' | 'updatedAt'>): Order => {
-  const current = getOrders();
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-  const now = new Date().toISOString();
-  
-  const newOrder: Order = {
-    ...orderData,
-    id: `ord-${Date.now()}`,
-    orderNumber: `JG-${randomSuffix}`,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  const updated = [newOrder, ...current];
-  setStorageItem(KEYS.ORDERS, updated);
-  return newOrder;
-};
-
-export const updateOrderStatus = (orderId: string, status: OrderStatus): Order[] => {
-  const current = getOrders();
-  const updated = current.map((order) => {
-    if (order.id === orderId) {
-      return {
-        ...order,
-        status,
-        updatedAt: new Date().toISOString(),
-      };
-    }
-    return order;
-  });
-  setStorageItem(KEYS.ORDERS, updated);
-  return updated;
-};
-
-export const getOrderByIdOrPhone = (query: string): Order | undefined => {
-  const trimmed = query.trim().toLowerCase();
-  const orders = getOrders();
-  return orders.find(
-    (o) =>
-      o.id.toLowerCase() === trimmed ||
-      o.orderNumber.toLowerCase() === trimmed ||
-      o.customer.phone.replace(/\D/g, '').includes(trimmed.replace(/\D/g, '')) ||
-      o.customer.email.toLowerCase() === trimmed
-  );
-};
-
 // Customer User Auth
 export const getActiveUser = (): UserAccount | null => {
-  return getStorageItem<UserAccount | null>(KEYS.USER, null);
+  const user = getStorageItem<UserAccount | null>(KEYS.USER, null);
+  if (!user) return null;
+  const { password, ...safeUser } = user as any;
+  return safeUser as UserAccount;
 };
 
 export const setActiveUser = (user: UserAccount | null): void => {
@@ -168,7 +114,6 @@ export const registerUser = (
       name,
       phone,
       address,
-      password: password || existing.password,
       isVerified: true,
     };
     const updatedUsers = users.map((u) => (u.email.toLowerCase() === normalizedEmail ? updatedUser : u));
@@ -182,7 +127,6 @@ export const registerUser = (
     email: normalizedEmail,
     phone,
     address,
-    password: password || '',
     isVerified: true,
     createdAt: new Date().toISOString(),
   };
@@ -203,26 +147,6 @@ export const loginUser = (email: string, password?: string): UserAccount | null 
     return found;
   }
   return null;
-};
-
-// Owner Auth Check
-export const isOwnerAuthenticated = (): boolean => {
-  return getStorageItem<boolean>(KEYS.OWNER_AUTH, false);
-};
-
-export const verifyAndLoginOwner = (email: string, adminCode: string): boolean => {
-  const normalizedEmail = email.trim().toLowerCase();
-  const trimmedCode = adminCode.trim();
-
-  if (normalizedEmail === OWNER_CREDENTIALS.email.toLowerCase() && trimmedCode === OWNER_CREDENTIALS.adminCode) {
-    setStorageItem(KEYS.OWNER_AUTH, true);
-    return true;
-  }
-  return false;
-};
-
-export const logoutOwner = (): void => {
-  setStorageItem(KEYS.OWNER_AUTH, false);
 };
 
 // Cart

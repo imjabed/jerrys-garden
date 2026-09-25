@@ -17,7 +17,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { UserAccount } from '../types';
-import { registerUser, loginUser, OWNER_CREDENTIALS, verifyAndLoginOwner } from '../services/storage';
+import { registerUser } from '../services/storage';
 import { apiRegisterCustomer, apiLoginCustomer } from '../services/api';
 
 const API_URL = (
@@ -32,7 +32,6 @@ interface AuthModalProps {
   onClose: () => void;
   onLoginSuccess: (user: UserAccount) => void;
   onRegisterSuccess: (user: UserAccount) => void;
-  onOwnerLoginSuccess?: () => void;
 }
 
 export default function AuthModal({
@@ -40,7 +39,6 @@ export default function AuthModal({
   onClose,
   onLoginSuccess,
   onRegisterSuccess,
-  onOwnerLoginSuccess,
 }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'register' | 'otp_verify'>('login');
   
@@ -119,8 +117,8 @@ export default function AuthModal({
       return;
     }
 
-    if (regPassword.length < 4) {
-      setError('Please create a password of at least 4 characters.');
+    if (regPassword.length < 6) {
+      setError('Please create a password of at least 6 characters.');
       return;
     }
 
@@ -153,30 +151,19 @@ export default function AuthModal({
         throw new Error(data.error || 'Invalid verification code.');
       }
 
-      // Register user in local storage
-      const newUser = registerUser(
-        regName.trim(),
-        regEmail.trim(),
-        regPhone.trim(),
-        regAddress.trim(),
-        regPassword
-      );
-
-      // Save to MongoDB Atlas collection 'customers'
-      try {
-        await apiRegisterCustomer({
-          id: newUser.id,
-          name: regName.trim(),
-          email: regEmail.trim(),
-          phone: regPhone.trim(),
-          address: regAddress.trim(),
-          password: regPassword,
-          isVerified: true,
-        });
-      } catch (mongoErr) {
-        console.warn('MongoDB customer sync warning:', mongoErr);
+      const registration = await apiRegisterCustomer({
+        name: regName.trim(),
+        email: regEmail.trim(),
+        phone: regPhone.trim(),
+        address: regAddress.trim(),
+        password: regPassword,
+        verificationToken: data.verificationToken,
+      });
+      if (!registration.success || !registration.user) {
+        throw new Error(registration.error || 'Could not create your account. Please try again.');
       }
-
+      const newUser = registration.user;
+      registerUser(newUser.name, newUser.email, newUser.phone || '', newUser.address || '', undefined);
       onRegisterSuccess(newUser);
 
       // Set success notice and redirect to login screen
@@ -205,54 +192,17 @@ export default function AuthModal({
       return;
     }
 
-    // Check if this is the Owner logging in
-    if (
-      emailInput === OWNER_CREDENTIALS.email.toLowerCase() &&
-      passwordInput === OWNER_CREDENTIALS.adminCode
-    ) {
-      verifyAndLoginOwner(emailInput, passwordInput);
-      if (onOwnerLoginSuccess) {
-        onOwnerLoginSuccess();
-      }
-      onClose();
-      return;
-    }
-
     setIsLoggingIn(true);
     try {
-      // 1. First try verifying against MongoDB Atlas
       const mongoResult = await apiLoginCustomer(emailInput, passwordInput);
-
-      if (mongoResult.connected) {
-        if (mongoResult.success && mongoResult.user) {
-          // Successfully verified in MongoDB Atlas!
-          onLoginSuccess(mongoResult.user);
-          onClose();
-          return;
-        } else {
-          setError(mongoResult.error || 'Invalid email or password. Please verify and try again.');
-          return;
-        }
-      }
-
-      // 2. Fallback to client storage if MongoDB is not connected or offline
-      const user = loginUser(emailInput, passwordInput);
-      if (!user) {
-        setError('Invalid email or password. If you are new, please sign up and verify your email.');
+      if (!mongoResult.success || !mongoResult.user) {
+        setError(mongoResult.error || 'Invalid email or password. If you are new, please sign up and verify your email.');
         return;
       }
-
-      onLoginSuccess(user);
+      onLoginSuccess(mongoResult.user);
       onClose();
     } catch (err: any) {
-      // Offline fallback
-      const user = loginUser(emailInput, passwordInput);
-      if (user) {
-        onLoginSuccess(user);
-        onClose();
-      } else {
-        setError('Login failed. Please check your credentials.');
-      }
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
       setIsLoggingIn(false);
     }

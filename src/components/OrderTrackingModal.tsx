@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { X, Search, CheckCircle2, Clock, Truck, XCircle, PackageCheck, MapPin, Calendar, Phone, ArrowRight, MessageCircle } from 'lucide-react';
 import { Order, OrderStatus, StoreSettings, UserAccount } from '../types';
+import { apiLookupOrder } from '../services/api';
 
 interface OrderTrackingModalProps {
   isOpen: boolean;
@@ -36,22 +37,27 @@ export default function OrderTrackingModal({
     return orders[0] || null;
   });
 
+  useEffect(() => {
+    if (!isOpen || !preselectedOrderId) return;
+    const local = orders.find((o) => o.orderNumber === preselectedOrderId || o.id === preselectedOrderId);
+    if (local) { setSelectedOrder(local); return; }
+    apiLookupOrder(preselectedOrderId).then((result) => {
+      if (result.success && result.order) setSelectedOrder(result.order);
+    });
+  }, [isOpen, preselectedOrderId, orders]);
+
   if (!isOpen) return null;
 
-  const handleSearch = (e: FormEvent) => {
+  const handleSearch = async (e: FormEvent) => {
     e.preventDefault();
-    const query = searchQuery.trim().toLowerCase();
+    const query = searchQuery.trim();
     if (!query) return;
 
-    const matched = orders.find(
-      (o) =>
-        o.orderNumber.toLowerCase() === query ||
-        o.id.toLowerCase() === query ||
-        o.customer.phone.replace(/\D/g, '').includes(query.replace(/\D/g, '')) ||
-        o.customer.email.toLowerCase() === query
-    );
+    const localMatch = orders.find((o) => o.orderNumber.toLowerCase() === query.toLowerCase() || o.id.toLowerCase() === query.toLowerCase());
+    if (localMatch) { setSelectedOrder(localMatch); return; }
 
-    setSelectedOrder(matched || null);
+    const result = await apiLookupOrder(query);
+    setSelectedOrder(result.success && result.order ? result.order : null);
   };
 
   // Find user-related orders if logged in

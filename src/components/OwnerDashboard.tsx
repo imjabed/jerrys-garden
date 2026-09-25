@@ -33,7 +33,6 @@ import {
 } from 'lucide-react';
 import { Order, OrderStatus, RibbonBouquet, StoreSettings, UserAccount } from '../types';
 import { isCloudinaryUrl } from '../services/cloudinary';
-import { getStoredUsers } from '../services/storage';
 import {
   checkMongoStatus,
   syncDataToMongo,
@@ -97,24 +96,12 @@ export default function OwnerDashboard({
         console.warn('Could not check MongoDB status:', err);
       }
 
-      // 2. Fetch customers
+      // 2. Fetch customers from the authenticated owner API only
       try {
         const res = await apiGetCustomers();
-        const localUsers = getStoredUsers();
-        if (res.connected && res.customers.length > 0) {
-          // Merge with any local users
-          const merged = [...res.customers];
-          for (const u of localUsers) {
-            if (!merged.some((m) => m.email.toLowerCase() === u.email.toLowerCase())) {
-              merged.push(u);
-            }
-          }
-          setCustomers(merged);
-        } else {
-          setCustomers(localUsers);
-        }
+        setCustomers(res.connected ? res.customers : []);
       } catch {
-        setCustomers(getStoredUsers());
+        setCustomers([]);
       }
     };
 

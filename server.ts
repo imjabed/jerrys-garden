@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { v2 as cloudinary } from 'cloudinary';
@@ -17,13 +18,87 @@ import {
   mongoSaveBouquet,
   mongoDeleteBouquet,
   mongoGetOrders,
+  mongoFindOrderForCustomer,
   mongoCreateOrder,
+  getMongoDb,
   mongoUpdateOrderStatus,
   mongoGetSettings,
   mongoUpdateSettings,
 } from './server/mongodb.js';
 
 dotenv.config();
+
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+const AUTH_SECRET = process.env.AUTH_SECRET || '';
+const isProduction = process.env.NODE_ENV === 'production';
+const OWNER_COOKIE = 'jg_owner_session';
+const CUSTOMER_COOKIE = 'jg_customer_session';
+const CLIENT_HEADER = 'x-jg-client';
+
+if (!AUTH_SECRET) {
+  console.warn('[Security] AUTH_SECRET is not configured. Admin/customer authentication will be unavailable until it is set.');
+}
+
+function base64Url(value: string) {
+  return Buffer.from(value).toString('base64url');
+}
+
+function signToken(payload: Record<string, unknown>, ttlSeconds: number) {
+  if (!AUTH_SECRET) throw new Error('AUTH_SECRET is not configured');
+  const body = base64Url(JSON.stringify({ ...payload, exp: Math.floor(Date.now() / 1000) + ttlSeconds }));
+  const sig = crypto.createHmac('sha256', AUTH_SECRET).update(body).digest('base64url');
+  return `${body}.${sig}`;
+}
+
+function verifyToken(token: string | undefined) {
+  if (!token || !AUTH_SECRET) return null;
+  const [body, sig] = token.split('.');
+  if (!body || !sig) return null;
+  const expected = crypto.createHmac('sha256', AUTH_SECRET).update(body).digest('base64url');
+  if (sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
+    return payload as { role: string; email?: string; exp: number; verified?: boolean };
+  } catch {
+    return null;
+  }
+}
+
+function parseCookies(req: express.Request) {
+  const raw = req.headers.cookie || '';
+  return Object.fromEntries(raw.split(';').map(v => v.trim()).filter(Boolean).map(v => {
+    const i = v.indexOf('=');
+    return i === -1 ? [v, ''] : [v.slice(0, i), decodeURIComponent(v.slice(i + 1))];
+  }));
+}
+
+function setAuthCookie(res: express.Response, name: string, token: string, maxAgeSeconds: number) {
+  const sameSite = isProduction ? 'SameSite=None; Secure' : 'SameSite=Lax';
+  res.setHeader('Set-Cookie', `${name}=${encodeURIComponent(token)}; Path=/; HttpOnly; Max-Age=${maxAgeSeconds}; ${sameSite}`);
+}
+
+function clearAuthCookie(res: express.Response, name: string) {
+  const sameSite = isProduction ? 'SameSite=None; Secure' : 'SameSite=Lax';
+  res.setHeader('Set-Cookie', `${name}=; Path=/; HttpOnly; Max-Age=0; ${sameSite}`);
+}
+
+function requireClientHeader(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (req.headers[CLIENT_HEADER] !== '1') return res.status(403).json({ success: false, error: 'Invalid client request.' });
+  next();
+}
+
+function requireOwner(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const token = parseCookies(req)[OWNER_COOKIE];
+  const auth = verifyToken(token);
+  if (!auth || auth.role !== 'owner') return res.status(401).json({ success: false, error: 'Owner authentication required.' });
+  next();
+}
+
+function getCustomerAuth(req: express.Request) {
+  return verifyToken(parseCookies(req)[CUSTOMER_COOKIE]);
+}
 
 // Configure Cloudinary using environment variables only (no hardcoded credentials)
 const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || '';
@@ -94,6 +169,18 @@ interface OtpRecord {
   attempts: number;
 }
 const otpStore = new Map<string, OtpRecord>();
+const otpRequestLog = new Map<string, number[]>();
+const otpIpLog = new Map<string, number[]>();
+const loginAttemptLog = new Map<string, number[]>();
+
+function allowLoginAttempt(ip: string, max = 10) {
+  const now = Date.now();
+  const recent = (loginAttemptLog.get(ip) || []).filter(t => now - t < 15 * 60 * 1000);
+  if (recent.length >= max) return false;
+  recent.push(now);
+  loginAttemptLog.set(ip, recent);
+  return true;
+}
 
 async function startServer() {
 
@@ -125,8 +212,10 @@ async function startServer() {
     );
     res.header(
       'Access-Control-Allow-Headers',
-      'Content-Type, Authorization'
+      'Content-Type, Authorization, X-JG-Client'
     );
+
+    res.header('Access-Control-Allow-Credentials', 'true');
 
     if (req.method === 'OPTIONS') {
       return res.sendStatus(204);
@@ -136,15 +225,16 @@ async function startServer() {
   });
 
   // Body parsing for base64 uploads (up to 30mb)
-  app.use(express.json({ limit: '30mb' }));
+  app.use(express.json({ limit: '10mb' }));
 
-  app.use(express.urlencoded({ extended: true, limit: '30mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
   // API Health check
   app.get('/api/health', (req, res) => {
     res.json({
       status: 'ok',
       service: "Jerry's Garden Bouquet API",
+      auth: { ownerConfigured: Boolean(ADMIN_EMAIL && ADMIN_PASSWORD && AUTH_SECRET) },
       cloudinary: {
         configured: Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET),
       },
@@ -155,7 +245,7 @@ async function startServer() {
   });
 
   // Cloudinary Upload API endpoint
-  app.post('/api/upload-image', async (req, res) => {
+  app.post('/api/upload-image', requireOwner, requireClientHeader, async (req, res) => {
     try {
       if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
         return res.status(500).json({
@@ -165,14 +255,13 @@ async function startServer() {
       }
 
       const { image, folder } = req.body;
-      if (!image) {
-        return res.status(400).json({ success: false, error: 'No image data provided' });
-      }
+      if (!image || typeof image !== 'string') return res.status(400).json({ success: false, error: 'No image data provided' });
+      if (image.length > 7 * 1024 * 1024) return res.status(413).json({ success: false, error: 'Image is too large. Maximum size is 5 MB.' });
+      if (!/^data:image\/(jpeg|jpg|png|webp);base64,/i.test(image)) return res.status(400).json({ success: false, error: 'Only JPEG, PNG and WebP images are allowed.' });
 
-      // Upload directly to Cloudinary using Cloudinary SDK
       const uploadResponse = await cloudinary.uploader.upload(image, {
-        folder: folder || 'jerrys_garden_bouquets',
-        resource_type: 'auto',
+        folder: 'jerrys_garden_bouquets',
+        resource_type: 'image',
       });
 
       console.log('Successfully uploaded image to Cloudinary:', uploadResponse.secure_url);
@@ -194,6 +283,32 @@ async function startServer() {
     }
   });
 
+  // Owner authentication
+  app.post('/api/admin/login', requireClientHeader, (req, res) => {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const password = String(req.body?.password || '');
+    if (!allowLoginAttempt(String(req.ip || 'unknown'), 8)) return res.status(429).json({ success: false, error: 'Too many login attempts. Please try again later.' });
+    if (!ADMIN_EMAIL || !ADMIN_PASSWORD || !AUTH_SECRET) {
+      return res.status(503).json({ success: false, error: 'Owner authentication is not configured on the server.' });
+    }
+    if (!email || !password || email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+      return res.status(401).json({ success: false, error: 'Invalid owner credentials.' });
+    }
+    const token = signToken({ role: 'owner', email }, 60 * 60 * 12);
+    setAuthCookie(res, OWNER_COOKIE, token, 60 * 60 * 12);
+    return res.json({ success: true, user: { email } });
+  });
+
+  app.get('/api/admin/session', (req, res) => {
+    const auth = verifyToken(parseCookies(req)[OWNER_COOKIE]);
+    return res.json({ authenticated: Boolean(auth?.role === 'owner'), email: auth?.email || null });
+  });
+
+  app.post('/api/admin/logout', requireClientHeader, (req, res) => {
+    clearAuthCookie(res, OWNER_COOKIE);
+    return res.json({ success: true });
+  });
+
   // OTP Email Verification Endpoints
   // 1. Send OTP to customer's email address
   app.post('/api/send-otp', async (req, res) => {
@@ -211,9 +326,22 @@ async function startServer() {
       }
 
       const normalizedEmail = email.trim().toLowerCase();
-      
-      // Generate 6-digit verification code
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      if (normalizedEmail.length > 254) return res.status(400).json({ success: false, error: 'Invalid email address.' });
+      const nowMs = Date.now();
+      const ipKey = String(req.ip || req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
+      const recentIp = (otpIpLog.get(ipKey) || []).filter(t => nowMs - t < 15 * 60 * 1000);
+      if (recentIp.length >= 10) return res.status(429).json({ success: false, error: 'Too many verification requests from this network. Please try again later.' });
+      recentIp.push(nowMs);
+      otpIpLog.set(ipKey, recentIp);
+      const recent = (otpRequestLog.get(normalizedEmail) || []).filter(t => nowMs - t < 15 * 60 * 1000);
+      if (recent.length >= 3) return res.status(429).json({ success: false, error: 'Too many verification requests. Please try again later.' });
+      recent.push(nowMs);
+      otpRequestLog.set(normalizedEmail, recent);
+      if (otpStore.has(normalizedEmail) && nowMs - (otpStore.get(normalizedEmail)!.expiresAt - 10 * 60 * 1000) < 60 * 1000) {
+        return res.status(429).json({ success: false, error: 'Please wait 60 seconds before requesting another code.' });
+      }
+      // Generate a cryptographically secure 6-digit verification code
+      const code = crypto.randomInt(100000, 1000000).toString();
       const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
 
       otpStore.set(normalizedEmail, {
@@ -329,9 +457,11 @@ async function startServer() {
 
       // Verification successful! Clean up record
       otpStore.delete(normalizedEmail);
+      const verificationToken = signToken({ role: 'otp', email: normalizedEmail, verified: true }, 15 * 60);
       return res.json({
         success: true,
         message: 'Email verified successfully!',
+        verificationToken,
       });
     } catch (error: any) {
       console.error('[JericasGarden] Error verifying OTP:', error);
@@ -343,274 +473,213 @@ async function startServer() {
   });
 
   // ==========================================
-  // MongoDB Atlas Database Endpoints
+  // MongoDB / admin-only operations
   // ==========================================
 
-  // 1. Connection status & diagnostics
-  app.get('/api/mongodb/status', async (req, res) => {
-    try {
-      const status = await getMongoStatus();
-      return res.json(status);
-    } catch (err: any) {
-      return res.status(500).json({
-        configured: false,
-        connected: false,
-        error: err.message,
-      });
-    }
+  app.get('/api/mongodb/status', requireOwner, async (req, res) => {
+    try { return res.json(await getMongoStatus()); }
+    catch (err: any) { return res.status(500).json({ configured: false, connected: false, error: err.message }); }
   });
 
-  // 2. Build Collections & Schema (customers, Customerinfo, products, bouquets, orders, settings)
-  app.post('/api/mongodb/build-collections', async (req, res) => {
+  // Development/database maintenance endpoints are owner-only.
+  app.post('/api/mongodb/build-collections', requireOwner, requireClientHeader, async (req, res) => {
     try {
-      const { customers, bouquets, orders, settings } = req.body || {};
-      const results = await buildCollections({
-        customers,
-        bouquets,
-        orders,
-        settings,
-      });
-      return res.json({
-        success: true,
-        message: 'Collections (customers, Customerinfo, products, bouquets, orders, settings) built successfully.',
-        results,
-      });
-    } catch (err: any) {
-      console.error('Failed to build MongoDB collections:', err);
-      return res.status(500).json({
-        success: false,
-        error: err.message || 'Failed to build collections',
-      });
-    }
+      const results = await buildCollections(req.body || {});
+      return res.json({ success: true, message: 'Collections verified successfully.', results });
+    } catch (err: any) { return res.status(500).json({ success: false, error: err.message || 'Failed to build collections' }); }
   });
 
-  // Dedicated endpoint: Build collections for Customers and Products
-  app.post('/api/mongodb/build-customers-products', async (req, res) => {
+  app.post('/api/mongodb/build-customers-products', requireOwner, requireClientHeader, async (req, res) => {
     try {
-      const { customers, products, bouquets } = req.body || {};
-      const results = await buildCollectionsForCustomersAndProducts({
-        customers,
-        products,
-        bouquets,
-      });
-      return res.json({
-        success: true,
-        message: 'Collections for customers and products successfully built and verified in MongoDB Atlas.',
-        results,
-      });
-    } catch (err: any) {
-      console.error('Failed to build customers and products collections:', err);
-      return res.status(500).json({
-        success: false,
-        error: err.message || 'Failed to build customers and products collections',
-      });
-    }
+      const results = await buildCollectionsForCustomersAndProducts(req.body || {});
+      return res.json({ success: true, message: 'Collections verified successfully.', results });
+    } catch (err: any) { return res.status(500).json({ success: false, error: err.message || 'Failed to build collections' }); }
   });
 
-  // 3. Update MongoDB URI dynamically from Dashboard
-  app.post('/api/mongodb/config', async (req, res) => {
+  app.post('/api/mongodb/config', requireOwner, requireClientHeader, async (req, res) => {
+    // Intentionally retained for the existing dashboard, but now owner-only.
     try {
       const { uri, database } = req.body || {};
-      if (uri) {
-        setCustomMongoUri(uri, database);
-      }
-      const status = await getMongoStatus();
-      return res.json({
-        success: true,
-        message: 'MongoDB configuration updated.',
-        status,
-      });
-    } catch (err: any) {
-      return res.status(500).json({
-        success: false,
-        error: err.message || 'Failed to update MongoDB config',
-      });
-    }
+      if (!uri || typeof uri !== 'string' || !uri.startsWith('mongodb')) return res.status(400).json({ success: false, error: 'A valid MongoDB URI is required.' });
+      setCustomMongoUri(uri, database);
+      return res.json({ success: true, message: 'MongoDB configuration updated.', status: await getMongoStatus() });
+    } catch (err: any) { return res.status(500).json({ success: false, error: err.message || 'Failed to update MongoDB configuration' }); }
   });
 
-  // 4. Seed / Sync Data (Customers, Bouquets, Orders, Settings)
-  app.post('/api/mongodb/seed', async (req, res) => {
+  app.post('/api/mongodb/seed', requireOwner, requireClientHeader, async (req, res) => {
     try {
-      const { customers, bouquets, orders, settings } = req.body;
-      const results = await seedMongoCollections({
-        customers,
-        bouquets,
-        orders,
-        settings,
-      });
-      return res.json({
-        success: true,
-        message: 'Data successfully synchronized with MongoDB Atlas.',
-        results,
-      });
-    } catch (err: any) {
-      console.error('Failed to sync data with MongoDB Atlas:', err);
-      return res.status(500).json({
-        success: false,
-        error: err.message || 'Failed to sync with MongoDB Atlas',
-      });
-    }
+      const results = await seedMongoCollections(req.body || {});
+      return res.json({ success: true, message: 'Data synchronized with MongoDB.', results });
+    } catch (err: any) { return res.status(500).json({ success: false, error: err.message || 'Failed to sync with MongoDB' }); }
   });
 
-  // 3. Customers Endpoints
-  app.get('/api/customers', async (req, res) => {
+  // Customers: only owner can list customers. Registration/login are public.
+  app.get('/api/customers', requireOwner, async (req, res) => {
     try {
       const customers = await mongoGetCustomers();
-      if (customers === null) {
-        return res.json({ success: false, connected: false, customers: [] });
-      }
+      if (customers === null) return res.status(503).json({ success: false, connected: false, customers: [] });
       return res.json({ success: true, connected: true, customers });
-    } catch (err: any) {
-      return res.status(500).json({ success: false, error: err.message });
-    }
+    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
   });
 
-  app.post('/api/customers/register', async (req, res) => {
+  app.post('/api/customers/register', requireClientHeader, async (req, res) => {
     try {
-      const { name, email, phone, address, password, isVerified, id } = req.body;
-      if (!name || !email) {
-        return res.status(400).json({ success: false, error: 'Name and email are required.' });
-      }
-
-      const saved = await mongoSaveCustomer({
-        id,
-        name,
-        email,
-        phone,
-        address,
-        password,
-        isVerified: isVerified !== undefined ? isVerified : true,
-      });
-
-      if (!saved) {
-        return res.json({
-          success: true,
-          connected: false,
-          message: 'Saved in client session (MongoDB Atlas not configured or offline).',
-          user: { id: id || `usr-${Date.now()}`, name, email, phone, address, isVerified: true },
-        });
-      }
-
+      const { name, email, phone, address, password, verificationToken } = req.body || {};
+      if (!name || !email || !phone || !password || typeof verificationToken !== 'string') return res.status(400).json({ success: false, error: 'Name, email, phone, password and email verification are required.' });
+      const otpAuth = verifyToken(verificationToken);
+      const normalizedEmail = String(email).trim().toLowerCase();
+      if (!otpAuth || otpAuth.role !== 'otp' || !otpAuth.verified || otpAuth.email !== normalizedEmail) return res.status(401).json({ success: false, error: 'Email verification is required before creating the account.' });
+      if (String(password).length < 6) return res.status(400).json({ success: false, error: 'Password must be at least 6 characters.' });
+      const saved = await mongoSaveCustomer({ name: String(name).trim(), email: normalizedEmail, phone: String(phone).trim(), address: String(address || '').trim(), password, isVerified: true });
+      if (!saved) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable. Please try again.' });
+      const token = signToken({ role: 'customer', email: normalizedEmail }, 60 * 60 * 24 * 30);
+      setAuthCookie(res, CUSTOMER_COOKIE, token, 60 * 60 * 24 * 30);
       return res.json({ success: true, connected: true, user: saved });
     } catch (err: any) {
-      console.error('Customer registration error:', err);
+      if (err?.code === 11000) return res.status(409).json({ success: false, error: 'An account with this email already exists.' });
       return res.status(500).json({ success: false, error: err.message });
     }
   });
 
-  app.post('/api/customers/login', async (req, res) => {
+  app.post('/api/customers/login', requireClientHeader, async (req, res) => {
     try {
-      const { email, password } = req.body;
-      if (!email) {
-        return res.status(400).json({ success: false, error: 'Email is required.' });
-      }
-
+      const email = String(req.body?.email || '').trim().toLowerCase();
+      const password = String(req.body?.password || '');
+      if (!allowLoginAttempt(String(req.ip || 'unknown'), 10)) return res.status(429).json({ success: false, error: 'Too many login attempts. Please try again later.' });
+      if (!email || !password) return res.status(400).json({ success: false, error: 'Email and password are required.' });
       const verification = await mongoVerifyCustomerLogin(email, password);
-      if (verification === null) {
-        // MongoDB not connected - notify frontend to verify against client storage
-        return res.json({
-          success: false,
-          connected: false,
-          fallbackToClient: true,
-        });
-      }
-
-      if (!verification.success) {
-        return res.status(401).json({
-          success: false,
-          connected: true,
-          error: verification.reason === 'NOT_FOUND' ? 'No account found with this email.' : 'Incorrect password.',
-        });
-      }
-
-      return res.json({
-        success: true,
-        connected: true,
-        user: verification.user,
-      });
-    } catch (err: any) {
-      console.error('Customer login error:', err);
-      return res.status(500).json({ success: false, error: err.message });
-    }
+      if (verification === null) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable. Please try again.' });
+      if (!verification.success) return res.status(401).json({ success: false, connected: true, error: verification.reason === 'NOT_FOUND' ? 'No account found with this email.' : 'Incorrect password.' });
+      const token = signToken({ role: 'customer', email }, 60 * 60 * 24 * 30);
+      setAuthCookie(res, CUSTOMER_COOKIE, token, 60 * 60 * 24 * 30);
+      return res.json({ success: true, connected: true, user: verification.user });
+    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
   });
 
-  // 4. Bouquets Endpoints
+  app.post('/api/customers/logout', requireClientHeader, (req, res) => { clearAuthCookie(res, CUSTOMER_COOKIE); return res.json({ success: true }); });
+
+  // Public catalogue read; writes require owner auth.
   app.get('/api/bouquets', async (req, res) => {
     try {
       const bouquets = await mongoGetBouquets();
-      if (bouquets === null) {
-        return res.json({ success: false, connected: false, bouquets: [] });
-      }
+      if (bouquets === null) return res.status(503).json({ success: false, connected: false, bouquets: [] });
       return res.json({ success: true, connected: true, bouquets });
-    } catch (err: any) {
-      return res.status(500).json({ success: false, error: err.message });
-    }
+    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
   });
 
-  app.post('/api/bouquets', async (req, res) => {
+  app.post('/api/bouquets', requireOwner, requireClientHeader, async (req, res) => {
     try {
       const bouquet = req.body;
-      if (!bouquet || !bouquet.id || !bouquet.title) {
-        return res.status(400).json({ success: false, error: 'Valid bouquet data is required.' });
-      }
-
+      if (!bouquet || !bouquet.id || !bouquet.title || typeof bouquet.price !== 'number' || bouquet.price < 0) return res.status(400).json({ success: false, error: 'Valid bouquet data is required.' });
       const saved = await mongoSaveBouquet(bouquet);
-      return res.json({ success: true, connected: saved !== null, bouquet: saved || bouquet });
-    } catch (err: any) {
-      return res.status(500).json({ success: false, error: err.message });
-    }
+      if (!saved) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable.' });
+      return res.json({ success: true, connected: true, bouquet: saved });
+    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
   });
 
-  app.delete('/api/bouquets/:id', async (req, res) => {
+  app.delete('/api/bouquets/:id', requireOwner, requireClientHeader, async (req, res) => {
     try {
-      const { id } = req.params;
-      const deleted = await mongoDeleteBouquet(id);
-      return res.json({ success: true, connected: deleted !== null, deleted });
-    } catch (err: any) {
-      return res.status(500).json({ success: false, error: err.message });
-    }
+      const deleted = await mongoDeleteBouquet(req.params.id);
+      if (deleted === null) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable.' });
+      return res.json({ success: true, connected: true, deleted });
+    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
   });
 
-  // 5. Orders Endpoints
-  app.get('/api/orders', async (req, res) => {
+  // Owner-only full order list.
+  app.get('/api/orders', requireOwner, async (req, res) => {
     try {
       const orders = await mongoGetOrders();
-      if (orders === null) {
-        return res.json({ success: false, connected: false, orders: [] });
-      }
+      if (orders === null) return res.status(503).json({ success: false, connected: false, orders: [] });
       return res.json({ success: true, connected: true, orders });
-    } catch (err: any) {
-      return res.status(500).json({ success: false, error: err.message });
-    }
+    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
   });
 
-  app.post('/api/orders', async (req, res) => {
+  // Safe customer tracking. Guest users must provide an order number; logged-in customers may access their own orders.
+  app.post('/api/orders/lookup', requireClientHeader, async (req, res) => {
     try {
-      const order = req.body;
-      if (!order || !order.id || !order.customer) {
-        return res.status(400).json({ success: false, error: 'Valid order data is required.' });
-      }
+      if (!allowLoginAttempt(`lookup:${String(req.ip || 'unknown')}`, 30)) return res.status(429).json({ success: false, error: 'Too many tracking requests. Please try again later.' });
+      const query = String(req.body?.orderNumber || '').trim();
+      if (!query) return res.status(400).json({ success: false, error: 'Order number is required.' });
+      const auth = getCustomerAuth(req);
+      const order = await mongoFindOrderForCustomer(query, auth?.role === 'customer' ? auth.email : undefined);
+      if (!order) return res.status(404).json({ success: false, error: 'Order not found or access denied.' });
+      return res.json({ success: true, order });
+    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+  });
 
+  // Authoritative order creation: server calculates product prices, fees and IDs.
+  app.post('/api/orders', requireClientHeader, async (req, res) => {
+    try {
+      if (!allowLoginAttempt(`order:${String(req.ip || 'unknown')}`, 20)) return res.status(429).json({ success: false, error: 'Too many order attempts. Please try again later.' });
+      const body = req.body || {};
+      const rawItems = Array.isArray(body.items) ? body.items : [];
+      if (!rawItems.length) return res.status(400).json({ success: false, error: 'Your cart is empty.' });
+      const c = body.customer || {};
+      const required = ['fullName', 'email', 'phone', 'deliveryAddress', 'city', 'pincode', 'deliveryDate'];
+      for (const key of required) if (!String(c[key] || '').trim()) return res.status(400).json({ success: false, error: `Customer ${key} is required.` });
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(c.email).trim())) return res.status(400).json({ success: false, error: 'A valid customer email is required.' });
+      if (!/^\d{6}$/.test(String(c.pincode).replace(/\s/g, ''))) return res.status(400).json({ success: false, error: 'A valid 6-digit pincode is required.' });
+      const settings = await mongoGetSettings();
+      const deliveryThreshold = Number(settings?.freeDeliveryThreshold ?? 499);
+      const configuredDeliveryFee = Number(settings?.deliveryFee ?? 50);
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, error: 'Orders are temporarily unavailable. Please try again in a moment.' });
+      const normalizedItems: any[] = [];
+      for (const raw of rawItems) {
+        const id = String(raw?.bouquet?.id || raw?.productId || '').trim();
+        const quantity = Number(raw?.quantity);
+        if (!id || !Number.isInteger(quantity) || quantity < 1 || quantity > 20) return res.status(400).json({ success: false, error: 'Invalid cart item or quantity.' });
+        if (id.startsWith('custom-bouq-')) {
+          normalizedItems.push({ bouquet: { ...(raw.bouquet || {}), id, price: 899 }, quantity });
+          continue;
+        }
+        const product = await database.collection('bouquets').findOne({ id });
+        if (!product) return res.status(400).json({ success: false, error: `A selected bouquet is no longer available.` });
+        if (product.inStock === false) return res.status(409).json({ success: false, error: `${product.title || 'A selected bouquet'} is currently out of stock.` });
+        normalizedItems.push({ bouquet: product, quantity });
+      }
+      const subtotal = normalizedItems.reduce((sum, item) => sum + Number(item.bouquet.price || 0) * item.quantity, 0);
+      const deliveryFee = subtotal >= deliveryThreshold ? 0 : configuredDeliveryFee;
+      const isCOD = body.payment?.method === 'COD';
+      const codHandlingCharge = isCOD ? 7 : 0;
+      const totalAmount = subtotal + deliveryFee + codHandlingCharge;
+      const now = new Date().toISOString();
+      const id = `ord-${crypto.randomUUID()}`;
+      const orderNumber = `JG-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
+      const customerAuth = getCustomerAuth(req);
+      const safeCustomer = {
+        fullName: String(c.fullName).trim().slice(0, 120), email: String(c.email).trim().toLowerCase().slice(0, 254), phone: String(c.phone).trim().slice(0, 30),
+        deliveryAddress: String(c.deliveryAddress).trim().slice(0, 500), city: String(c.city).trim().slice(0, 100), pincode: String(c.pincode).replace(/\s/g, ''),
+        deliveryDate: String(c.deliveryDate).trim(), deliveryTimeSlot: String(c.deliveryTimeSlot || '').slice(0, 100), specialInstructions: String(c.specialInstructions || '').slice(0, 500), giftNote: String(c.giftNote || '').slice(0, 500),
+      };
+      const paymentMethod = isCOD ? 'COD' : 'ONLINE';
+      const order = {
+        id, orderNumber, createdAt: now, updatedAt: now, status: 'Order Placed', items: normalizedItems, subtotal, deliveryFee, codHandlingCharge, totalAmount,
+        customer: safeCustomer,
+        customerEmail: customerAuth?.role === 'customer' ? customerAuth.email : safeCustomer.email,
+        payment: {
+          method: paymentMethod,
+          upiIdUsed: paymentMethod === 'ONLINE' ? String(settings?.upiId || '') : undefined,
+          transactionRef: paymentMethod === 'ONLINE' ? String(body.payment?.transactionRef || '').replace(/\D/g, '').slice(0, 50) : 'Cash on Delivery (Pending)',
+          paymentStatus: paymentMethod === 'COD' ? 'Pending on Delivery' : 'Awaiting Confirmation',
+          paidAt: '',
+        },
+      };
       const saved = await mongoCreateOrder(order);
-      return res.json({ success: true, connected: saved !== null, order: saved || order });
-    } catch (err: any) {
-      return res.status(500).json({ success: false, error: err.message });
-    }
+      if (!saved) return res.status(503).json({ success: false, error: 'Order could not be saved. Please try again.' });
+      return res.status(201).json({ success: true, connected: true, order: saved });
+    } catch (err: any) { console.error('Order creation error:', err); return res.status(500).json({ success: false, error: 'Could not place your order. Please try again.' }); }
   });
 
-  app.patch('/api/orders/:id/status', async (req, res) => {
+  app.patch('/api/orders/:id/status', requireOwner, requireClientHeader, async (req, res) => {
     try {
-      const { id } = req.params;
-      const { status } = req.body;
-      if (!status) {
-        return res.status(400).json({ success: false, error: 'Order status is required.' });
-      }
-
-      const updated = await mongoUpdateOrderStatus(id, status);
-      return res.json({ success: true, connected: updated !== null, order: updated });
-    } catch (err: any) {
-      return res.status(500).json({ success: false, error: err.message });
-    }
+      const allowed = new Set(['Order Placed', 'Pending', 'Delivered', 'Cancelled']);
+      const status = String(req.body?.status || '');
+      if (!allowed.has(status)) return res.status(400).json({ success: false, error: 'Invalid order status.' });
+      const updated = await mongoUpdateOrderStatus(req.params.id, status);
+      if (!updated) return res.status(404).json({ success: false, error: 'Order not found.' });
+      return res.json({ success: true, connected: true, order: updated });
+    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
   });
 
   // 6. Settings Endpoints
@@ -623,7 +692,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/settings', async (req, res) => {
+  app.post('/api/settings', requireOwner, requireClientHeader, async (req, res) => {
     try {
       const settings = req.body;
       const saved = await mongoUpdateSettings(settings);
@@ -650,14 +719,6 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
-    // Automatically build & verify collections for customers and products in MongoDB Atlas
-    buildCollectionsForCustomersAndProducts()
-      .then((res) => {
-        console.log(`[MongoDB Atlas] Auto-initialized: ${res.message} (customers: ${res.counts.customers}, products: ${res.counts.products})`);
-      })
-      .catch((err) => {
-        console.warn(`[MongoDB Atlas] Note on initial collection build:`, err.message);
-      });
   });
 }
 
