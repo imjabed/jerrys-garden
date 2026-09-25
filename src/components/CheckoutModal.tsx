@@ -156,11 +156,11 @@ export default function CheckoutModal({
   )}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent("Jerry's Garden Bouquet Order")}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-hidden animate-in fade-in duration-200">
+      <div className="relative w-full max-w-2xl max-h-[calc(100vh-2rem)] bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden my-8 flex flex-col">
         
         {/* Header */}
-        <div className="p-6 bg-gradient-to-r from-rose-50/80 via-white to-amber-50/60 border-b border-stone-200 flex items-center justify-between">
+        <div className="sticky top-0 z-20 shrink-0 p-6 bg-gradient-to-r from-rose-50/80 via-white to-amber-50/60 border-b border-stone-200 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-rose-700">
               <Sparkles className="w-3.5 h-3.5 text-rose-500" />
@@ -215,7 +215,7 @@ export default function CheckoutModal({
         </div>
 
         {/* Body content */}
-        <div className="p-6 sm:p-8">
+        <div className="p-6 sm:p-8 overflow-y-auto">
           
           {/* STEP 1: CUSTOMER & DELIVERY DETAILS */}
           {step === 'details' && (
