@@ -4,6 +4,13 @@
  * which interfaces with Cloudinary using configured server-side environment variables.
  */
 
+const API_URL = (
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+    ? 'https://jerrys-garden.onrender.com'
+    : 'http://localhost:3000')
+).replace(/\/$/, '');
+
 export interface CloudinaryUploadResult {
   url: string;
   publicId?: string;
@@ -26,7 +33,7 @@ export async function uploadImageToCloudinary(
     base64Image = await readFileAsDataUrl(fileOrBase64);
   }
 
-  const response = await fetch('/api/upload-image', {
+  const response = await fetch(`${API_URL}/api/upload-image`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

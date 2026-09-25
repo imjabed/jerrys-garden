@@ -20,7 +20,12 @@ import { UserAccount } from '../types';
 import { registerUser, loginUser, OWNER_CREDENTIALS, verifyAndLoginOwner } from '../services/storage';
 import { apiRegisterCustomer, apiLoginCustomer } from '../services/api';
 
-const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const API_URL = (
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+    ? 'https://jerrys-garden.onrender.com'
+    : 'http://localhost:3000')
+).replace(/\/$/, '');
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -77,7 +82,7 @@ export default function AuthModal({
 
   if (!isOpen) return null;
 
-  // Send real OTP to user's email via backend Gmail SMTP service
+  // Send real OTP to user's email via the backend email API
   const handleSendOtp = async (targetEmail: string, targetName: string) => {
     setError('');
     setIsSendingOtp(true);

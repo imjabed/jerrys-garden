@@ -2,7 +2,6 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { v2 as cloudinary } from 'cloudinary';
-import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import {
   getMongoStatus,
@@ -40,36 +39,49 @@ if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET) {
   });
 }
 
-// Configure Nodemailer with SMTP credentials from environment variables only (no hardcoded credentials)
-const SMTP_EMAIL = process.env.SMTP_EMAIL || '';
-const SMTP_APP_PASSWORD = (process.env.SMTP_APP_PASSWORD || '').replace(/\s+/g, '');
-const SMTP_FROM_NAME = process.env.SMTP_FROM_NAME || "Jerry's Garden";
+// Email delivery uses Resend's HTTPS API instead of SMTP so it works on Render Free.
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+const RESEND_FROM_NAME = process.env.RESEND_FROM_NAME || "Jerry's Garden";
 
-let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
-function getTransporter() {
-  if (!SMTP_EMAIL || !SMTP_APP_PASSWORD) {
-    throw new Error('SMTP email credentials are not configured. Please set SMTP_EMAIL and SMTP_APP_PASSWORD in your .env file.');
+async function sendEmailWithResend({
+  to,
+  subject,
+  html,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+}) {
+  if (!RESEND_API_KEY) {
+    throw new Error('Email verification service is not configured. Please set RESEND_API_KEY in the Render environment variables.');
   }
-  if (!transporter) {
-  transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    requireTLS: true,
 
-    family: 4,
-
-    auth: {
-      user: SMTP_EMAIL,
-      pass: SMTP_APP_PASSWORD,
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${RESEND_API_KEY}`,
     },
-
-    connectionTimeout: 30000,
-    greetingTimeout: 30000,
-    socketTimeout: 60000,
+    body: JSON.stringify({
+      from: `${RESEND_FROM_NAME} <${RESEND_FROM_EMAIL}>`,
+      to: [to],
+      subject,
+      html,
+    }),
   });
-    }
-  return transporter;
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      data?.message ||
+      data?.error?.message ||
+      `Email API returned HTTP ${response.status}`;
+    throw new Error(message);
+  }
+
+  return data;
 }
 
 // In-memory OTP storage (10-minute validity)
@@ -87,10 +99,14 @@ async function startServer() {
 
   // Allow the Vercel frontend to call this Render backend.
   // Add FRONTEND_URL in Render Environment Variables.
-  const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'https://jerrys-garden.vercel.app',
+    ...(process.env.FRONTEND_URL || '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  ].map((origin) => origin.replace(/\/$/, ''));
 
   app.use((req, res, next) => {
     const origin = req.headers.origin;
@@ -128,6 +144,9 @@ async function startServer() {
       service: "Jerry's Garden Bouquet API",
       cloudinary: {
         configured: Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET),
+      },
+      email: {
+        configured: Boolean(RESEND_API_KEY),
       },
     });
   });
@@ -176,10 +195,10 @@ async function startServer() {
   // 1. Send OTP to customer's email address
   app.post('/api/send-otp', async (req, res) => {
     try {
-      if (!SMTP_EMAIL || !SMTP_APP_PASSWORD) {
+      if (!RESEND_API_KEY) {
         return res.status(500).json({
           success: false,
-          error: 'Email verification service is not configured. Please set SMTP_EMAIL and SMTP_APP_PASSWORD in your .env file.',
+          error: 'Email verification service is not configured. Please set RESEND_API_KEY in the Render environment variables.',
         });
       }
 
@@ -201,13 +220,11 @@ async function startServer() {
       });
 
       const recipientName = name ? String(name).trim() : 'Valued Customer';
-      const mailer = getTransporter();
 
-      // Send email using JericasGarden credentials via Gmail SMTP
-      await mailer.sendMail({
-        from: `"${SMTP_FROM_NAME}" <${SMTP_EMAIL}>`,
+      // Send email through Resend's HTTPS API (port 443), avoiding SMTP restrictions on Render Free.
+      await sendEmailWithResend({
         to: normalizedEmail,
-        subject: `${code} is your ${SMTP_FROM_NAME} Verification Code`,
+        subject: `${code} is your ${RESEND_FROM_NAME} Verification Code`,
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #fafaf9; margin: 0; padding: 30px 15px;">
             <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #f0ebe1; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">

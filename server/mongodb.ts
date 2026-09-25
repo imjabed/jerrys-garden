@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { MongoClient, Db } from 'mongodb';
 
 // User's provided MongoDB Atlas Cluster URL & Database from environment variable

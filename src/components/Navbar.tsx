@@ -45,7 +45,7 @@ export default function Navbar({
       {/* Top micro-announcement banner */}
       <div className="bg-gradient-to-r from-rose-50 via-rose-100/70 to-amber-50 text-stone-700 text-xs py-1.5 px-4 text-center border-b border-rose-100/60 font-medium flex items-center justify-center gap-2">
         <Sparkles className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
-        <span>Handcrafted in Berhampore, Murshidabad Bro • 100% Everlasting Satin Ribbon Bouquets</span>
+        <span>Handcrafted in Berhampore, Murshidabad • 100% Everlasting Satin Ribbon Bouquets</span>
         <span className="hidden md:inline text-rose-400">•</span>
         <span className="hidden md:inline text-stone-600">Instant UPI & QR Payments Accepted</span>
       </div>
