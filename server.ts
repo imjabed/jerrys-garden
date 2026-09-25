@@ -51,20 +51,24 @@ function getTransporter() {
     throw new Error('SMTP email credentials are not configured. Please set SMTP_EMAIL and SMTP_APP_PASSWORD in your .env file.');
   }
   if (!transporter) {
-    transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  auth: {
-    user: SMTP_EMAIL,
-    pass: SMTP_APP_PASSWORD,
-  },
-  connectionTimeout: 30000,
-  greetingTimeout: 30000,
-  socketTimeout: 60000,
-});
-  }
+  transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    requireTLS: true,
+
+    family: 4,
+
+    auth: {
+      user: SMTP_EMAIL,
+      pass: SMTP_APP_PASSWORD,
+    },
+
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 60000,
+  });
+    }
   return transporter;
 }
 
