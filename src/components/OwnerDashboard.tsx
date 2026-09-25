@@ -779,7 +779,7 @@ export default function OwnerDashboard({
               <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600">Active Buyers</span>
                 <p className="text-2xl font-bold text-rose-600 mt-1">
-                  {customers.filter((c) => orders.some((o) => o.customer.email.toLowerCase() === c.email.toLowerCase())).length}
+                  {customers.filter((c) => orders.some((o) => String(o.customer?.email || '').toLowerCase() === String(c.email || '').toLowerCase())).length}
                 </p>
                 <p className="text-[11px] text-stone-500 mt-0.5">Placed at least 1 order</p>
               </div>
@@ -811,25 +811,30 @@ export default function OwnerDashboard({
                   .filter((c) => {
                     const q = customerSearch.trim().toLowerCase();
                     if (!q) return true;
-                    return (
-                      c.fullName.toLowerCase().includes(q) ||
-                      c.email.toLowerCase().includes(q) ||
-                      c.phone.includes(q) ||
-                      c.deliveryAddress.toLowerCase().includes(q)
-                    );
+                    const name = String(c.name || (c as any).fullName || '').toLowerCase();
+                    const email = String(c.email || '').toLowerCase();
+                    const phone = String(c.phone || '').toLowerCase();
+                    const address = String(c.address || (c as any).deliveryAddress || '').toLowerCase();
+                    return name.includes(q) || email.includes(q) || phone.includes(q) || address.includes(q);
                   })
                   .map((customer) => {
+                    const customerName = String(customer.name || (customer as any).fullName || 'Customer').trim() || 'Customer';
+                    const customerEmail = String(customer.email || '').trim().toLowerCase();
+                    const customerPhone = String(customer.phone || '').trim();
+                    const customerAddress = String(customer.address || (customer as any).deliveryAddress || '').trim();
+
                     // Calculate orders for this customer
                     const customerOrders = orders.filter(
-                      (o) => o.customer.email.toLowerCase() === customer.email.toLowerCase()
+                      (o) => String(o.customer?.email || '').trim().toLowerCase() === customerEmail
                     );
                     const customerSpend = customerOrders
                       .filter((o) => o.status !== 'Cancelled')
-                      .reduce((sum, o) => sum + o.totalAmount, 0);
+                      .reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
 
                     // Name initials
-                    const initials = customer.fullName
-                      .split(' ')
+                    const initials = customerName
+                      .split(/\s+/)
+                      .filter(Boolean)
                       .map((p) => p[0])
                       .join('')
                       .slice(0, 2)
@@ -850,15 +855,15 @@ export default function OwnerDashboard({
                               </div>
                               <div>
                                 <h4 className="font-serif font-bold text-sm text-stone-900 leading-tight">
-                                  {customer.fullName}
+                                  {customerName}
                                 </h4>
                                 <span className="text-[11px] text-stone-400">
-                                  Joined {new Date(customer.createdAt).toLocaleDateString()}
+                                  Joined {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : '—'}
                                 </span>
                               </div>
                             </div>
 
-                            {customer.verified ? (
+                            {(customer.isVerified ?? (customer as any).verified) ? (
                               <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                 <span>Verified</span>
@@ -874,13 +879,13 @@ export default function OwnerDashboard({
                           <div className="space-y-1.5 text-xs text-stone-600 pt-1 border-t border-stone-100">
                             <div className="flex items-center gap-2">
                               <Mail className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                              <span className="truncate select-all">{customer.email}</span>
+                              <span className="truncate select-all">{customer.email || '—'}</span>
                             </div>
 
                             <div className="flex items-center gap-2">
                               <Phone className="w-3.5 h-3.5 text-stone-400 shrink-0" />
                               <a
-                                href={`tel:${customer.phone}`}
+                                href={customerPhone ? `tel:${customerPhone}` : undefined}
                                 className="hover:text-rose-600 font-mono transition-colors"
                               >
                                 {customer.phone}
@@ -890,7 +895,7 @@ export default function OwnerDashboard({
                             <div className="flex items-start gap-2">
                               <MapPin className="w-3.5 h-3.5 text-stone-400 shrink-0 mt-0.5" />
                               <span className="line-clamp-2 text-stone-500">
-                                {customer.deliveryAddress}, {customer.pincode}
+                                {customerAddress || 'Address not provided'}{(customer as any).pincode ? `, ${(customer as any).pincode}` : ''}
                               </span>
                             </div>
                           </div>
@@ -915,7 +920,7 @@ export default function OwnerDashboard({
                             <button
                               type="button"
                               onClick={() => {
-                                setOrderSearch(customer.email);
+                                setOrderSearch(customerEmail);
                                 setActiveTab('orders');
                               }}
                               className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
