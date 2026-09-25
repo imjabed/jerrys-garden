@@ -114,18 +114,17 @@ export default function Footer({
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
           <p>© 2026 Jerry's Garden. Berhampore, Murshidabad. Handcrafted with precision.</p>
 
-          {isOwner && (
-            <div className="flex items-center gap-4">
-              <button
-                onClick={onOpenOwnerLogin}
-                className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
-                title="Switch to Owner View"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Switch to Owner View</span>
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onOpenOwnerLogin}
+              className="text-stone-500 hover:text-emerald-400 font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
+              title={isOwner ? "Open Owner Dashboard" : "Owner Login"}
+              aria-label={isOwner ? "Open Owner Dashboard" : "Owner Login"}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>{isOwner ? "Owner Dashboard" : "Owner Login"}</span>
+            </button>
+          </div>
         </div>
 
       </div>
