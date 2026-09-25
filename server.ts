@@ -39,12 +39,12 @@ if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET) {
   });
 }
 
-// Email delivery uses Resend's HTTPS API instead of SMTP so it works on Render Free.
-const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-const RESEND_FROM_NAME = process.env.RESEND_FROM_NAME || "Jerry's Garden";
+// Email delivery uses AgentMail's HTTPS API instead of SMTP so it works on Render Free.
+const AGENTMAIL_API_KEY = process.env.AGENTMAIL_API_KEY || '';
+const AGENTMAIL_INBOX_ID = process.env.AGENTMAIL_INBOX_ID || '';
+const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || "Jerry's Garden";
 
-async function sendEmailWithResend({
+async function sendEmailWithAgentMail({
   to,
   subject,
   html,
@@ -53,23 +53,25 @@ async function sendEmailWithResend({
   subject: string;
   html: string;
 }) {
-  if (!RESEND_API_KEY) {
-    throw new Error('Email verification service is not configured. Please set RESEND_API_KEY in the Render environment variables.');
+  if (!AGENTMAIL_API_KEY || !AGENTMAIL_INBOX_ID) {
+    throw new Error('Email verification service is not configured. Please set AGENTMAIL_API_KEY and AGENTMAIL_INBOX_ID in the Render environment variables.');
   }
 
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${RESEND_API_KEY}`,
+  const response = await fetch(
+    `https://api.agentmail.to/v0/inboxes/${encodeURIComponent(AGENTMAIL_INBOX_ID)}/messages/send`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${AGENTMAIL_API_KEY}`,
+      },
+      body: JSON.stringify({
+        to: [to],
+        subject,
+        html,
+      }),
     },
-    body: JSON.stringify({
-      from: `${RESEND_FROM_NAME} <${RESEND_FROM_EMAIL}>`,
-      to: [to],
-      subject,
-      html,
-    }),
-  });
+  );
 
   const data = await response.json().catch(() => ({}));
 
@@ -77,6 +79,7 @@ async function sendEmailWithResend({
     const message =
       data?.message ||
       data?.error?.message ||
+      data?.detail ||
       `Email API returned HTTP ${response.status}`;
     throw new Error(message);
   }
@@ -146,7 +149,7 @@ async function startServer() {
         configured: Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET),
       },
       email: {
-        configured: Boolean(RESEND_API_KEY),
+        configured: Boolean(AGENTMAIL_API_KEY && AGENTMAIL_INBOX_ID),
       },
     });
   });
@@ -195,10 +198,10 @@ async function startServer() {
   // 1. Send OTP to customer's email address
   app.post('/api/send-otp', async (req, res) => {
     try {
-      if (!RESEND_API_KEY) {
+      if (!AGENTMAIL_API_KEY || !AGENTMAIL_INBOX_ID) {
         return res.status(500).json({
           success: false,
-          error: 'Email verification service is not configured. Please set RESEND_API_KEY in the Render environment variables.',
+          error: 'Email verification service is not configured. Please set AGENTMAIL_API_KEY and AGENTMAIL_INBOX_ID in the Render environment variables.',
         });
       }
 
@@ -221,10 +224,10 @@ async function startServer() {
 
       const recipientName = name ? String(name).trim() : 'Valued Customer';
 
-      // Send email through Resend's HTTPS API (port 443), avoiding SMTP restrictions on Render Free.
-      await sendEmailWithResend({
+      // Send email through AgentMail's HTTPS API (port 443), avoiding SMTP restrictions on Render Free.
+      await sendEmailWithAgentMail({
         to: normalizedEmail,
-        subject: `${code} is your ${RESEND_FROM_NAME} Verification Code`,
+        subject: `${code} is your ${EMAIL_FROM_NAME} Verification Code`,
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #fafaf9; margin: 0; padding: 30px 15px;">
             <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #f0ebe1; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
