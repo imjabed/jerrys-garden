@@ -29,9 +29,10 @@ import {
   AlertTriangle,
   Layers,
   ArrowRight,
-  ShieldAlert
+  ShieldAlert,
+  Tag
 } from 'lucide-react';
-import { Order, OrderStatus, RibbonBouquet, StoreSettings, UserAccount } from '../types';
+import { Order, OrderStatus, RibbonBouquet, StoreSettings, UserAccount, Coupon } from '../types';
 import { isCloudinaryUrl } from '../services/cloudinary';
 import {
   checkMongoStatus,
@@ -41,6 +42,9 @@ import {
   apiUpdateMongoConfig,
   apiGetCustomers,
   type MongoStatusResponse,
+  apiGetCoupons,
+  apiSaveCoupon,
+  apiDeleteCoupon,
 } from '../services/api';
 
 interface OwnerDashboardProps {
@@ -68,7 +72,7 @@ export default function OwnerDashboard({
   onLogoutOwner,
   onCloseDashboard,
 }: OwnerDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'customers' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'customers' | 'coupons' | 'settings'>('orders');
   const [statusFilter, setStatusFilter] = useState<'ALL' | OrderStatus>('ALL');
   const [orderSearch, setOrderSearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
@@ -81,6 +85,9 @@ export default function OwnerDashboard({
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
   const [customMongoUriInput, setCustomMongoUriInput] = useState('');
   const [isUpdatingUri, setIsUpdatingUri] = useState(false);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [couponEditingId, setCouponEditingId] = useState<string | null>(null);
+  const [couponForm, setCouponForm] = useState<Coupon>({ id: '', code: '', discountType: 'PERCENT', discountValue: 10, expiresAt: '', applicableProductIds: [], usageLimitPerCustomer: undefined, firstOrderOnly: false, active: true, createdAt: '', updatedAt: '' });
 
   // Load customers and check MongoDB connection status
   useEffect(() => {
@@ -103,6 +110,7 @@ export default function OwnerDashboard({
       } catch {
         setCustomers([]);
       }
+      try { const cRes = await apiGetCoupons(); if (cRes.connected) setCoupons(cRes.coupons); } catch { setCoupons([]); }
     };
 
     loadCustomersAndStatus();
@@ -454,6 +462,17 @@ export default function OwnerDashboard({
             }`}
           >
             👥 Registered Customers ({customers.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('coupons')}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              activeTab === 'coupons'
+                ? 'bg-stone-900 text-white shadow-sm'
+                : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'
+            }`}
+          >
+            🏷️ Coupons ({coupons.length})
           </button>
 
           <button
@@ -919,6 +938,32 @@ export default function OwnerDashboard({
         )}
 
         {/* TAB 4: UPI & STORE SETTINGS */}
+        {activeTab === 'coupons' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-xs lg:col-span-1">
+              <div className="flex items-center gap-2 text-rose-700 text-xs font-bold uppercase tracking-wider"><Tag className="w-4 h-4" /> Coupon Manager</div>
+              <h3 className="font-serif font-bold text-xl text-stone-900 mt-1">{couponEditingId ? 'Update Coupon' : 'Create Coupon'}</h3>
+              <div className="space-y-3 mt-5 text-xs">
+                <input value={couponForm.code} onChange={e => setCouponForm({...couponForm, code:e.target.value.toUpperCase()})} placeholder="COUPON CODE" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 font-mono font-bold" />
+                <div className="grid grid-cols-2 gap-2">
+                  <select value={couponForm.discountType} onChange={e => setCouponForm({...couponForm, discountType:e.target.value as 'PERCENT'|'AMOUNT'})} className="px-3 py-2.5 rounded-xl border border-stone-200"><option value="PERCENT">Percentage %</option><option value="AMOUNT">Fixed ₹</option></select>
+                  <input type="number" min="1" value={couponForm.discountValue} onChange={e => setCouponForm({...couponForm, discountValue:Number(e.target.value)})} className="px-3 py-2.5 rounded-xl border border-stone-200" />
+                </div>
+                <div><label className="block font-bold text-stone-700 mb-1">Expiry date</label><input type="date" value={couponForm.expiresAt} onChange={e => setCouponForm({...couponForm, expiresAt:e.target.value})} className="w-full px-3 py-2.5 rounded-xl border border-stone-200" /></div>
+                <div><label className="block font-bold text-stone-700 mb-1">Applicable products</label><select multiple value={couponForm.applicableProductIds} onChange={e => setCouponForm({...couponForm, applicableProductIds:Array.from(e.target.selectedOptions as HTMLCollectionOf<HTMLOptionElement>).map(o=>o.value)})} className="w-full px-3 py-2.5 rounded-xl border border-stone-200 min-h-32"><option value="">All products</option>{bouquets.map(b=><option key={b.id} value={b.id}>{b.title} — ₹{b.price}</option>)}</select><p className="text-[10px] text-stone-500 mt-1">Hold Ctrl/Cmd to select multiple. Leave all unselected for every product.</p></div>
+                <input type="number" min="1" placeholder="Uses per customer (optional)" value={couponForm.usageLimitPerCustomer ?? ''} onChange={e => setCouponForm({...couponForm, usageLimitPerCustomer:e.target.value ? Number(e.target.value) : undefined})} className="w-full px-3 py-2.5 rounded-xl border border-stone-200" />
+                <label className="flex items-center gap-2 font-medium"><input type="checkbox" checked={Boolean(couponForm.firstOrderOnly)} onChange={e=>setCouponForm({...couponForm, firstOrderOnly:e.target.checked})} /> First order only</label>
+                <label className="flex items-center gap-2 font-medium"><input type="checkbox" checked={couponForm.active} onChange={e=>setCouponForm({...couponForm, active:e.target.checked})} /> Active</label>
+                <div className="flex gap-2 pt-2"><button type="button" onClick={async()=>{ const now=new Date().toISOString(); const payload={...couponForm,id:couponForm.id||`coupon-${Date.now()}`,createdAt:couponForm.createdAt||now,updatedAt:now,applicableProductIds:couponForm.applicableProductIds.filter(Boolean)}; const r=await apiSaveCoupon(payload); if(r.success&&r.coupon){setCoupons(cs=>{const i=cs.findIndex(c=>c.id===r.coupon!.id); if(i<0)return [r.coupon!,...cs]; const n=[...cs];n[i]=r.coupon!;return n;});setCouponEditingId(null);setCouponForm({id:'',code:'',discountType:'PERCENT',discountValue:10,expiresAt:'',applicableProductIds:[],usageLimitPerCustomer:undefined,firstOrderOnly:false,active:true,createdAt:'',updatedAt:''});}}} className="flex-1 px-4 py-2.5 rounded-xl bg-stone-900 text-white font-bold">{couponEditingId?'Update':'Create'} Coupon</button>{couponEditingId&&<button type="button" onClick={()=>{setCouponEditingId(null);setCouponForm({id:'',code:'',discountType:'PERCENT',discountValue:10,expiresAt:'',applicableProductIds:[],usageLimitPerCustomer:undefined,firstOrderOnly:false,active:true,createdAt:'',updatedAt:''})}} className="px-4 py-2.5 rounded-xl border border-stone-200">Cancel</button>}</div>
+              </div>
+            </div>
+            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-xs lg:col-span-2">
+              <div className="flex items-center justify-between mb-4"><div><h3 className="font-serif font-bold text-xl text-stone-900">Coupons</h3><p className="text-xs text-stone-500">Create, update, expire or remove customer offers.</p></div></div>
+              <div className="space-y-3">{coupons.length===0?<p className="text-sm text-stone-500 py-8 text-center">No coupons created yet.</p>:coupons.map(c=><div key={c.id} className="p-4 rounded-2xl border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><div className="font-mono font-bold text-rose-700">{c.code} {c.active?'':'· INACTIVE'}</div><div className="text-xs text-stone-600 mt-1">{c.discountType==='PERCENT'?`${c.discountValue}% off`:`₹${c.discountValue} off`} · Expires {c.expiresAt} · {c.applicableProductIds.length?`${c.applicableProductIds.length} selected product(s)`:'All products'}</div><div className="text-[11px] text-stone-500 mt-1">{c.firstOrderOnly?'First order only · ':''}{c.usageLimitPerCustomer?`Max ${c.usageLimitPerCustomer} use(s) per customer`: 'No per-customer limit'}</div></div><div className="flex gap-2"><button type="button" onClick={()=>{setCouponEditingId(c.id);setCouponForm(c)}} className="px-3 py-2 rounded-lg border border-stone-200 text-xs font-bold">Edit</button><button type="button" onClick={async()=>{if(confirm(`Delete ${c.code}?`)){const ok=await apiDeleteCoupon(c.id);if(ok)setCoupons(cs=>cs.filter(x=>x.id!==c.id));}}} className="px-3 py-2 rounded-lg bg-red-50 text-red-700 border border-red-100 text-xs font-bold">Delete</button></div></div>)}</div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'settings' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             

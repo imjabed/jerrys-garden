@@ -45,6 +45,8 @@ export interface Order {
   deliveryFee: number;
   codHandlingCharge?: number;
   totalAmount: number;
+  couponCode?: string;
+  discountAmount?: number;
   customer: CustomerDetails;
   payment: {
     method: 'ONLINE' | 'COD' | 'UPI_QR' | 'UPI_ID';
@@ -64,6 +66,20 @@ export interface UserAccount {
   phone?: string;
   address?: string;
   createdAt: string;
+}
+
+export interface Coupon {
+  id: string;
+  code: string;
+  discountType: 'PERCENT' | 'AMOUNT';
+  discountValue: number;
+  expiresAt: string;
+  applicableProductIds: string[];
+  usageLimitPerCustomer?: number;
+  firstOrderOnly?: boolean;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface StoreSettings {

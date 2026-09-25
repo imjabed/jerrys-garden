@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { X, Check, Copy, QrCode, ArrowRight, Sparkles, Smartphone, Calendar, MapPin, Phone, User, Mail, HeartHandshake, Banknote, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { CartItem, CustomerDetails, Order, StoreSettings, UserAccount } from '../types';
+import { apiValidateCoupon } from '../services/api';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -31,7 +32,7 @@ export default function CheckoutModal({
     deliveryAddress: activeUser?.address || '',
     city: 'Flower District / Local',
     pincode: '560001',
-    deliveryDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], // tomorrow
+    deliveryDate: (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString().split('T')[0]; })(),
     deliveryTimeSlot: 'Morning (10:00 AM - 1:00 PM)',
     specialInstructions: '',
     giftNote: '',
@@ -44,6 +45,10 @@ export default function CheckoutModal({
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponMessage, setCouponMessage] = useState<string | null>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponBusy, setCouponBusy] = useState(false);
 
   if (!isOpen) return null;
 
@@ -51,7 +56,8 @@ export default function CheckoutModal({
   const isFreeDelivery = subtotal >= storeSettings.freeDeliveryThreshold;
   const deliveryFee = isFreeDelivery ? 0 : storeSettings.deliveryFee;
   const codHandlingCharge = paymentMethod === 'COD' ? 7 : 0;
-  const totalAmount = subtotal + deliveryFee + codHandlingCharge;
+  const totalAmount = Math.max(0, subtotal + deliveryFee + codHandlingCharge - couponDiscount);
+  const minimumDeliveryDate = (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString().split('T')[0]; })();
 
   // Active Store UPI ID (defaults to jerrysgarden@axl)
   const activeUpiId = (storeSettings.upiId && storeSettings.upiId.trim() && storeSettings.upiId !== 'jerrysgarden@okhdfcbank')
@@ -64,11 +70,28 @@ export default function CheckoutModal({
     setTimeout(() => setCopiedUpi(false), 2500);
   };
 
-  const handleDetailsSubmit = (e: FormEvent) => {
+  const handleApplyCoupon = async () => {
+    const code = couponCode.trim().toUpperCase();
+    if (!code) { setCouponMessage('Enter a coupon code.'); return; }
+    setCouponBusy(true); setCouponMessage(null);
+    try {
+      const result = await apiValidateCoupon({ code, email: customer.email, items: cartItems.map(i => ({ productId: i.bouquet.id, quantity: i.quantity })) });
+      if (!result.success) { setCouponDiscount(0); setCouponMessage(result.error || 'Coupon could not be applied.'); }
+      else { setCouponDiscount(Number(result.discountAmount || 0)); setCouponMessage(`Coupon applied: ₹${Number(result.discountAmount || 0)} discount`); }
+    } finally { setCouponBusy(false); }
+  };
+
+  const handleDetailsSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!customer.fullName || !customer.phone || !customer.deliveryAddress) {
       alert('Please fill in your name, contact phone, and delivery address.');
       return;
+    }
+    if (customer.deliveryDate < minimumDeliveryDate) { alert('Delivery must be scheduled at least 7 days in advance.'); return; }
+    if (couponCode.trim()) {
+      const result = await apiValidateCoupon({ code: couponCode.trim().toUpperCase(), email: customer.email, items: cartItems.map(i => ({ productId: i.bouquet.id, quantity: i.quantity })) });
+      if (!result.success) { setCouponDiscount(0); setCouponMessage(result.error || 'Coupon is no longer valid.'); return; }
+      setCouponDiscount(Number(result.discountAmount || 0));
     }
     setStep('payment');
   };
@@ -103,6 +126,8 @@ export default function CheckoutModal({
       deliveryFee,
       codHandlingCharge: isCOD ? 7 : 0,
       totalAmount,
+      couponCode: couponCode.trim().toUpperCase() || undefined,
+      discountAmount: couponDiscount,
       customer,
       payment: {
         method: paymentMethod,
@@ -297,6 +322,7 @@ export default function CheckoutModal({
                     <Calendar className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
                     <input
                       type="date"
+                      min={minimumDeliveryDate}
                       value={customer.deliveryDate}
                       onChange={(e) => setCustomer({ ...customer, deliveryDate: e.target.value })}
                       className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
@@ -316,8 +342,7 @@ export default function CheckoutModal({
                     <option value="Morning (10:00 AM - 1:00 PM)">Morning (10:00 AM - 1:00 PM)</option>
                     <option value="Afternoon (1:00 PM - 4:00 PM)">Afternoon (1:00 PM - 4:00 PM)</option>
                     <option value="Evening (4:00 PM - 7:00 PM)">Evening (4:00 PM - 7:00 PM)</option>
-                    <option value="Same Day Express (Subject to Crafting)">Same Day Express (Subject to Crafting)</option>
-                  </select>
+                                      </select>
                 </div>
               </div>
 
@@ -334,12 +359,22 @@ export default function CheckoutModal({
                 />
               </div>
 
+              <div className="p-4 bg-rose-50/50 rounded-2xl border border-rose-100 space-y-2">
+                <label className="block text-xs font-bold text-stone-700">Coupon Code</label>
+                <div className="flex gap-2">
+                  <input value={couponCode} onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponMessage(null); setCouponDiscount(0); }} placeholder="Enter coupon code" className="flex-1 px-3 py-2.5 text-xs rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500" />
+                  <button type="button" onClick={handleApplyCoupon} disabled={couponBusy} className="px-4 py-2.5 rounded-xl bg-stone-900 text-white text-xs font-bold disabled:opacity-50">{couponBusy ? 'Checking...' : 'Apply'}</button>
+                </div>
+                {couponMessage && <p className={`text-[11px] ${couponDiscount > 0 ? 'text-emerald-700' : 'text-red-600'}`}>{couponMessage}</p>}
+              </div>
+
               {/* Order summary mini bar */}
               <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/80 space-y-1 text-xs mt-2">
                 <div className="flex items-center justify-between text-stone-600">
                   <span>Total Items ({cartItems.length}):</span>
                   <span className="font-semibold text-stone-900">₹{subtotal}</span>
                 </div>
+                {couponDiscount > 0 && <div className="flex items-center justify-between text-emerald-700"><span>Coupon Discount:</span><span className="font-semibold">-₹{couponDiscount}</span></div>}
                 <div className="flex items-center justify-between text-stone-600">
                   <span>Delivery:</span>
                   <span className="font-semibold text-stone-900">{deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}</span>

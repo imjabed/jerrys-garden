@@ -105,6 +105,7 @@ export async function getMongoDb(): Promise<Db | null> {
       await db.collection('orders').createIndex({ id: 1 }, { unique: true });
       try { await db.collection('orders').dropIndex('orderNumber_1'); } catch { /* index may not exist */ }
       await db.collection('orders').createIndex({ orderNumber: 1 }, { unique: true });
+      await db.collection('coupons').createIndex({ code: 1 }, { unique: true });
     } catch (idxErr) {
       console.warn('[MongoDB Atlas] Index note:', idxErr);
     }
@@ -648,4 +649,45 @@ export async function mongoUpdateSettings(settings: any) {
   );
 
   return settings;
+}
+
+
+export async function mongoGetCoupons() {
+  const database = await getMongoDb();
+  if (!database) return null;
+  return await database.collection('coupons').find({}).sort({ createdAt: -1 }).toArray();
+}
+
+export async function mongoSaveCoupon(coupon: any) {
+  const database = await getMongoDb();
+  if (!database) return null;
+  const now = new Date().toISOString();
+  const doc = { ...coupon, code: String(coupon.code).trim().toUpperCase(), updatedAt: now, createdAt: coupon.createdAt || now };
+  await database.collection('coupons').updateOne({ id: doc.id }, { $set: doc }, { upsert: true });
+  return await database.collection('coupons').findOne({ id: doc.id });
+}
+
+export async function mongoDeleteCoupon(id: string) {
+  const database = await getMongoDb();
+  if (!database) return false;
+  const result = await database.collection('coupons').deleteOne({ id });
+  return result.deletedCount > 0;
+}
+
+export async function mongoFindCoupon(code: string) {
+  const database = await getMongoDb();
+  if (!database) return null;
+  return await database.collection('coupons').findOne({ code: String(code).trim().toUpperCase() });
+}
+
+export async function mongoCountCustomerCouponUses(code: string, email: string) {
+  const database = await getMongoDb();
+  if (!database) return null;
+  return await database.collection('orders').countDocuments({ couponCode: String(code).trim().toUpperCase(), customerEmail: String(email).trim().toLowerCase(), status: { $ne: 'Cancelled' } });
+}
+
+export async function mongoHasCustomerOrder(email: string) {
+  const database = await getMongoDb();
+  if (!database) return null;
+  return (await database.collection('orders').countDocuments({ customerEmail: String(email).trim().toLowerCase(), status: { $ne: 'Cancelled' } }, { limit: 1 })) > 0;
 }

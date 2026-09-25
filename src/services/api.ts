@@ -1,4 +1,4 @@
-import { RibbonBouquet, Order, StoreSettings, UserAccount, OrderStatus } from '../types';
+import { RibbonBouquet, Order, StoreSettings, UserAccount, OrderStatus, Coupon } from '../types';
 
 const API_URL = (
   import.meta.env.VITE_API_URL ||
@@ -187,4 +187,24 @@ export async function apiUpdateSettings(settings: StoreSettings): Promise<{ succ
     const res = await fetch(`${API_URL}/api/settings`, { method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify(settings) });
     return await parseResponse<any>(res);
   } catch (err: any) { return { success: false, error: err.message }; }
+}
+
+
+export async function apiGetCoupons(): Promise<{ connected: boolean; coupons: Coupon[] }> {
+  try { const res = await fetch(`${API_URL}/api/coupons`, { credentials: 'include' }); const data = await parseResponse<any>(res); return { connected: data.connected ?? false, coupons: data.coupons || [] }; }
+  catch { return { connected: false, coupons: [] }; }
+}
+
+export async function apiSaveCoupon(coupon: Coupon): Promise<{ success: boolean; coupon?: Coupon; error?: string }> {
+  try { const res = await fetch(`${API_URL}/api/coupons`, { method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify(coupon) }); return await parseResponse<any>(res); }
+  catch (err: any) { return { success: false, error: err.message }; }
+}
+
+export async function apiDeleteCoupon(id: string): Promise<boolean> {
+  try { const res = await fetch(`${API_URL}/api/coupons/${encodeURIComponent(id)}`, { method: 'DELETE', headers: jsonHeaders, credentials: 'include' }); return res.ok; } catch { return false; }
+}
+
+export async function apiValidateCoupon(payload: { code: string; email: string; items: { productId: string; quantity: number }[] }): Promise<{ success: boolean; coupon?: Coupon; discountAmount?: number; error?: string }> {
+  try { const res = await fetch(`${API_URL}/api/coupons/validate`, { method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify(payload) }); return await parseResponse<any>(res); }
+  catch (err: any) { return { success: false, error: err.message }; }
 }

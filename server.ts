@@ -26,6 +26,12 @@ import {
   mongoUpdateOrderStatus,
   mongoGetSettings,
   mongoUpdateSettings,
+  mongoGetCoupons,
+  mongoSaveCoupon,
+  mongoDeleteCoupon,
+  mongoFindCoupon,
+  mongoCountCustomerCouponUses,
+  mongoHasCustomerOrder,
 } from './server/mongodb.js';
 
 dotenv.config();
@@ -182,6 +188,23 @@ function allowLoginAttempt(ip: string, max = 10) {
   recent.push(now);
   loginAttemptLog.set(ip, recent);
   return true;
+}
+
+function indiaTodayPlusDays(days: number) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  const d = new Date(Date.UTC(Number(map.year), Number(map.month) - 1, Number(map.day) + days));
+  return d.toISOString().slice(0, 10);
+}
+
+function calculateCouponDiscount(coupon: any, items: any[]) {
+  const applicableIds = Array.isArray(coupon.applicableProductIds) ? coupon.applicableProductIds : [];
+  const applicable = items.filter(i => applicableIds.length === 0 || applicableIds.includes(String(i?.bouquet?.id || i?.productId)));
+  const base = applicable.reduce((sum, i) => sum + Number(i?.bouquet?.price || 0) * Number(i?.quantity || 0), 0);
+  if (base <= 0) return 0;
+  const value = Number(coupon.discountValue || 0);
+  const discount = coupon.discountType === 'PERCENT' ? base * value / 100 : value;
+  return Math.min(Math.max(0, Math.round(discount * 100) / 100), base);
 }
 
 async function startServer() {
@@ -622,6 +645,50 @@ async function startServer() {
     } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
   });
 
+  // Coupons
+  app.get('/api/coupons', requireOwner, async (req, res) => {
+    try { const coupons = await mongoGetCoupons(); if (coupons === null) return res.status(503).json({ success: false, connected: false, coupons: [] }); return res.json({ success: true, connected: true, coupons }); }
+    catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+  });
+
+  app.post('/api/coupons', requireOwner, requireClientHeader, async (req, res) => {
+    try {
+      const c = req.body || {};
+      const code = String(c.code || '').trim().toUpperCase();
+      const value = Number(c.discountValue);
+      if (!/^[A-Z0-9_-]{3,30}$/.test(code)) return res.status(400).json({ success: false, error: 'Coupon code must be 3-30 letters, numbers, hyphens or underscores.' });
+      if (!['PERCENT','AMOUNT'].includes(c.discountType)) return res.status(400).json({ success: false, error: 'Invalid discount type.' });
+      if (!Number.isFinite(value) || value <= 0 || (c.discountType === 'PERCENT' && value > 100)) return res.status(400).json({ success: false, error: 'Invalid discount value.' });
+      if (!c.expiresAt || String(c.expiresAt) < indiaTodayPlusDays(0)) return res.status(400).json({ success: false, error: 'Expiry date must be today or later.' });
+      const coupon = { id: String(c.id || `coupon-${crypto.randomUUID()}`), code, discountType: c.discountType, discountValue: value, expiresAt: String(c.expiresAt).slice(0,10), applicableProductIds: Array.isArray(c.applicableProductIds) ? c.applicableProductIds.map(String) : [], usageLimitPerCustomer: c.usageLimitPerCustomer ? Math.max(1, Number(c.usageLimitPerCustomer)) : undefined, firstOrderOnly: Boolean(c.firstOrderOnly), active: c.active !== false, createdAt: c.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
+      const saved = await mongoSaveCoupon(coupon);
+      if (!saved) return res.status(503).json({ success: false, error: 'Database is unavailable.' });
+      return res.json({ success: true, coupon: saved });
+    } catch (err: any) { if (err?.code === 11000) return res.status(409).json({ success: false, error: 'A coupon with this code already exists.' }); return res.status(500).json({ success: false, error: err.message }); }
+  });
+
+  app.delete('/api/coupons/:id', requireOwner, requireClientHeader, async (req, res) => {
+    try { const ok = await mongoDeleteCoupon(req.params.id); return ok ? res.json({ success: true }) : res.status(404).json({ success: false, error: 'Coupon not found.' }); }
+    catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+  });
+
+  app.post('/api/coupons/validate', requireClientHeader, async (req, res) => {
+    try {
+      const code = String(req.body?.code || '').trim().toUpperCase();
+      const email = String(req.body?.email || '').trim().toLowerCase();
+      const items = Array.isArray(req.body?.items) ? req.body.items : [];
+      if (!code || !email) return res.status(400).json({ success: false, error: 'Coupon code and email are required.' });
+      const coupon = await mongoFindCoupon(code);
+      if (!coupon || coupon.active === false) return res.status(404).json({ success: false, error: 'Invalid or inactive coupon.' });
+      if (String(coupon.expiresAt) < indiaTodayPlusDays(0)) return res.status(400).json({ success: false, error: 'This coupon has expired.' });
+      if (coupon.firstOrderOnly && await mongoHasCustomerOrder(email)) return res.status(400).json({ success: false, error: 'This coupon is only valid on your first order.' });
+      if (coupon.usageLimitPerCustomer) { const uses = await mongoCountCustomerCouponUses(code, email); if (uses === null) return res.status(503).json({ success: false, error: 'Database is unavailable.' }); if (uses >= Number(coupon.usageLimitPerCustomer)) return res.status(400).json({ success: false, error: 'You have reached the usage limit for this coupon.' }); }
+      const discountAmount = calculateCouponDiscount(coupon, items);
+      if (discountAmount <= 0) return res.status(400).json({ success: false, error: 'This coupon does not apply to the selected products.' });
+      return res.json({ success: true, coupon, discountAmount });
+    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+  });
+
   // Safe customer tracking. Guest users must provide an order number; logged-in customers may access their own orders.
   app.post('/api/orders/lookup', requireClientHeader, async (req, res) => {
     try {
@@ -647,6 +714,7 @@ async function startServer() {
       for (const key of required) if (!String(c[key] || '').trim()) return res.status(400).json({ success: false, error: `Customer ${key} is required.` });
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(c.email).trim())) return res.status(400).json({ success: false, error: 'A valid customer email is required.' });
       if (!/^\d{6}$/.test(String(c.pincode).replace(/\s/g, ''))) return res.status(400).json({ success: false, error: 'A valid 6-digit pincode is required.' });
+      if (String(c.deliveryDate) < indiaTodayPlusDays(7)) return res.status(400).json({ success: false, error: `Delivery date must be at least 7 days from today. Earliest available date is ${indiaTodayPlusDays(7)}.` });
       const settings = await mongoGetSettings();
       const deliveryThreshold = Number(settings?.freeDeliveryThreshold ?? 499);
       const configuredDeliveryFee = Number(settings?.deliveryFee ?? 50);
@@ -670,7 +738,18 @@ async function startServer() {
       const deliveryFee = subtotal >= deliveryThreshold ? 0 : configuredDeliveryFee;
       const isCOD = body.payment?.method === 'COD';
       const codHandlingCharge = isCOD ? 7 : 0;
-      const totalAmount = subtotal + deliveryFee + codHandlingCharge;
+      let discountAmount = 0;
+      const couponCode = String(body.couponCode || '').trim().toUpperCase();
+      let couponDoc: any = null;
+      if (couponCode) {
+        couponDoc = await mongoFindCoupon(couponCode);
+        if (!couponDoc || couponDoc.active === false || String(couponDoc.expiresAt) < indiaTodayPlusDays(0)) return res.status(400).json({ success: false, error: 'Coupon is invalid or expired.' });
+        if (couponDoc.firstOrderOnly && await mongoHasCustomerOrder(String(c.email))) return res.status(400).json({ success: false, error: 'This coupon is only valid on your first order.' });
+        if (couponDoc.usageLimitPerCustomer) { const uses = await mongoCountCustomerCouponUses(couponCode, String(c.email)); if (uses === null || uses >= Number(couponDoc.usageLimitPerCustomer)) return res.status(400).json({ success: false, error: 'Coupon usage limit reached for this customer.' }); }
+        discountAmount = calculateCouponDiscount(couponDoc, normalizedItems);
+        if (discountAmount <= 0) return res.status(400).json({ success: false, error: 'This coupon does not apply to the selected products.' });
+      }
+      const totalAmount = Math.max(0, subtotal + deliveryFee + codHandlingCharge - discountAmount);
       const now = new Date().toISOString();
       const id = `ord-${crypto.randomUUID()}`;
       const orderNumber = `JG-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
@@ -683,6 +762,7 @@ async function startServer() {
       const paymentMethod = isCOD ? 'COD' : 'ONLINE';
       const order = {
         id, orderNumber, createdAt: now, updatedAt: now, status: 'Order Placed', items: normalizedItems, subtotal, deliveryFee, codHandlingCharge, totalAmount,
+        couponCode: couponCode || undefined, discountAmount,
         customer: safeCustomer,
         customerEmail: customerAuth?.role === 'customer' ? customerAuth.email : safeCustomer.email,
         payment: {
@@ -695,6 +775,12 @@ async function startServer() {
       };
       const saved = await mongoCreateOrder(order);
       if (!saved) return res.status(503).json({ success: false, error: 'Order could not be saved. Please try again.' });
+      if (safeCustomer.email) {
+        try {
+          const rows = normalizedItems.map((item: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${String(item.bouquet.title)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">₹${Number(item.bouquet.price) * item.quantity}</td></tr>`).join('');
+          await sendEmailWithAgentMail({ to: safeCustomer.email, subject: `Jerry's Garden Order ${order.orderNumber} — Confirmed`, html: `<div style="font-family:Arial,sans-serif;max-width:650px;margin:auto;color:#292524"><div style="padding:24px;background:#fff1f2;border-radius:16px"><h1 style="margin:0;color:#881337">Jerry's Garden</h1><p>Your order <strong>${order.orderNumber}</strong> has been received.</p></div><div style="padding:24px"><h2>Order details</h2><table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:8px">Item</th><th style="padding:8px">Qty</th><th style="text-align:right;padding:8px">Amount</th></tr></thead><tbody>${rows}</tbody></table><p>Subtotal: ₹${subtotal}</p>${discountAmount > 0 ? `<p style="color:#047857">Coupon (${couponCode}): -₹${discountAmount}</p>` : ''}<p>Delivery: ${deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}</p>${codHandlingCharge ? `<p>COD handling: ₹${codHandlingCharge}</p>` : ''}<h3>Total: ₹${totalAmount}</h3><p><strong>Delivery date:</strong> ${safeCustomer.deliveryDate}<br><strong>Time:</strong> ${safeCustomer.deliveryTimeSlot || 'Not specified'}<br><strong>Payment:</strong> ${paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online / UPI — Awaiting confirmation'}${paymentMethod === 'ONLINE' ? `<br><strong>UPI ID:</strong> ${String(settings?.upiId || '')}<br><strong>UTR:</strong> ${String(order.payment.transactionRef || 'Not provided')}` : ''}</p><p><strong>Delivery address:</strong> ${safeCustomer.deliveryAddress}, ${safeCustomer.city} - ${safeCustomer.pincode}</p></div></div>` });
+        } catch (emailErr) { console.error("[Jerry's Garden] Order confirmation email failed:", emailErr); }
+      }
       return res.status(201).json({ success: true, connected: true, order: saved });
     } catch (err: any) { console.error('Order creation error:', err); return res.status(500).json({ success: false, error: 'Could not place your order. Please try again.' }); }
   });
