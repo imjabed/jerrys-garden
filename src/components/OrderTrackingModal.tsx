@@ -98,7 +98,7 @@ export default function OrderTrackingModal({
             </div>
             <div>
               <h2 className="font-serif text-2xl font-bold text-stone-900">
-                Track Ribbon Bouquet Order
+                Track Your Order
               </h2>
               <p className="text-xs text-stone-500">
                 Real-time crafting & local delivery updates
@@ -189,9 +189,7 @@ export default function OrderTrackingModal({
                     ₹{selectedOrder.totalAmount}
                   </p>
                   <span className="inline-block text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md mt-0.5">
-                    {selectedOrder.payment.method === 'COD'
-                      ? 'Cash on Delivery (Pending)'
-                      : `Paid Online (UTR: ${selectedOrder.payment.transactionRef || 'Recorded'})`}
+                    {selectedOrder.payment.method === 'CONTACT_LATER' ? 'Our team will call to confirm' : 'Legacy order'}
                   </span>
                 </div>
               </div>
@@ -203,7 +201,7 @@ export default function OrderTrackingModal({
                   <div>
                     <h4 className="text-xs font-bold uppercase tracking-wider">Order Status: Cancelled</h4>
                     <p className="text-xs text-red-700 mt-0.5">
-                      This order was cancelled. Any UPI payment made is refunded or in refund processing.
+                      This order has been cancelled. Contact our team if you need assistance.
                     </p>
                   </div>
                 </div>
@@ -242,7 +240,7 @@ export default function OrderTrackingModal({
                         <CheckCircle2 className="w-5 h-5" />
                       </div>
                       <span className="text-xs font-bold text-stone-900 mt-2">Order Placed</span>
-                      <span className="text-[10px] text-stone-500">Payment Recorded</span>
+                      <span className="text-[10px] text-stone-500">Details Received</span>
                     </div>
 
                     {/* Step 2: Pending */}
@@ -309,35 +307,10 @@ export default function OrderTrackingModal({
                 </div>
               </div>
 
-              {/* Payment & Delivery Summary */}
-              <div className="p-3.5 rounded-xl border border-stone-200 bg-amber-50/50 text-xs space-y-1.5">
-                <div className="flex justify-between text-stone-700">
-                  <span>Payment Method:</span>
-                  <span className="font-bold text-stone-900">
-                    {selectedOrder.payment.method === 'COD' 
-                      ? 'Cash on Delivery (COD)' 
-                      : selectedOrder.payment.method === 'ONLINE'
-                      ? 'Pay Online (UPI)'
-                      : selectedOrder.payment.method === 'UPI_QR' 
-                      ? 'UPI QR Code' 
-                      : 'Direct UPI ID'}
-                  </span>
-                </div>
-                {selectedOrder.codHandlingCharge && selectedOrder.codHandlingCharge > 0 ? (
-                  <div className="flex justify-between text-rose-700 font-medium">
-                    <span>COD Handling Charge:</span>
-                    <span>₹{selectedOrder.codHandlingCharge}</span>
-                  </div>
-                ) : null}
-                <div className="flex justify-between font-bold text-stone-900 pt-1 border-t border-amber-200/60">
-                  <span>Total Order Value:</span>
-                  <span className="text-rose-700">₹{selectedOrder.totalAmount}</span>
-                </div>
-                {selectedOrder.payment.method === 'COD' && (
-                  <p className="text-[11px] text-amber-900 pt-1 font-medium">
-                    💵 Please keep ₹{selectedOrder.totalAmount} ready in cash for the delivery person upon arrival.
-                  </p>
-                )}
+              {/* Contact-first ordering: no payment is taken on the website. */}
+              <div className="p-4 border border-stone-200 bg-[#FAF8F5] text-sm text-stone-700">
+                <p className="font-medium text-stone-900">Products subtotal · ₹{selectedOrder.subtotal}</p>
+                <p className="mt-1 text-xs text-stone-500">Our team will contact you for order confirmation and payment arrangements.</p>
               </div>
 
               {/* Delivery Details Card */}
