@@ -10,7 +10,8 @@ export interface RibbonBouquet {
   ribbonColors: string[];
   ribbonMaterial: 'Double-faced Satin' | 'Silk Lustre' | 'Organza & Satin' | 'Velvet & Grosgrain';
   flowerCount: number;
-  category: 'Romantic' | 'Celebration' | 'Pastel' | 'Minimalist' | 'Grand Luxury';
+  category: string;
+  whatsInside?: string[];
   featured?: boolean;
   inStock: boolean;
   createdAt: string;
@@ -49,10 +50,10 @@ export interface Order {
   discountAmount?: number;
   customer: CustomerDetails;
   payment: {
-    method: 'ONLINE' | 'COD' | 'UPI_QR' | 'UPI_ID';
+    method: 'CONTACT_LATER' | 'ONLINE' | 'COD' | 'UPI_QR' | 'UPI_ID';
     upiIdUsed?: string;
     transactionRef?: string;
-    paymentStatus: 'Awaiting Confirmation' | 'Verified' | 'Refunded' | 'Pending on Delivery';
+    paymentStatus: 'Awaiting Confirmation' | 'Verified' | 'Refunded' | 'Pending on Delivery' | 'Not Required';
     paidAt: string;
   };
 }
