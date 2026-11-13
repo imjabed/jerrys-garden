@@ -8,7 +8,7 @@ export interface RibbonBouquet {
   imageUrl: string;
   description: string;
   ribbonColors: string[];
-  ribbonMaterial: 'Double-faced Satin' | 'Silk Lustre' | 'Organza & Satin' | 'Velvet & Grosgrain';
+  ribbonMaterial: string;
   flowerCount: number;
   category: string;
   whatsInside?: string[];
