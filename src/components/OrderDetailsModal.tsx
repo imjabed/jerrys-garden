@@ -185,7 +185,7 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus }: Or
           {/* Ordered Products List */}
           <div>
             <h3 className="font-serif text-sm font-bold uppercase tracking-wider text-stone-900 border-b border-stone-200 pb-2 mb-3">
-              Ordered Bouquet Items ({order.items.length})
+              Ordered Products ({order.items.length})
             </h3>
 
             <div className="space-y-2">
