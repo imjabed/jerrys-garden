@@ -100,6 +100,7 @@ export interface Coupon {
 }
 
 export interface StoreSettings {
+  logoUrl?: string;
   storeName: string;
   tagline: string;
   ownerEmail: string;
