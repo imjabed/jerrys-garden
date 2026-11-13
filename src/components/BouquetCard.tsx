@@ -80,7 +80,7 @@ export default function BouquetCard({
             </span>
           )}
           <span className="px-2.5 py-1 text-[10px] font-semibold bg-white/90 backdrop-blur-xs text-stone-800 rounded-full shadow-xs border border-stone-100">
-            {bouquet.flowerCount} flowers
+            {bouquet.category.toLowerCase().includes('keychain') ? 'Handmade keepsake' : `${bouquet.flowerCount} flowers`}
           </span>
           {false && (isCloudinaryUrl(bouquet.imageUrl) || justUploaded) && (
             <span className="px-2 py-0.5 text-[9px] font-bold bg-sky-600 text-white rounded-full shadow-xs flex items-center gap-1">
@@ -94,7 +94,7 @@ export default function BouquetCard({
         {isOwner && (
           <div className="absolute top-3 right-3 z-10" onClick={(e) => e.stopPropagation()}>
             <label
-              title="Upload custom bouquet photo (Cloudinary)"
+              title="Upload product image"
               className="p-2 rounded-full bg-white/90 hover:bg-white text-stone-700 hover:text-rose-600 shadow-md border border-stone-200 backdrop-blur-xs flex items-center justify-center cursor-pointer transition-transform hover:scale-105"
             >
               <Camera className="w-3.5 h-3.5" />
