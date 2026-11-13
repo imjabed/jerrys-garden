@@ -345,7 +345,7 @@ export default function OrderTrackingModal({
                   <p className="text-stone-500 text-[11px]">Contact Jerry's Garden ribbon studio</p>
                 </div>
                 <a
-                  href={`https://wa.me/${storeSettings.whatsapp.replace(/\D/g, '')}?text=Hi%20Jerry's%20Garden,%20checking%20status%20for%20order%20${selectedOrder.orderNumber}`}
+                  href={`https://wa.me/${storeSettings.whatsapp.replace(/\D/g, '')}?text=Hi%20Jame%20Bouquets,%20checking%20status%20for%20order%20${selectedOrder.orderNumber}`}
                   target="_blank"
                   rel="noreferrer"
                   className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-1.5 transition-colors shrink-0 shadow-xs"
