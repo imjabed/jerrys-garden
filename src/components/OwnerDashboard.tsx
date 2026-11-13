@@ -227,7 +227,7 @@ export default function OwnerDashboard({
   const orderPlacedCount = orders.filter((o) => o.status === 'Order Placed').length;
 
   const totalRevenue = orders
-    .filter((o) => o.status !== 'Cancelled')
+    .filter((o) => o.status !== 'Cancelled' && o.orderType !== 'Custom')
     .reduce((sum, o) => sum + o.totalAmount, 0);
 
   // Filtered Orders
@@ -418,13 +418,13 @@ export default function OwnerDashboard({
           {/* Total Revenue */}
           <div className="col-span-2 lg:col-span-1 p-4 sm:p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Revenue</span>
+              <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Product Order Value</span>
               <div className="w-8 h-8 rounded-xl bg-stone-100 text-stone-800 flex items-center justify-center">
                 <DollarSign className="w-4 h-4" />
               </div>
             </div>
             <p className="text-2xl sm:text-3xl font-bold text-stone-900 mt-2">₹{totalRevenue}</p>
-            <p className="text-[11px] text-emerald-600 font-medium mt-0.5">Orders collected for follow-up</p>
+            <p className="text-[11px] text-emerald-600 font-medium mt-0.5">Not payment received · Custom estimates excluded</p>
           </div>
 
         </section>
