@@ -35,6 +35,7 @@ import {
   ownerLogout,
   apiUpdateSettings,
   apiGetSettings,
+  apiSendCustomEnquiry,
 } from './services/api';
 
 // Components
@@ -52,6 +53,7 @@ import OrderDetailsModal from './components/OrderDetailsModal';
 import BouquetEditorModal from './components/BouquetEditorModal';
 import CustomerCustomBouquetModal from './components/CustomerCustomBouquetModal';
 import RibbonStory from './components/RibbonStory';
+import CustomOrderSection from './components/CustomOrderSection';
 import Footer from './components/Footer';
 
 export default function App() {
@@ -548,6 +550,11 @@ export default function App() {
 
           </main>
 
+          <CustomOrderSection onSubmit={async payload => {
+            const result = await apiSendCustomEnquiry(payload);
+            setOrders(current => current);
+            return { orderNumber: result.orderNumber };
+          }} />
           {/* The Ribbon Craft Story Section */}
           <RibbonStory />
 
