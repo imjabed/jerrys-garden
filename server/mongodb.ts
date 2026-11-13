@@ -379,16 +379,6 @@ export async function buildCollectionsForCustomersAndProducts(customSeed?: {
       await database.collection('products').updateOne({ id: p.id }, { $set: doc }, { upsert: true });
       await database.collection('bouquets').updateOne({ id: p.id }, { $set: doc }, { upsert: true });
     }
-  } else if (productsCount === 0) {
-    // Check if bouquets collection has items to mirror into products
-    const existingBouquets = await database.collection('bouquets').find({}).toArray();
-    if (existingBouquets.length > 0) {
-      for (const b of existingBouquets) {
-        const { _id, ...cleanDoc } = b;
-        await database.collection('products').updateOne({ id: b.id }, { $set: cleanDoc }, { upsert: true });
-      }
-      console.log(`[MongoDB Atlas] Mirrored ${existingBouquets.length} bouquets into products collection`);
-    }
   }
 
   const [finalCustomersCount, finalProductsCount, finalBouquetsCount, finalOrdersCount] = await Promise.all([
@@ -541,11 +531,9 @@ export async function mongoGetBouquets() {
   const database = await getMongoDb();
   if (!database) return null;
 
-  let docs = await database.collection('bouquets').find({}).sort({ createdAt: -1 }).toArray();
-  if (!docs || docs.length === 0) {
-    docs = await database.collection('products').find({}).sort({ createdAt: -1 }).toArray();
-  }
-  return docs;
+  // The products collection is the one authoritative catalog.
+  // Never resurrect products from a legacy bouquets collection after deletion.
+  return await database.collection('products').find({}).sort({ createdAt: -1 }).toArray();
 }
 
 export async function mongoSaveBouquet(bouquet: any) {
