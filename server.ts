@@ -426,14 +426,14 @@ async function startServer() {
             <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #f0ebe1; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
               
               <div style="background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 50%, #fef3c7 100%); padding: 32px 24px; text-align: center; border-bottom: 1px solid #ffe4e6;">
-                <h1 style="font-family: Georgia, serif; font-size: 26px; color: #881337; margin: 0; font-weight: bold;">JericasGarden</h1>
+                <h1 style="font-family: Georgia, serif; font-size: 26px; color: #881337; margin: 0; font-weight: bold;">Jame Bouquets</h1>
                 <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #e11d48; margin: 6px 0 0 0; font-weight: 600;">Handcrafted Satin Ribbon Bouquets</p>
               </div>
 
               <div style="padding: 32px 28px;">
                 <h2 style="font-size: 18px; color: #1c1917; margin: 0 0 12px 0;">Hello ${recipientName},</h2>
                 <p style="font-size: 14px; line-height: 1.6; color: #57534e; margin: 0 0 20px 0;">
-                  Thank you for signing up with <strong>JericasGarden</strong>. Please enter the 6-digit verification code below to confirm your email and complete your account creation:
+                  Thank you for signing up with <strong>Jame Bouquets</strong>. Please enter the 6-digit verification code below to confirm your email and complete your account creation:
                 </p>
 
                 <div style="background: #fff1f2; border: 2px dashed #f43f5e; border-radius: 16px; padding: 22px 16px; text-align: center; margin: 24px 0;">
@@ -447,13 +447,13 @@ async function startServer() {
                 </p>
 
                 <div style="background: #fafaf9; border-radius: 12px; padding: 12px 16px; font-size: 12px; color: #a8a29e; line-height: 1.5;">
-                  <strong>Notice:</strong> If you did not create an account on JericasGarden, please ignore this email. Never share your verification code with anyone.
+                  <strong>Notice:</strong> If you did not create an account on Jame Bouquets, please ignore this email. Never share your verification code with anyone.
                 </div>
               </div>
 
               <div style="padding: 20px 24px; background: #fafaf9; text-align: center; font-size: 11px; color: #a8a29e; border-top: 1px solid #f5f5f4;">
-                © 2026 JericasGarden • Berhampore, Murshidabad, West Bengal<br>
-                Everlasting Satin Ribbon Artistry
+                © 2026 Jame Bouquets • Berhampore, Murshidabad, West Bengal<br>
+                Jame Bouquets · Handmade Gifts
               </div>
 
             </div>
@@ -461,7 +461,7 @@ async function startServer() {
         `,
       });
 
-      console.log(`[JericasGarden] OTP email successfully dispatched to: ${normalizedEmail}`);
+      console.log(`[Jame Bouquets] OTP email successfully dispatched to: ${normalizedEmail}`);
 
       // Crucial: do NOT return the code to the frontend!
       return res.json({
@@ -469,7 +469,7 @@ async function startServer() {
         message: `A 6-digit verification code has been sent to ${normalizedEmail}. Please check your inbox or spam folder.`,
       });
     } catch (error: any) {
-      console.error('[JericasGarden] Failed to send OTP email:', error);
+      console.error('[Jame Bouquets] Failed to send OTP email:', error);
       return res.status(500).json({
         success: false,
         error: error.message || 'Failed to send verification email. Please check your email and try again.',
@@ -529,7 +529,7 @@ async function startServer() {
         verificationToken,
       });
     } catch (error: any) {
-      console.error('[JericasGarden] Error verifying OTP:', error);
+      console.error('[Jame Bouquets] Error verifying OTP:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to verify code. Please try again.',
