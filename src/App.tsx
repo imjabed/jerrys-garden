@@ -309,6 +309,8 @@ export default function App() {
     return false;
   };
 
+  const productCategories = Array.from(new Set(['Ribbon Bouquets', 'Pipecleaner Bouquets', 'Bouquet Keychains', 'Pipecleaner Keychains', 'Gift Combos', ...bouquets.map(b => b.category).filter(Boolean)]));
+
   const filteredBouquets = bouquets.filter((b) => {
     const matchesCategory =
       selectedCategory === 'ALL' || b.category.toLowerCase() === selectedCategory.toLowerCase();
@@ -437,20 +439,42 @@ export default function App() {
             onExploreClick={() => scrollToSection('shop-section')}
           />
 
+          {/* Shop by type: navigation shows every collection, even before its first product. */}
+          <section className="bg-[#F5F1EC] border-b border-stone-200/70">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
+              <div className="flex items-end justify-between gap-4 mb-8">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-3">Find your perfect gift</p>
+                  <h2 className="font-serif text-3xl sm:text-4xl font-normal text-stone-900">Explore our atelier</h2>
+                </div>
+                <span className="text-xs text-stone-500 hidden sm:block">Choose a collection</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                {productCategories.map((cat, index) => (
+                  <button key={cat} onClick={() => { setSelectedCategory(cat); scrollToSection('shop-section'); }}
+                    className="group relative min-h-36 sm:min-h-44 bg-[#FCFBF8] border border-stone-200/80 hover:border-stone-500 hover:-translate-y-1 transition-all duration-300 p-5 sm:p-6 text-left flex flex-col justify-between">
+                    <span className="text-[10px] tracking-widest text-stone-400">0{index + 1}</span>
+                    <span>
+                      <span className="block font-serif text-xl sm:text-2xl text-stone-900 leading-tight">{cat}</span>
+                      <span className="block mt-2 text-[11px] text-stone-500">{bouquets.filter(b => b.category === cat).length} pieces <ArrowRight className="inline h-3 w-3 ml-1 group-hover:translate-x-1 transition-transform" /></span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
           {/* Main Shop Catalog Section */}
           <main id="shop-section" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
             
             {/* Catalog Section Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-800 text-xs font-semibold mb-2">
-                  <span>Handcrafted Ribbon Collection</span>
-                </div>
-                <h2 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900">
+                <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-3">Shop by Collection</p>
+                <h2 className="font-serif text-4xl sm:text-5xl font-normal text-stone-900">
                   The Collection
                 </h2>
                 <p className="text-stone-600 text-xs sm:text-sm mt-1 max-w-xl">
-                  Handcrafted ribbon bouquets. Made to be kept.
+                  Bouquets, keychains & gifts — beautifully made by hand.
                 </p>
               </div>
 
@@ -468,7 +492,7 @@ export default function App() {
                 )}
 
                 <div className="flex flex-wrap items-center gap-1.5 bg-stone-100/80 p-1.5 rounded-2xl border border-stone-200">
-                  {['ALL', 'Romantic', 'Celebration', 'Pastel', 'Grand Luxury', 'Minimalist'].map((cat) => (
+                  {['ALL', ...productCategories].map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
@@ -478,7 +502,7 @@ export default function App() {
                           : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
                       }`}
                     >
-                      {cat === 'ALL' ? 'All Arrangements' : cat}
+                      {cat === 'ALL' ? 'All Products' : cat}
                     </button>
                   ))}
                 </div>
