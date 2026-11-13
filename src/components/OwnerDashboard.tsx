@@ -1003,76 +1003,13 @@ export default function OwnerDashboard({
               {settingsSavedMessage && (
                 <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-medium flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-600" />
-                  <span>Store & UPI settings updated successfully!</span>
+                  <span>Store settings saved</span>
                 </div>
               )}
 
               <form onSubmit={handleSaveSettings} className="space-y-4 text-xs">
                 
-                <div className="p-4 bg-rose-50/50 rounded-2xl border border-rose-100 space-y-3">
-                  <span className="text-[10px] uppercase font-bold text-rose-800 tracking-wider flex items-center gap-1.5">
-                    <QrCode className="w-3.5 h-3.5 text-rose-600" />
-                    <span>UPI Payment Configuration (Customer QR & Intent)</span>
-                  </span>
-
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      Store UPI ID (Receives Payments) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. jerrysgarden@okhdfcbank"
-                      value={settingsForm.upiId}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, upiId: e.target.value })}
-                      className="w-full px-3.5 py-2.5 text-xs font-mono font-bold rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"
-                    />
-                    <p className="text-[10px] text-stone-500 mt-1">
-                      Used to generate real-time UPI QR codes and deep links for Google Pay, PhonePe, Paytm, etc.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      UPI Merchant / Receiver Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Jame Bouquets Handcrafts"
-                      value={settingsForm.upiName}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, upiName: e.target.value })}
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Delivery Charges */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      Standard Delivery Fee (₹)
-                    </label>
-                    <input
-                      type="number"
-                      value={settingsForm.deliveryFee}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, deliveryFee: Number(e.target.value) })}
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      Free Delivery Threshold (₹)
-                    </label>
-                    <input
-                      type="number"
-                      value={settingsForm.freeDeliveryThreshold}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, freeDeliveryThreshold: Number(e.target.value) })}
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"
-                    />
-                  </div>
-                </div>
+                <p className="text-xs text-stone-500">Customers provide details online; our team arranges confirmation and payment by phone.</p>
 
                 {/* Contact Info */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1119,7 +1056,7 @@ export default function OwnerDashboard({
                     className="px-6 py-3 rounded-xl bg-stone-900 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-md flex items-center gap-2 cursor-pointer"
                   >
                     <Save className="w-4 h-4" />
-                    <span>Save Store & UPI Settings</span>
+                    <span>Save Store Settings</span>
                   </button>
                 </div>
 
