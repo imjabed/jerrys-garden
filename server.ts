@@ -256,6 +256,7 @@ async function startServer() {
   const allowedOrigins = [
     'http://localhost:5173',
     'https://jerrys-garden.vercel.app',
+    'https://jerrysgarden-iggf6pgbv-jabedsprojects.vercel.app',
     ...(process.env.FRONTEND_URL || '')
       .split(',')
       .map((origin) => origin.trim())
