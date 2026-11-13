@@ -101,7 +101,7 @@ export default function OrderTrackingModal({
                 Track Your Order
               </h2>
               <p className="text-xs text-stone-500">
-                Real-time crafting & local delivery updates
+                Order status and contact details
               </p>
             </div>
           </div>
@@ -120,7 +120,7 @@ export default function OrderTrackingModal({
               <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
               <input
                 type="text"
-                placeholder="Enter Order # (e.g. JG-8492) or Phone number..."
+                placeholder="Enter Order # (e.g. JB-8492) or Phone number..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-3 py-2.5 text-xs rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
@@ -329,7 +329,7 @@ export default function OrderTrackingModal({
                 <div className="p-3.5 rounded-xl border border-stone-200 bg-white">
                   <div className="flex items-center gap-1.5 font-bold text-stone-800 mb-1">
                     <Calendar className="w-3.5 h-3.5 text-rose-600" />
-                    <span>Scheduled Slot</span>
+                    <span>Requested Delivery Date</span>
                   </div>
                   <p className="text-stone-700 font-medium">{selectedOrder.customer.deliveryDate}</p>
                   <p className="text-stone-500 text-[11px]">
