@@ -235,7 +235,7 @@ async function resolveCouponItems(items: any[], database: any) {
       continue;
     }
 
-    // The catalogue can be read from `products` when `bouquets` is empty.
+    // The products collection is the authoritative catalogue.
     // Coupon validation must use the same fallback as the public catalogue.
     const product = await database.collection('products').findOne({ id: productId });
     if (product) {
@@ -794,13 +794,9 @@ async function startServer() {
         const id = String(raw?.bouquet?.id || raw?.productId || '').trim();
         const quantity = Number(raw?.quantity);
         if (!id || !Number.isInteger(quantity) || quantity < 1 || quantity > 20) return res.status(400).json({ success: false, error: 'Invalid cart item or quantity.' });
-        if (id.startsWith('custom-bouq-')) {
-          normalizedItems.push({ bouquet: { ...(raw.bouquet || {}), id, price: 899 }, quantity });
-          continue;
-        }
         const product = await database.collection('products').findOne({ id });
-        if (!product) return res.status(400).json({ success: false, error: `A selected bouquet is no longer available.` });
-        if (product.inStock === false) return res.status(409).json({ success: false, error: `${product.title || 'A selected bouquet'} is currently out of stock.` });
+        if (!product) return res.status(400).json({ success: false, error: `A selected product is no longer available.` });
+        if (product.inStock === false) return res.status(409).json({ success: false, error: `${product.title || 'A selected product'} is currently out of stock.` });
         normalizedItems.push({ bouquet: product, quantity });
       }
       const subtotal = normalizedItems.reduce((sum, item) => sum + Number(item.bouquet.price || 0) * item.quantity, 0);
