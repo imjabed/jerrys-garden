@@ -191,8 +191,8 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus }: Or
                 <div><dt className="text-stone-500">Wrapper colour</dt><dd className="mt-1 font-medium text-stone-900">{order.customDetails.wrapperColor}</dd></div>
                 <div><dt className="text-stone-500">Wrapper material</dt><dd className="mt-1 font-medium capitalize text-stone-900">{order.customDetails.wrapperType}</dd></div>
                 <div><dt className="text-stone-500">Wrappers</dt><dd className="mt-1 font-medium text-stone-900">{order.customDetails.wrapperCount}</dd></div>
-                <div><dt className="text-stone-500">Gypsy accents</dt><dd className="mt-1 font-medium text-stone-900">{order.customDetails.gypsy ? 'Yes' : 'No'}</dd></div>
-                <div><dt className="text-stone-500">Glitter</dt><dd className="mt-1 font-medium text-stone-900">{order.customDetails.glitter ? 'Yes' : 'No'}</dd></div>
+                <div><dt className="text-stone-500">Gypsy accents</dt><dd className="mt-1 font-medium text-stone-900">{order.customDetails.gypsy ? `${Math.ceil(order.customDetails.flowerCount / 10)} accents` : 'No'}</dd></div>
+                <div><dt className="text-stone-500">Glitter</dt><dd className="mt-1 font-medium text-stone-900">{order.customDetails.glitter ? `${Math.ceil(order.customDetails.flowerCount / 20)} applications` : 'No'}</dd></div>
                 <div><dt className="text-stone-500">Requested delivery</dt><dd className="mt-1 font-medium text-stone-900">{order.customer.deliveryDate}</dd></div>
                 <div><dt className="text-stone-500">Approximate range</dt><dd className="mt-1 font-medium text-stone-900">₹{order.customDetails.estimatedMin.toLocaleString('en-IN')} – ₹{order.customDetails.estimatedMax.toLocaleString('en-IN')}</dd></div>
               </dl>
@@ -218,12 +218,16 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus }: Or
                   className="p-3.5 rounded-2xl border border-stone-200 bg-white flex items-center justify-between gap-4"
                 >
                   <div className="flex items-center gap-3">
-                    <img
-                      src={item.bouquet.imageUrl}
-                      alt={item.bouquet.title}
-                      referrerPolicy="no-referrer"
-                      className="w-14 h-14 rounded-xl object-cover border border-stone-200"
-                    />
+                    {item.bouquet.imageUrl ? (
+                      <img
+                        src={item.bouquet.imageUrl}
+                        alt={item.bouquet.title}
+                        referrerPolicy="no-referrer"
+                        className="w-14 h-14 rounded-xl object-cover border border-stone-200"
+                      />
+                    ) : (
+                      <div className="flex h-14 w-14 items-center justify-center border border-rose-200 bg-rose-50 text-[10px] font-semibold uppercase tracking-wider text-rose-800">Custom</div>
+                    )}
                     <div>
                       <h4 className="font-bold text-stone-900">{item.bouquet.title}</h4>
                       <p className="text-[11px] text-stone-500">
