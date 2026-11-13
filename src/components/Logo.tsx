@@ -61,14 +61,14 @@ export default function Logo({ size = 'md', showSubtitle = true }: LogoProps) {
 
       <div>
         <div className="flex items-center gap-1.5">
-          <span className={`font-serif font-bold tracking-tight text-stone-900 leading-none ${titleSizes[size]}`}>
-            Jerry's Garden
+          <span className={`font-serif font-medium tracking-tight text-stone-900 leading-none ${titleSizes[size]}`}>
+            Jame Bouquets
           </span>
           <span className="hidden sm:inline-block w-1.5 h-1.5 rounded-full bg-rose-400" />
         </div>
         {showSubtitle && (
           <p className="text-[10px] tracking-wider uppercase font-medium text-stone-500 mt-0.5">
-            Handcrafted Ribbon Floristry
+            Ribbon Floristry
           </p>
         )}
       </div>
