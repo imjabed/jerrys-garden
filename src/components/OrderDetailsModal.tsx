@@ -128,7 +128,7 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus }: Or
                       <Phone className="w-3.5 h-3.5" />
                     </a>
                     <a
-                      href={`https://wa.me/${order.customer.phone.replace(/\D/g, '')}?text=Hi%20${encodeURIComponent(order.customer.fullName)},%20regarding%20your%20Jerry's%20Garden%20order%20${order.orderNumber}`}
+                      href={`https://wa.me/${order.customer.phone.replace(/\D/g, '')}?text=Hi%20${encodeURIComponent(order.customer.fullName)},%20regarding%20your%20Jame%20Bouquets%20order%20${order.orderNumber}`}
                       target="_blank"
                       rel="noreferrer"
                       className="p-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100"
@@ -176,80 +176,13 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus }: Or
             </div>
           </div>
 
-          {/* Payment Details Section */}
-          <div>
-            <h3 className="font-serif text-sm font-bold uppercase tracking-wider text-stone-900 border-b border-stone-200 pb-2 mb-3">
-              Payment Information
-            </h3>
-
-            <div className={`p-4 rounded-2xl border space-y-3 ${
-              order.payment.method === 'COD' 
-                ? 'bg-amber-50/70 border-amber-200' 
-                : 'bg-rose-50/40 border-rose-100'
-            }`}>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <span className="text-[10px] text-stone-400 uppercase font-bold">Payment Method</span>
-                  <p className="font-bold text-stone-800 flex items-center gap-1 mt-0.5">
-                    {order.payment.method === 'COD' ? (
-                      <>
-                        <Banknote className="w-3.5 h-3.5 text-amber-700" />
-                        <span>Cash on Delivery (COD)</span>
-                      </>
-                    ) : (
-                      <>
-                        <QrCode className="w-3.5 h-3.5 text-rose-600" />
-                        <span>
-                          {order.payment.method === 'ONLINE'
-                            ? 'Online UPI Payment'
-                            : order.payment.method === 'UPI_QR'
-                            ? 'UPI QR Scan'
-                            : 'Direct UPI ID'}
-                        </span>
-                      </>
-                    )}
-                  </p>
-                </div>
-
-                <div>
-                  <span className="text-[10px] text-stone-400 uppercase font-bold">
-                    {order.payment.method === 'COD' ? 'Cash Collection' : 'Store UPI Transferred To'}
-                  </span>
-                  <p className="font-mono text-stone-800 font-semibold mt-0.5">
-                    {order.payment.method === 'COD' 
-                      ? `Collect ₹${order.totalAmount} at Door`
-                      : (order.payment.upiIdUsed || 'Official UPI ID')}
-                  </p>
-                </div>
-
-                <div>
-                  <span className="text-[10px] text-stone-400 uppercase font-bold">Payment Status</span>
-                  <p className={`font-bold mt-0.5 ${
-                    order.payment.method === 'COD' ? 'text-amber-700' : 'text-emerald-700'
-                  }`}>
-                    {order.payment.paymentStatus}
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-stone-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <span className="text-[10px] text-stone-400 uppercase font-bold">
-                    {order.payment.method === 'COD' ? 'COD Note' : 'Customer UTR / Ref ID'}
-                  </span>
-                  <p className="font-mono font-bold text-stone-900 text-xs">
-                    {order.payment.transactionRef || (order.payment.method === 'COD' ? 'Cash to be collected upon delivery' : 'Direct UPI Confirmation')}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-stone-400 uppercase font-bold">Recorded At</span>
-                  <p className="text-stone-600">{new Date(order.payment.paidAt).toLocaleTimeString()}</p>
-                </div>
-              </div>
-            </div>
+          <div className="p-4 border border-stone-200 bg-[#FCFAF7]">
+            <h3 className="font-serif text-lg text-stone-900">Contact & confirmation</h3>
+            <p className="mt-2 text-sm text-stone-600">Customer submitted the order online. Call to confirm the items, availability and payment arrangements.</p>
+            <p className="mt-2 text-sm font-medium text-stone-800">Product subtotal: ₹{order.subtotal}</p>
           </div>
 
-          {/* Ordered Bouquet Items List */}
+          {/* Ordered Products List */}
           <div>
             <h3 className="font-serif text-sm font-bold uppercase tracking-wider text-stone-900 border-b border-stone-200 pb-2 mb-3">
               Ordered Bouquet Items ({order.items.length})
@@ -271,7 +204,7 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus }: Or
                     <div>
                       <h4 className="font-bold text-stone-900">{item.bouquet.title}</h4>
                       <p className="text-[11px] text-stone-500">
-                        Qty: <strong className="text-stone-800">{item.quantity}</strong> × ₹{item.bouquet.price} • {item.bouquet.flowerCount} Blooms
+                        Qty: <strong className="text-stone-800">{item.quantity}</strong> × ₹{item.bouquet.price} • {item.bouquet.flowerCount} Pieces
                       </p>
                     </div>
                   </div>
@@ -283,28 +216,8 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus }: Or
               ))}
             </div>
 
-            {/* Financial Summary */}
-            <div className="mt-4 p-4 rounded-2xl bg-stone-50 border border-stone-200 text-xs space-y-1.5">
-              <div className="flex justify-between text-stone-600">
-                <span>Subtotal:</span>
-                <span className="font-medium text-stone-900">₹{order.subtotal}</span>
-              </div>
-              <div className="flex justify-between text-stone-600">
-                <span>Delivery Charge:</span>
-                <span className="font-medium text-stone-900">
-                  {order.deliveryFee === 0 ? 'Free Delivery' : `₹${order.deliveryFee}`}
-                </span>
-              </div>
-              {order.codHandlingCharge && order.codHandlingCharge > 0 ? (
-                <div className="flex justify-between text-rose-700 font-medium">
-                  <span>COD Handling Charge:</span>
-                  <span>₹{order.codHandlingCharge}</span>
-                </div>
-              ) : null}
-              <div className="flex justify-between text-sm font-bold text-stone-900 pt-2 border-t border-stone-200">
-                <span>Total Amount {order.payment.method === 'COD' ? '(To Collect on Delivery)' : '(Received Online)'}:</span>
-                <span className="text-rose-700">₹{order.totalAmount}</span>
-              </div>
+            <div className="mt-4 flex justify-between border-t border-stone-200 pt-4 text-sm text-stone-800">
+              <span>Products subtotal</span><strong>₹{order.subtotal}</strong>
             </div>
           </div>
 
