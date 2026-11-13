@@ -45,9 +45,7 @@ import {
   apiGetCoupons,
   apiSaveCoupon,
   apiDeleteCoupon,
-  apiSaveBouquet,
 } from '../services/api';
-import { INITIAL_BOUQUETS } from '../data/initialData';
 
 interface OwnerDashboardProps {
   orders: Order[];
@@ -644,21 +642,6 @@ export default function OwnerDashboard({
                 </p>
               </div>
 
-              {bouquets.length === 0 && (
-                <button
-                  onClick={async () => {
-                    if (!window.confirm('Publish four example bouquets to your database? You can delete them individually from the catalog.')) return;
-                    const results = await Promise.all(INITIAL_BOUQUETS.slice(0, 4).map((item) =>
-                      apiSaveBouquet({ ...item, id: `jame-demo-${item.id}`, title: `Example · ${item.title}`, createdAt: new Date().toISOString() })
-                    ));
-                    if (results.every(Boolean)) window.location.reload();
-                    else window.alert('Some examples could not be saved. Check your database connection.');
-                  }}
-                  className="px-4 py-2.5 border border-stone-300 text-stone-700 text-xs font-medium hover:bg-stone-100 transition-colors"
-                >
-                  Add 4 examples
-                </button>
-              )}
               <button
                 id="post-new-bouquet-btn"
                 onClick={() => onOpenBouquetEditor()}
