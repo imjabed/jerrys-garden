@@ -64,7 +64,7 @@ export default function Navbar({
               onClick={onNavigateToShop}
               className="hover:text-rose-600 transition-colors py-2"
             >
-              Shop Bouquets
+              Shop Products
             </button>
             <button
               id="nav-track-btn"
@@ -79,7 +79,7 @@ export default function Navbar({
               onClick={onNavigateToStory}
               className="hover:text-rose-600 transition-colors py-2"
             >
-              The Ribbon Craft
+              Our Craft
             </button>
           </nav>
 
@@ -92,7 +92,7 @@ export default function Navbar({
                   <Search className="w-4 h-4 text-stone-400 mr-2 shrink-0" />
                   <input
                     type="text"
-                    placeholder="Search ribbon bouquets..."
+                    placeholder="Search products..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="bg-transparent border-none outline-none text-xs w-full text-stone-800 placeholder-stone-400"
@@ -112,7 +112,7 @@ export default function Navbar({
                 <button
                   id="search-toggle-btn"
                   onClick={() => setShowSearchBar(true)}
-                  aria-label="Search bouquets"
+                  aria-label="Search products"
                   className="p-2 text-stone-600 hover:text-rose-600 hover:bg-rose-50/60 rounded-full transition-colors"
                 >
                   <Search className="w-5 h-5" />
@@ -235,7 +235,7 @@ export default function Navbar({
             }}
             className="block w-full text-left py-2 text-sm font-medium text-stone-800 hover:text-rose-600 border-b border-stone-100"
           >
-            🌸 Shop Ribbon Bouquets
+            Shop Products
           </button>
           <button
             onClick={() => {
@@ -253,7 +253,7 @@ export default function Navbar({
             }}
             className="block w-full text-left py-2 text-sm font-medium text-stone-800 hover:text-rose-600 border-b border-stone-100"
           >
-            🎀 The Ribbon Craft Story
+            Our Craft
           </button>
 
           {!activeUser && (
