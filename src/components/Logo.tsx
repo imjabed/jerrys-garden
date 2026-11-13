@@ -1,9 +1,10 @@
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
   showSubtitle?: boolean;
+  logoUrl?: string;
 }
 
-export default function Logo({ size = 'md', showSubtitle = true }: LogoProps) {
+export default function Logo({ size = 'md', showSubtitle = true, logoUrl }: LogoProps) {
   const iconSizes = {
     sm: 'w-7 h-7',
     md: 'w-9 h-9',
@@ -18,6 +19,14 @@ export default function Logo({ size = 'md', showSubtitle = true }: LogoProps) {
 
   return (
     <div className="flex items-center gap-2.5 group cursor-pointer select-none">
+      {logoUrl ? (
+        <img
+          src={logoUrl}
+          alt="Jame Bouquets logo"
+          className={`block object-contain max-w-[220px] ${size === 'lg' ? 'h-16' : size === 'sm' ? 'h-9' : 'h-12'}`}
+        />
+      ) : (
+      <>
       {/* Handcrafted Ribbon Flower Emblem */}
       <div className={`relative flex items-center justify-center rounded-full bg-rose-50 border border-rose-200/80 text-rose-600 shadow-sm transition-transform duration-300 group-hover:scale-105 ${iconSizes[size]}`}>
         <svg
@@ -72,6 +81,8 @@ export default function Logo({ size = 'md', showSubtitle = true }: LogoProps) {
           </p>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }
