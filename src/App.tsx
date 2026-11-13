@@ -56,7 +56,7 @@ import Footer from './components/Footer';
 
 export default function App() {
   // Core App State
-  const [bouquets, setBouquets] = useState<RibbonBouquet[]>(getBouquets);
+  const [bouquets, setBouquets] = useState<RibbonBouquet[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [cart, setCartItems] = useState<CartItem[]>(getCart);
   const [activeUser, setUser] = useState<UserAccount | null>(getActiveUser);
@@ -92,7 +92,6 @@ export default function App() {
   // Sync state with storage updates & remote MongoDB
   useEffect(() => {
     const handleStorageChange = () => {
-      setBouquets(getBouquets());
       setCartItems(getCart());
       setUser(getActiveUser());
       setSettings(getStoreSettings());
@@ -103,7 +102,7 @@ export default function App() {
     const initRemoteData = async () => {
       try {
         const [bRes, sRes] = await Promise.all([apiGetBouquets(), apiGetSettings()]);
-        if (bRes.connected) setBouquets(bRes.bouquets);
+        setBouquets(bRes.bouquets);
         if (sRes.connected && sRes.settings) { setSettings(sRes.settings); updateStoreSettings(sRes.settings); }
         const owner = await ownerSession();
         if (owner.authenticated) {
@@ -124,7 +123,15 @@ export default function App() {
     };
     initRemoteData();
 
-    return () => window.removeEventListener('jg_storage_update', handleStorageChange);
+    const refreshCatalog = async () => setBouquets((await apiGetBouquets()).bouquets);
+    const onVisible = () => { if (document.visibilityState === 'visible') void refreshCatalog(); };
+    document.addEventListener('visibilitychange', onVisible);
+    const poll = window.setInterval(onVisible, 30000);
+    return () => {
+      window.removeEventListener('jg_storage_update', handleStorageChange);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.clearInterval(poll);
+    };
   }, []);
 
   // Sync cart to storage when modified
@@ -235,8 +242,7 @@ export default function App() {
 
   // Customer Custom Bouquet Created with Cloudinary Photo
   const handleCustomerBouquetCreated = (newBouquet: RibbonBouquet) => {
-    const updated = saveBouquet(newBouquet);
-    setBouquets(updated);
+    // A custom preview does not become a published product.
     handleAddToCart(newBouquet, 1);
     setDetailModalBouquet(newBouquet);
     showToast(`✨ Created "${newBouquet.title}" with custom Cloudinary photo! Added to cart.`);
@@ -441,10 +447,10 @@ export default function App() {
                   <span>Handcrafted Ribbon Collection</span>
                 </div>
                 <h2 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900">
-                  Featured Ribbon Bouquets
+                  The Collection
                 </h2>
                 <p className="text-stone-600 text-xs sm:text-sm mt-1 max-w-xl">
-                  Each everlasting flower is hand-folded from pure double-faced satin and organza ribbon. Never wilts, always cherished.
+                  Handcrafted ribbon bouquets. Made to be kept.
                 </p>
               </div>
 
@@ -482,8 +488,8 @@ export default function App() {
             {/* Bouquets Grid */}
             {filteredBouquets.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-3xl border border-stone-200">
-                <p className="text-stone-700 font-bold text-base">No ribbon bouquets match this filter</p>
-                <p className="text-stone-500 text-xs mt-1">Try selecting another category or clear your search query.</p>
+                <p className="text-stone-700 font-bold text-base">{bouquets.length === 0 ? 'Our collection is coming soon' : 'No pieces found'}</p>
+                <p className="text-stone-500 text-xs mt-1">{bouquets.length === 0 ? 'New handcrafted arrangements will appear here.' : 'Try another category or search.'}</p>
                 <button
                   onClick={() => {
                     setSelectedCategory('ALL');
@@ -491,7 +497,7 @@ export default function App() {
                   }}
                   className="mt-4 px-5 py-2 rounded-xl bg-stone-900 text-white text-xs font-semibold"
                 >
-                  Show All Bouquets
+                  View Collection
                 </button>
               </div>
             ) : (
@@ -607,6 +613,7 @@ export default function App() {
         <AuthModal
           isOpen={authModalOpen}
           onClose={() => setAuthModalOpen(false)}
+          onAdminLoginSuccess={handleOwnerLoginSuccess}
           onLoginSuccess={async (u) => {
             setUser(u);
             const oRes = await apiGetMyOrders();
