@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, Filter, Check, ShoppingBag, ArrowRight, Camera } from 'lucide-react';
+import { Sparkles, Filter, Check, ShoppingBag, ArrowRight } from 'lucide-react';
 import {
   RibbonBouquet,
   Order,
@@ -51,7 +51,6 @@ import OwnerLoginModal from './components/OwnerLoginModal';
 import OwnerDashboard from './components/OwnerDashboard';
 import OrderDetailsModal from './components/OrderDetailsModal';
 import BouquetEditorModal from './components/BouquetEditorModal';
-import CustomerCustomBouquetModal from './components/CustomerCustomBouquetModal';
 import RibbonStory from './components/RibbonStory';
 import CustomOrderSection from './components/CustomOrderSection';
 import Footer from './components/Footer';
@@ -81,7 +80,6 @@ export default function App() {
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<Order | null>(null);
   const [bouquetEditorOpen, setBouquetEditorOpen] = useState(false);
   const [bouquetToEdit, setBouquetToEdit] = useState<RibbonBouquet | null>(null);
-  const [customerCustomModalOpen, setCustomerCustomModalOpen] = useState(false);
 
   // Toast feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -258,20 +256,6 @@ export default function App() {
     setCart((items) => items.map((item) => item.bouquet.id === bouquetId ? { ...item, bouquet: updatedBouquet } : item));
     if (detailModalBouquet && detailModalBouquet.id === bouquetId) setDetailModalBouquet(updatedBouquet);
     showToast('✨ Photo saved to Cloudinary! Bouquet updated.');
-  };
-
-  // Customer Custom Bouquet Created with Cloudinary Photo
-  const handleCustomerBouquetCreated = async (newBouquet: RibbonBouquet) => {
-    // Admin-created custom products must exist in MongoDB before they can be ordered.
-    const saved = await apiSaveBouquet(newBouquet);
-    if (!saved) {
-      showToast('Could not save custom product to the database.');
-      return;
-    }
-    setBouquets(current => [newBouquet, ...current.filter(item => item.id !== newBouquet.id)]);
-    handleAddToCart(newBouquet, 1);
-    setDetailModalBouquet(newBouquet);
-    showToast('Custom product saved to the catalogue and added to your bag.');
   };
 
   // Owner Auth
@@ -456,6 +440,7 @@ export default function App() {
             }}
             isOwner={isOwner}
             onOpenOwnerDashboard={() => setIsOwnerView(true)}
+            storeSettings={storeSettings}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
           />
@@ -504,19 +489,8 @@ export default function App() {
                 </p>
               </div>
 
-              {/* Category Filter Pills & Upload Custom Photo Trigger (Owner only) */}
+              {/* Product category filters */}
               <div className="flex flex-wrap items-center gap-2">
-                {isOwner && (
-                  <button
-                    onClick={() => setCustomerCustomModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold transition-all shadow-xs cursor-pointer"
-                    title="Upload custom bouquet photo using Cloudinary"
-                  >
-                    <Camera className="w-3.5 h-3.5 text-rose-600" />
-                    <span>Upload Custom Photo</span>
-                  </button>
-                )}
-
                 <div className="flex flex-wrap items-center gap-1.5 bg-stone-100/80 p-1.5 rounded-2xl border border-stone-200">
                   {['ALL', ...productCategories].map((cat) => (
                     <button
@@ -650,15 +624,6 @@ export default function App() {
           onAddToCart={(b, qty) => handleAddToCart(b, qty)}
           onBuyNow={(b, qty) => handleQuickBuy(b, qty)}
           onUpdateBouquetImage={handleUpdateBouquetImage}
-        />
-      )}
-
-      {/* Customer Custom Bouquet Creator (Direct Cloudinary Upload) */}
-      {customerCustomModalOpen && isOwner && (
-        <CustomerCustomBouquetModal
-          isOpen={customerCustomModalOpen && isOwner}
-          onClose={() => setCustomerCustomModalOpen(false)}
-          onBouquetCreated={handleCustomerBouquetCreated}
         />
       )}
 
