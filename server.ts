@@ -4,6 +4,7 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { v2 as cloudinary } from 'cloudinary';
 import dotenv from 'dotenv';
+import { estimateCustomBouquet, indiaDate, leadDays, minimumWrappers } from './shared/customPricing.js';
 import {
   getMongoStatus,
   seedMongoCollections,
@@ -772,6 +773,93 @@ async function startServer() {
       if (!order) return res.status(404).json({ success: false, error: 'Order not found or access denied.' });
       return res.json({ success: true, order });
     } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+  });
+
+  // Event bouquet enquiries are separate from the product catalogue but share
+  // the regular orders collection and admin workflow.
+  app.post('/api/orders/custom', requireClientHeader, async (req, res) => {
+    try {
+      if (!allowLoginAttempt(`custom:${String(req.ip || 'unknown')}`, 8)) {
+        return res.status(429).json({ success: false, error: 'Too many enquiries. Please try again later.' });
+      }
+      const input = req.body || {};
+      const flowers = Number(input.flowers);
+      const wrappers = Number(input.wrappers);
+      const wrapperType = String(input.wrapperType || '');
+      const occasion = String(input.occasion || '').trim();
+      const flowerColors = String(input.flowerColors || '').trim();
+      const wrapperColor = String(input.wrapperColor || '').trim();
+      const name = String(input.name || '').trim();
+      const phone = String(input.phone || '').trim();
+      const email = String(input.email || '').trim().toLowerCase();
+      const address = String(input.address || '').trim();
+      const deliveryDate = String(input.deliveryDate || '').trim();
+      const extraNotes = String(input.extraNotes || '').trim();
+      const gypsy = input.gypsy === true;
+      const glitter = input.glitter === true;
+
+      if (!Number.isInteger(flowers) || flowers < 25 || flowers > 100 || flowers % 5 !== 0) {
+        return res.status(400).json({ success: false, error: 'Choose 25–100 flowers in increments of five.' });
+      }
+      if (wrapperType !== 'paper' && wrapperType !== 'net') {
+        return res.status(400).json({ success: false, error: 'Select a wrapper type.' });
+      }
+      if (!Number.isInteger(wrappers) || wrappers < minimumWrappers(flowers) || wrappers > 100) {
+        return res.status(400).json({ success: false, error: 'Choose enough wrappers for the flower count.' });
+      }
+      if (!['Wedding','Anniversary','Birthday','Event','Other'].includes(occasion)
+        || !flowerColors || flowerColors.length > 200 || !wrapperColor || wrapperColor.length > 120) {
+        return res.status(400).json({ success: false, error: 'Provide a valid occasion and flower and wrapper colours.' });
+      }
+      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(deliveryDate) || leadDays(deliveryDate) < 7 || !Number.isFinite(Date.parse(deliveryDate))) {
+        return res.status(400).json({ success: false, error: `Delivery must be at least 7 days ahead (from ${indiaDate(7)}).` });
+      }
+      if (!name || name.length > 120 || !/^\\+?[0-9\\s()-]{10,20}$/.test(phone) || phone.replace(/\\D/g,'').length < 10
+        || !address || address.length > 500 || extraNotes.length > 1200
+        || (email.length > 0 && (email.length > 254 || !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)))) {
+        return res.status(400).json({ success: false, error: 'Please review your name, phone, email and delivery location.' });
+      }
+
+      const estimate = estimateCustomBouquet({ flowers, wrappers, wrapperType, gypsy, glitter, deliveryDate });
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, error: 'Enquiries are temporarily unavailable.' });
+      const now = new Date().toISOString();
+      const orderNumber = `JB-C-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
+      const customDetails = {
+        occasion, flowerCount: flowers, flowerColors, wrapperColor,
+        wrapperType, wrapperCount: wrappers, gypsy, glitter,
+        extraNotes, estimatedMin: estimate.minimum, estimatedMax: estimate.maximum,
+      };
+      const middleEstimate = Math.round((estimate.minimum + estimate.maximum) / 2);
+      const order = {
+        id: `ord-${crypto.randomUUID()}`, orderNumber,
+        orderType: 'Custom', customDetails, status: 'Order Placed',
+        createdAt: now, updatedAt: now,
+        items: [{
+          bouquet: {
+            id: `custom-enquiry-${orderNumber}`, title: `Custom ${occasion} Bouquet`,
+            price: middleEstimate, imageUrl: '', description: extraNotes,
+            flowerCount: flowers, category: 'Custom', ribbonColors: [flowerColors],
+            ribbonMaterial: 'Custom', inStock: true, createdAt: now,
+          }, quantity: 1,
+        }],
+        subtotal: middleEstimate, deliveryFee: 0, codHandlingCharge: 0,
+        totalAmount: middleEstimate, customer: {
+          fullName: name, email, phone, deliveryAddress: address, city: '',
+          pincode: '', deliveryDate, deliveryTimeSlot: '', specialInstructions: extraNotes,
+          giftNote: '',
+        }, customerEmail: email,
+        payment: { method: 'CONTACT_LATER', paymentStatus: 'Not Required', paidAt: '' },
+      };
+      const saved = await mongoCreateOrder(order);
+      if (!saved) return res.status(503).json({ success: false, error: 'Unable to save your enquiry.' });
+      return res.status(201).json({
+        success: true, orderNumber: saved.orderNumber, estimatedMin: estimate.minimum, estimatedMax: estimate.maximum,
+      });
+    } catch (err: any) {
+      console.error('Custom enquiry error:', err);
+      return res.status(500).json({ success: false, error: 'Unable to submit your enquiry.' });
+    }
   });
 
   // Authoritative order creation: server calculates product prices, fees and IDs.
