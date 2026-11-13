@@ -237,8 +237,7 @@ async function resolveCouponItems(items: any[], database: any) {
 
     // The catalogue can be read from `products` when `bouquets` is empty.
     // Coupon validation must use the same fallback as the public catalogue.
-    let product = await database.collection('bouquets').findOne({ id: productId });
-    if (!product) product = await database.collection('products').findOne({ id: productId });
+    const product = await database.collection('products').findOne({ id: productId });
     if (product) {
       pricedItems.push({ productId: String(product.id || productId), quantity, price: Number(product.price || 0) });
     }
@@ -783,14 +782,11 @@ async function startServer() {
       const rawItems = Array.isArray(body.items) ? body.items : [];
       if (!rawItems.length) return res.status(400).json({ success: false, error: 'Your cart is empty.' });
       const c = body.customer || {};
-      const required = ['fullName', 'email', 'phone', 'deliveryAddress', 'city', 'pincode', 'deliveryDate'];
+      const required = ['fullName', 'email', 'phone', 'deliveryAddress', 'city', 'pincode'];
       for (const key of required) if (!String(c[key] || '').trim()) return res.status(400).json({ success: false, error: `Customer ${key} is required.` });
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(c.email).trim())) return res.status(400).json({ success: false, error: 'A valid customer email is required.' });
       if (!/^\d{6}$/.test(String(c.pincode).replace(/\s/g, ''))) return res.status(400).json({ success: false, error: 'A valid 6-digit pincode is required.' });
-      if (String(c.deliveryDate) < indiaTodayPlusDays(7)) return res.status(400).json({ success: false, error: `Delivery date must be at least 7 days from today. Earliest available date is ${indiaTodayPlusDays(7)}.` });
-      const settings = await mongoGetSettings();
-      const deliveryThreshold = Number(settings?.freeDeliveryThreshold ?? 499);
-      const configuredDeliveryFee = Number(settings?.deliveryFee ?? 50);
+      // Requested date is optional; our team confirms availability by phone.
       const database = await getMongoDb();
       if (!database) return res.status(503).json({ success: false, error: 'Orders are temporarily unavailable. Please try again in a moment.' });
       const normalizedItems: any[] = [];
@@ -802,15 +798,14 @@ async function startServer() {
           normalizedItems.push({ bouquet: { ...(raw.bouquet || {}), id, price: 899 }, quantity });
           continue;
         }
-        const product = await database.collection('bouquets').findOne({ id });
+        const product = await database.collection('products').findOne({ id });
         if (!product) return res.status(400).json({ success: false, error: `A selected bouquet is no longer available.` });
         if (product.inStock === false) return res.status(409).json({ success: false, error: `${product.title || 'A selected bouquet'} is currently out of stock.` });
         normalizedItems.push({ bouquet: product, quantity });
       }
       const subtotal = normalizedItems.reduce((sum, item) => sum + Number(item.bouquet.price || 0) * item.quantity, 0);
-      const deliveryFee = subtotal >= deliveryThreshold ? 0 : configuredDeliveryFee;
-      const isCOD = body.payment?.method === 'COD';
-      const codHandlingCharge = isCOD ? 7 : 0;
+      const deliveryFee = 0;
+      const codHandlingCharge = 0;
       let discountAmount = 0;
       const couponCode = String(body.couponCode || '').trim().toUpperCase();
       let couponDoc: any = null;
@@ -823,17 +818,17 @@ async function startServer() {
         discountAmount = calculateCouponDiscount(couponDoc, couponItems);
         if (discountAmount <= 0) return res.status(400).json({ success: false, error: 'This coupon does not apply to the selected products.' });
       }
-      const totalAmount = Math.max(0, subtotal + deliveryFee + codHandlingCharge - discountAmount);
+      const totalAmount = Math.max(0, subtotal - discountAmount);
       const now = new Date().toISOString();
       const id = `ord-${crypto.randomUUID()}`;
-      const orderNumber = `JG-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
+      const orderNumber = `JB-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
       const customerAuth = getCustomerAuth(req);
       const safeCustomer = {
         fullName: String(c.fullName).trim().slice(0, 120), email: String(c.email).trim().toLowerCase().slice(0, 254), phone: String(c.phone).trim().slice(0, 30),
         deliveryAddress: String(c.deliveryAddress).trim().slice(0, 500), city: String(c.city).trim().slice(0, 100), pincode: String(c.pincode).replace(/\s/g, ''),
         deliveryDate: String(c.deliveryDate).trim(), deliveryTimeSlot: String(c.deliveryTimeSlot || '').slice(0, 100), specialInstructions: String(c.specialInstructions || '').slice(0, 500), giftNote: String(c.giftNote || '').slice(0, 500),
       };
-      const paymentMethod = isCOD ? 'COD' : 'ONLINE';
+      const paymentMethod = 'CONTACT_LATER';
       const order = {
         id, orderNumber, createdAt: now, updatedAt: now, status: 'Order Placed', items: normalizedItems, subtotal, deliveryFee, codHandlingCharge, totalAmount,
         couponCode: couponCode || undefined, discountAmount,
@@ -841,9 +836,7 @@ async function startServer() {
         customerEmail: customerAuth?.role === 'customer' ? customerAuth.email : safeCustomer.email,
         payment: {
           method: paymentMethod,
-          upiIdUsed: paymentMethod === 'ONLINE' ? String(settings?.upiId || '') : undefined,
-          transactionRef: paymentMethod === 'ONLINE' ? String(body.payment?.transactionRef || '').replace(/\D/g, '').slice(0, 50) : 'Cash on Delivery (Pending)',
-          paymentStatus: paymentMethod === 'COD' ? 'Pending on Delivery' : 'Awaiting Confirmation',
+          paymentStatus: 'Not Required',
           paidAt: '',
         },
       };
@@ -852,7 +845,11 @@ async function startServer() {
       if (safeCustomer.email) {
         try {
           const rows = normalizedItems.map((item: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${String(item.bouquet.title)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">₹${Number(item.bouquet.price) * item.quantity}</td></tr>`).join('');
-          await sendEmailWithAgentMail({ to: safeCustomer.email, subject: `Jame Bouquets Order ${order.orderNumber} — Confirmed`, html: `<div style="font-family:Arial,sans-serif;max-width:650px;margin:auto;color:#292524"><div style="padding:24px;background:#fff1f2;border-radius:16px"><h1 style="margin:0;color:#881337">Jame Bouquets</h1><p>Your order <strong>${order.orderNumber}</strong> has been received.</p></div><div style="padding:24px"><h2>Order details</h2><table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:8px">Item</th><th style="padding:8px">Qty</th><th style="text-align:right;padding:8px">Amount</th></tr></thead><tbody>${rows}</tbody></table><p>Subtotal: ₹${subtotal}</p>${discountAmount > 0 ? `<p style="color:#047857">Coupon (${couponCode}): -₹${discountAmount}</p>` : ''}<p>Delivery: ${deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}</p>${codHandlingCharge ? `<p>COD handling: ₹${codHandlingCharge}</p>` : ''}<h3>Total: ₹${totalAmount}</h3><p><strong>Delivery date:</strong> ${safeCustomer.deliveryDate}<br><strong>Time:</strong> ${safeCustomer.deliveryTimeSlot || 'Not specified'}<br><strong>Payment:</strong> ${paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online / UPI — Awaiting confirmation'}${paymentMethod === 'ONLINE' ? `<br><strong>UPI ID:</strong> ${String(settings?.upiId || '')}<br><strong>UTR:</strong> ${String(order.payment.transactionRef || 'Not provided')}` : ''}</p><p><strong>Delivery address:</strong> ${safeCustomer.deliveryAddress}, ${safeCustomer.city} - ${safeCustomer.pincode}</p></div></div>` });
+          await sendEmailWithAgentMail({
+            to: safeCustomer.email,
+            subject: `Jame Bouquets — Order Placed ${order.orderNumber}`,
+            html: `<div style="font-family:Georgia,serif;max-width:640px;margin:auto;padding:28px;color:#292524"><h1>Jame Bouquets</h1><h2>Order Placed!</h2><p>Thank you for your order <strong>${order.orderNumber}</strong>.</p><p>Our team will contact you by phone to confirm your order and discuss payment. No payment is required on the website.</p><table style="width:100%"><tbody>${rows}</tbody></table><p>Products subtotal: ₹${subtotal}</p><p><strong>Phone:</strong> ${safeCustomer.phone}</p><p><strong>Delivery address:</strong> ${safeCustomer.deliveryAddress}, ${safeCustomer.city} - ${safeCustomer.pincode}</p></div>`,
+          });
         } catch (emailErr) { console.error("[Jame Bouquets] Order confirmation email failed:", emailErr); }
       }
       return res.status(201).json({ success: true, connected: true, order: saved });
