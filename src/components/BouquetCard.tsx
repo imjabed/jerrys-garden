@@ -80,7 +80,7 @@ export default function BouquetCard({
             </span>
           )}
           <span className="px-2.5 py-1 text-[10px] font-semibold bg-white/90 backdrop-blur-xs text-stone-800 rounded-full shadow-xs border border-stone-100">
-            {bouquet.category.toLowerCase().includes('keychain') ? 'Handmade keepsake' : `${bouquet.flowerCount} flowers`}
+            {(bouquet.category || '').toLowerCase().includes('keychain') ? 'Handmade keepsake' : `${bouquet.flowerCount} flowers`}
           </span>
           {false && (isCloudinaryUrl(bouquet.imageUrl) || justUploaded) && (
             <span className="px-2 py-0.5 text-[9px] font-bold bg-sky-600 text-white rounded-full shadow-xs flex items-center gap-1">
