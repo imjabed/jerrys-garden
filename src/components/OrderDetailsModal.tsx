@@ -182,6 +182,29 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus }: Or
             <p className="mt-2 text-sm font-medium text-stone-800">Product subtotal: ₹{order.subtotal}</p>
           </div>
 
+          {order.orderType === 'Custom' && order.customDetails && (
+            <section className="border border-[#DECBCD] bg-[#FCF7F7] p-5 sm:p-6">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#956F75]">Custom event enquiry</p>
+              <h3 className="mt-2 font-serif text-2xl text-stone-900">{order.customDetails.occasion} · {order.customDetails.flowerCount} Flowers</h3>
+              <dl className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4 text-xs">
+                <div><dt className="text-stone-500">Flower colours</dt><dd className="mt-1 font-medium text-stone-900">{order.customDetails.flowerColors}</dd></div>
+                <div><dt className="text-stone-500">Wrapper colour</dt><dd className="mt-1 font-medium text-stone-900">{order.customDetails.wrapperColor}</dd></div>
+                <div><dt className="text-stone-500">Wrapper material</dt><dd className="mt-1 font-medium capitalize text-stone-900">{order.customDetails.wrapperType}</dd></div>
+                <div><dt className="text-stone-500">Wrappers</dt><dd className="mt-1 font-medium text-stone-900">{order.customDetails.wrapperCount}</dd></div>
+                <div><dt className="text-stone-500">Gypsy accents</dt><dd className="mt-1 font-medium text-stone-900">{order.customDetails.gypsy ? 'Yes' : 'No'}</dd></div>
+                <div><dt className="text-stone-500">Glitter</dt><dd className="mt-1 font-medium text-stone-900">{order.customDetails.glitter ? 'Yes' : 'No'}</dd></div>
+                <div><dt className="text-stone-500">Requested delivery</dt><dd className="mt-1 font-medium text-stone-900">{order.customer.deliveryDate}</dd></div>
+                <div><dt className="text-stone-500">Approximate range</dt><dd className="mt-1 font-medium text-stone-900">₹{order.customDetails.estimatedMin.toLocaleString('en-IN')} – ₹{order.customDetails.estimatedMax.toLocaleString('en-IN')}</dd></div>
+              </dl>
+              {order.customDetails.extraNotes && (
+                <div className="mt-5 border-t border-stone-200 pt-4">
+                  <p className="text-stone-500 text-xs">Additional requests</p>
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-stone-800">{order.customDetails.extraNotes}</p>
+                </div>
+              )}
+            </section>
+          )}
+
           {/* Ordered Products List */}
           <div>
             <h3 className="font-serif text-sm font-bold uppercase tracking-wider text-stone-900 border-b border-stone-200 pb-2 mb-3">
@@ -217,7 +240,10 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus }: Or
             </div>
 
             <div className="mt-4 flex justify-between border-t border-stone-200 pt-4 text-sm text-stone-800">
-              <span>Products subtotal</span><strong>₹{order.subtotal}</strong>
+              <span>{order.orderType === 'Custom' ? 'Estimated price range' : 'Products subtotal'}</span>
+              <strong>{order.orderType === 'Custom' && order.customDetails
+                ? `₹${order.customDetails.estimatedMin.toLocaleString('en-IN')} – ₹${order.customDetails.estimatedMax.toLocaleString('en-IN')}`
+                : `₹${order.subtotal}`}</strong>
             </div>
           </div>
 
