@@ -27,7 +27,7 @@ export default function CartDrawer({
   const subtotal = cartItems.reduce((acc, item) => acc + item.bouquet.price * item.quantity, 0);
   const isFreeDelivery = subtotal >= freeDeliveryThreshold;
   const finalDeliveryFee = subtotal === 0 || isFreeDelivery ? 0 : deliveryFee;
-  const total = subtotal + finalDeliveryFee;
+  const total = subtotal;
   const remainingForFreeDelivery = Math.max(0, freeDeliveryThreshold - subtotal);
 
   return (
@@ -148,30 +148,10 @@ export default function CartDrawer({
           {/* Footer with totals & checkout */}
           {cartItems.length > 0 && (
             <div className="p-6 border-t border-stone-200 bg-white space-y-4">
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between text-stone-600">
-                  <span>Subtotal:</span>
-                  <span className="font-semibold text-stone-900">₹{subtotal}</span>
-                </div>
-                <div className="flex justify-between text-stone-600">
-                  <span>Local Delivery:</span>
-                  <span className="font-semibold text-stone-900">
-                    {finalDeliveryFee === 0 ? (
-                      <span className="text-emerald-600 font-bold">FREE</span>
-                    ) : (
-                      `₹${finalDeliveryFee}`
-                    )}
-                  </span>
-                </div>
-                <div className="flex justify-between text-base font-bold text-stone-900 pt-2 border-t border-stone-100">
-                  <span>Estimated Total:</span>
-                  <span>₹{total}</span>
-                </div>
-                <p className="text-[11px] text-stone-500 pt-1">
-                  Cash on Delivery (+₹7) or Online UPI/QR available at checkout.
-                </p>
+              <div className="flex justify-between text-sm text-stone-800">
+                <span>Products subtotal</span><strong>₹{subtotal}</strong>
               </div>
-
+              <p className="text-xs text-stone-500">No payment now. We'll call to confirm your order.</p>
               <button
                 id="cart-checkout-btn"
                 onClick={onCheckout}
