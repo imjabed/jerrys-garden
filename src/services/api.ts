@@ -208,3 +208,11 @@ export async function apiValidateCoupon(payload: { code: string; email: string; 
   try { const res = await fetch(`${API_URL}/api/coupons/validate`, { method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify(payload) }); return await parseResponse<any>(res); }
   catch (err: any) { return { success: false, error: err.message }; }
 }
+
+export interface CustomEnquiryResponse { success: boolean; orderNumber: string; }
+export async function apiSendCustomEnquiry(payload: import('../components/CustomOrderSection').CustomEnquiryPayload): Promise<CustomEnquiryResponse> {
+  const res = await fetch(`${API_URL}/api/orders/custom`, {
+    method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify(payload),
+  });
+  return parseResponse<CustomEnquiryResponse>(res);
+}
