@@ -197,7 +197,7 @@ export default function Navbar({
                 className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-stone-700 hover:text-stone-900 px-3 py-2 rounded-lg border border-stone-200 hover:border-stone-300 transition-colors"
               >
                 <UserIcon className="w-4 h-4 text-stone-500" />
-                <span>Customer Login</span>
+                <span>Sign In</span>
               </button>
             )}
 
@@ -209,7 +209,7 @@ export default function Navbar({
                 className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer"
               >
                 <ShieldCheck className="w-4 h-4" />
-                <span className="hidden sm:inline">Owner Dashboard</span>
+                <span className="hidden sm:inline">Dashboard</span>
               </button>
             )}
 
@@ -264,7 +264,7 @@ export default function Navbar({
               }}
               className="block w-full text-center py-2.5 text-xs font-medium bg-rose-50 text-rose-800 rounded-lg"
             >
-              Customer Signup / Login
+              Sign In / Join
             </button>
           )}
 
