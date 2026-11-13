@@ -255,6 +255,7 @@ async function startServer() {
   // Add FRONTEND_URL in Render Environment Variables.
   const allowedOrigins = [
     'http://localhost:5173',
+    'https://jamebouquets.vercel.app',
     'https://jerrys-garden.vercel.app',
     'https://jerrysgarden-iggf6pgbv-jabedsprojects.vercel.app',
     ...(process.env.FRONTEND_URL || '')
