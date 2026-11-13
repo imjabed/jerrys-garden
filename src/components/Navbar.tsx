@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { ShoppingBag, Search, Compass, ShieldCheck, User as UserIcon, Menu, X, Sparkles, LogOut, Package } from 'lucide-react';
 import Logo from './Logo';
-import { UserAccount } from '../types';
+import { UserAccount, StoreSettings } from '../types';
 
 interface NavbarProps {
+  storeSettings: StoreSettings;
   cartCount: number;
   onOpenCart: () => void;
   onOpenTracking: () => void;
@@ -21,6 +22,7 @@ interface NavbarProps {
 }
 
 export default function Navbar({
+  storeSettings,
   cartCount,
   onOpenCart,
   onOpenTracking,
@@ -54,7 +56,7 @@ export default function Navbar({
         <div className="flex items-center justify-between h-20">
           {/* Brand Logo */}
           <div onClick={onNavigateToShop}>
-            <Logo size="md" />
+            <Logo size="md" logoUrl={storeSettings.logoUrl} />
           </div>
 
           {/* Desktop Navigation Links */}
