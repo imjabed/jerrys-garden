@@ -100,7 +100,7 @@ export async function apiRegisterCustomer(customer: {
 export async function apiLoginCustomer(email: string, password?: string) {
   try {
     const res = await fetch(`${API_URL}/api/customers/login`, { method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify({ email, password }) });
-    return await parseResponse<any>(res);
+    return await parseResponse<{ success: boolean; connected: boolean; role?: 'admin'; user?: UserAccount; error?: string }>(res);
   } catch (err: any) { return { success: false, connected: false, error: err.message, fallbackToClient: false }; }
 }
 
