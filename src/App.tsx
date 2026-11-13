@@ -241,11 +241,17 @@ export default function App() {
   };
 
   // Customer Custom Bouquet Created with Cloudinary Photo
-  const handleCustomerBouquetCreated = (newBouquet: RibbonBouquet) => {
-    // A custom preview does not become a published product.
+  const handleCustomerBouquetCreated = async (newBouquet: RibbonBouquet) => {
+    // Admin-created custom products must exist in MongoDB before they can be ordered.
+    const saved = await apiSaveBouquet(newBouquet);
+    if (!saved) {
+      showToast('Could not save custom product to the database.');
+      return;
+    }
+    setBouquets(current => [newBouquet, ...current.filter(item => item.id !== newBouquet.id)]);
     handleAddToCart(newBouquet, 1);
     setDetailModalBouquet(newBouquet);
-    showToast(`✨ Created "${newBouquet.title}" with custom Cloudinary photo! Added to cart.`);
+    showToast('Custom product saved to the catalogue and added to your bag.');
   };
 
   // Owner Auth
