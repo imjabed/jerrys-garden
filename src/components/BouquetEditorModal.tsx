@@ -30,18 +30,19 @@ export default function BouquetEditorModal({
   const isEditing = Boolean(bouquetToEdit);
 
   const [title, setTitle] = useState(bouquetToEdit?.title || '');
-  const [price, setPrice] = useState(bouquetToEdit?.price?.toString() || '899');
-  const [originalPrice, setOriginalPrice] = useState(bouquetToEdit?.originalPrice?.toString() || '1099');
-  const [imageUrl, setImageUrl] = useState(bouquetToEdit?.imageUrl || SAMPLE_RIBBON_IMAGES[0].url);
+  const [price, setPrice] = useState(bouquetToEdit?.price?.toString() || '');
+  const [originalPrice, setOriginalPrice] = useState(bouquetToEdit?.originalPrice?.toString() || '');
+  const [imageUrl, setImageUrl] = useState(bouquetToEdit?.imageUrl || '');
   const [description, setDescription] = useState(bouquetToEdit?.description || '');
   const [ribbonColorsText, setRibbonColorsText] = useState(
-    bouquetToEdit?.ribbonColors.join(', ') || 'Blush Pink, Champagne Gold, Ivory'
+    bouquetToEdit?.ribbonColors.join(', ') || ''
   );
   const [ribbonMaterial, setRibbonMaterial] = useState<RibbonBouquet['ribbonMaterial']>(
     bouquetToEdit?.ribbonMaterial || 'Double-faced Satin'
   );
-  const [flowerCount, setFlowerCount] = useState(bouquetToEdit?.flowerCount?.toString() || '18');
-  const [category, setCategory] = useState<RibbonBouquet['category']>(bouquetToEdit?.category || 'Romantic');
+  const [flowerCount, setFlowerCount] = useState(bouquetToEdit?.flowerCount?.toString() || '1');
+  const [category, setCategory] = useState<RibbonBouquet['category']>(bouquetToEdit?.category || 'Ribbon Bouquets');
+  const [whatsInsideText, setWhatsInsideText] = useState((bouquetToEdit?.whatsInside || []).join('\n'));
   const [featured, setFeatured] = useState(bouquetToEdit?.featured ?? true);
   const [inStock, setInStock] = useState(bouquetToEdit?.inStock ?? true);
 
@@ -101,11 +102,12 @@ export default function BouquetEditorModal({
       price: Number(price),
       originalPrice: originalPrice ? Number(originalPrice) : undefined,
       imageUrl: imageUrl.trim(),
-      description: description.trim() || 'Handcrafted ribbon flower bouquet made from lustrous ribbons.',
+      description: description.trim() || 'Handcrafted gift, made with care.',
       ribbonColors: colors.length > 0 ? colors : ['Custom Ribbon Colors'],
       ribbonMaterial,
-      flowerCount: Number(flowerCount) || 18,
-      category,
+      flowerCount: Number(flowerCount) || 1,
+      category: category.trim() || 'Other',
+      whatsInside: whatsInsideText.split('\n').map(item => item.trim()).filter(Boolean),
       featured,
       inStock,
       createdAt: bouquetToEdit?.createdAt || new Date().toISOString(),
@@ -127,10 +129,10 @@ export default function BouquetEditorModal({
             </span>
             <div>
               <h2 className="font-serif text-xl font-bold">
-                {isEditing ? 'Edit Ribbon Bouquet' : 'Post New Ribbon Bouquet'}
+                {isEditing ? 'Edit Product' : 'Add Product'}
               </h2>
               <p className="text-xs text-stone-400">
-                Jerry's Garden Catalog & Inventory Manager
+                Jame Bouquets · Product Studio
               </p>
             </div>
           </div>
@@ -145,7 +147,7 @@ export default function BouquetEditorModal({
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 sm:p-8 overflow-y-auto space-y-5 text-xs flex-1">
           
-          {/* Bouquet Title */}
+          {/* Product name */}
           <div>
             <label className="block text-xs font-bold text-stone-700 mb-1">
               Bouquet Title *
@@ -153,7 +155,7 @@ export default function BouquetEditorModal({
             <input
               type="text"
               required
-              placeholder="e.g. Blush Satin Melody Bouquet"
+              placeholder="e.g. Pink Ribbon Tulip Bouquet"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
@@ -323,23 +325,34 @@ export default function BouquetEditorModal({
           {/* Description */}
           <div>
             <label className="block text-xs font-bold text-stone-700 mb-1">
-              Handcrafted Details / Description *
+              Product Description *
             </label>
             <textarea
               rows={3}
               required
-              placeholder="Describe the ribbon folding style, wrapping paper, colors, and occasion..."
+              placeholder="Describe your product and available customisations..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
             />
           </div>
 
+          <div>
+            <label className="block text-xs font-medium text-stone-700 mb-2">What's Inside · One item per line</label>
+            <textarea
+              rows={4}
+              value={whatsInsideText}
+              onChange={event => setWhatsInsideText(event.target.value)}
+              placeholder={'1 handmade bouquet\n1 gift box or carry bag\n1 message card'}
+              className="w-full px-3.5 py-3 text-sm border border-stone-300 bg-white outline-none focus:border-stone-800"
+            />
+            <p className="mt-1.5 text-[11px] text-stone-500">Only list what the customer actually receives. Each line appears in the product's What's Inside section.</p>
+          </div>
           {/* Ribbon Colors & Material */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-stone-700 mb-1">
-                Ribbon Color Tags (comma separated)
+                Colours / Variants (comma separated)
               </label>
               <input
                 type="text"
@@ -352,7 +365,7 @@ export default function BouquetEditorModal({
 
             <div>
               <label className="block text-xs font-bold text-stone-700 mb-1">
-                Ribbon Material
+                Main Material
               </label>
               <select
                 value={ribbonMaterial}
@@ -373,17 +386,17 @@ export default function BouquetEditorModal({
               <label className="block text-xs font-bold text-stone-700 mb-1">
                 Category
               </label>
-              <select
+              <input
+                list="product-category-options"
+                required
                 value={category}
-                onChange={(e) => setCategory(e.target.value as any)}
-                className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 bg-white"
-              >
-                <option value="Romantic">Romantic</option>
-                <option value="Celebration">Celebration</option>
-                <option value="Pastel">Pastel</option>
-                <option value="Minimalist">Minimalist</option>
-                <option value="Grand Luxury">Grand Luxury</option>
-              </select>
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="Choose or type a new category"
+                className="w-full px-3 py-2.5 text-xs border border-stone-300 bg-white focus:border-stone-700 outline-none"
+              />
+              <datalist id="product-category-options">
+                {['Ribbon Bouquets', 'Pipecleaner Bouquets', 'Bouquet Keychains', 'Pipecleaner Keychains', 'Gift Combos'].map(item => <option key={item} value={item}/>)}
+              </datalist>
             </div>
 
             <div className="flex items-center gap-2 pt-5">
@@ -426,7 +439,7 @@ export default function BouquetEditorModal({
               type="submit"
               className="px-6 py-2.5 rounded-xl bg-stone-900 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-md cursor-pointer"
             >
-              {isEditing ? 'Save Changes' : 'Post Ribbon Bouquet'}
+              {isEditing ? 'Save Changes' : 'Publish Product'}
             </button>
           </div>
 
