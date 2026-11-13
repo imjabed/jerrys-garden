@@ -150,7 +150,7 @@ export default function BouquetDetailModal({
                   {bouquet.category}
                 </span>
                 <span className="text-[11px] text-stone-500 font-medium">
-                  {bouquet.category.toLowerCase().includes('keychain') ? 'Handcrafted keepsake' : `${bouquet.flowerCount} handmade flowers`}
+                  {(bouquet.category || '').toLowerCase().includes('keychain') ? 'Handcrafted keepsake' : `${bouquet.flowerCount} handmade flowers`}
                 </span>
               </div>
               <h2 className="font-serif text-2xl font-bold text-stone-900 leading-tight">
