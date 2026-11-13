@@ -53,8 +53,10 @@ export default function CustomOrderSection({ onSubmit }: CustomOrderSectionProps
   }), [flowers, wrappers, wrapperType, gypsy, glitter, deliveryDate]);
   const adjustFlowers = (count: number) => {
     const next = Math.max(25, Math.min(100, Math.round(count / 5) * 5));
+    // Keep manually added wrappers while automatically recalculating the baseline.
+    const extraWrappers = Math.max(0, wrappers - minimumWrappers(flowers));
     setFlowers(next);
-    setWrappers(current => Math.max(current, minimumWrappers(next)));
+    setWrappers(Math.min(100, minimumWrappers(next) + extraWrappers));
   };
 
   async function send(e: FormEvent) {
