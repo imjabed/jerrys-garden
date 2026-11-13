@@ -31,19 +31,10 @@ export default function Footer({
             </div>
             
             <p className="text-xs text-stone-400 leading-relaxed">
-              Everlasting ribbon bouquets, thoughtfully handcrafted in Berhampore.
+              Handmade bouquets, keepsakes, keychains & gifts. Thoughtfully crafted in Berhampore.
             </p>
 
-            <div className="flex flex-wrap items-center gap-2 pt-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-800 text-stone-300 text-[11px] font-medium border border-stone-700">
-                <QrCode className="w-3.5 h-3.5 text-rose-400" />
-                <span>UPI & QR Payments</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-800 text-stone-300 text-[11px] font-medium border border-stone-700">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                <span>Cash on Delivery (₹7 Fee)</span>
-              </span>
-            </div>
+            <p className="text-[11px] tracking-wide text-stone-400">Order online · We confirm by phone</p>
           </div>
 
           {/* Quick Nav (2 cols) */}
@@ -57,7 +48,7 @@ export default function Footer({
                   onClick={onNavigateToShop}
                   className="hover:text-rose-400 transition-colors cursor-pointer"
                 >
-                  All Ribbon Bouquets
+                  Browse Products
                 </button>
               </li>
               <li>
