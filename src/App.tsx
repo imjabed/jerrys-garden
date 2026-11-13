@@ -582,7 +582,7 @@ export default function App() {
         />
       )}
 
-      {/* Checkout Modal with UPI & QR payment */}
+      {/* Customer details only checkout */}
       {checkoutModalOpen && (
         <CheckoutModal
           isOpen={checkoutModalOpen}
@@ -593,7 +593,7 @@ export default function App() {
           onOrderSuccess={async (order) => {
             const savedOrder = await handleOrderSuccess(order);
             setPreselectedTrackingId(savedOrder.orderNumber);
-            setTimeout(() => setTrackingModalOpen(true), 800);
+            // Confirmation stays visible; the customer can track later with the order reference.
             return savedOrder;
           }}
         />
