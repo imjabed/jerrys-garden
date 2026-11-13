@@ -87,7 +87,7 @@ export default function BouquetEditorModal({
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!title || !price || !imageUrl) {
-      alert('Please fill in bouquet title, price, and image.');
+      alert('Please enter a product name, price, and image.');
       return;
     }
 
@@ -150,7 +150,7 @@ export default function BouquetEditorModal({
           {/* Product name */}
           <div>
             <label className="block text-xs font-bold text-stone-700 mb-1">
-              Bouquet Title *
+              Product Name *
             </label>
             <input
               type="text"
@@ -194,7 +194,7 @@ export default function BouquetEditorModal({
 
             <div className="col-span-2 sm:col-span-1">
               <label className="block text-xs font-bold text-stone-700 mb-1">
-                Ribbon Blooms Count
+                Flowers / Pieces
               </label>
               <input
                 type="number"
@@ -211,7 +211,7 @@ export default function BouquetEditorModal({
           <div className="space-y-2 p-4 bg-stone-50 rounded-2xl border border-stone-200">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-bold text-stone-700">
-                Bouquet Photo (Cloud Storage) *
+                Product Photo *
               </label>
               <span className="text-[10px] text-rose-600 font-medium flex items-center gap-1">
                 <Cloud className="w-3 h-3 text-sky-500" />
@@ -257,7 +257,7 @@ export default function BouquetEditorModal({
 
             {/* Quick Ribbon Photo Presets */}
             <div>
-              <span className="text-[10px] text-stone-500 block mb-1">Or select aesthetic preset:</span>
+              <span className="text-[10px] text-stone-500 block mb-1">Optional sample images (use your own product photo for accuracy):</span>
               <div className="flex gap-1.5 overflow-x-auto pb-1">
                 {SAMPLE_RIBBON_IMAGES.map((sample) => (
                   <button
@@ -376,6 +376,9 @@ export default function BouquetEditorModal({
                 <option value="Silk Lustre">Silk Lustre</option>
                 <option value="Organza & Satin">Organza & Satin</option>
                 <option value="Velvet & Grosgrain">Velvet & Grosgrain</option>
+                <option value="Pipecleaner">Pipecleaner</option>
+                <option value="Mixed Materials">Mixed Materials</option>
+                <option value="Other">Other</option>
               </select>
             </div>
           </div>
