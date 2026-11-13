@@ -31,7 +31,7 @@ export default function Footer({
             </div>
             
             <p className="text-xs text-stone-400 leading-relaxed">
-              Jerry's Garden is a premier handcrafted ribbon flower boutique. We hand-fold everlasting roses, tulips, and custom bouquets from luxurious satin and silk ribbons for local celebrations.
+              Everlasting ribbon bouquets, thoughtfully handcrafted in Berhampore.
             </p>
 
             <div className="flex flex-wrap items-center gap-2 pt-2">
@@ -112,18 +112,18 @@ export default function Footer({
 
         {/* Bottom copyright & Owner Portal trigger (Invisible unless logged in as Owner) */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
-          <p>© 2026 Jerry's Garden. Berhampore, Murshidabad. Handcrafted with precision.</p>
+          <p>© 2026 Jame Bouquets. Berhampore, Murshidabad. Handcrafted with precision.</p>
 
           <div className="flex items-center gap-4">
-            <button
+            {isOwner && <button
               onClick={onOpenOwnerLogin}
               className="text-stone-500 hover:text-emerald-400 font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
               title={isOwner ? "Open Owner Dashboard" : "Owner Login"}
               aria-label={isOwner ? "Open Owner Dashboard" : "Owner Login"}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>{isOwner ? "Owner Dashboard" : "Owner Login"}</span>
-            </button>
+              <span>Dashboard</span>
+            </button>}
           </div>
         </div>
 

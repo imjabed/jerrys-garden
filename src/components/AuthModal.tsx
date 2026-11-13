@@ -31,6 +31,7 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLoginSuccess: (user: UserAccount) => void;
+  onAdminLoginSuccess: () => void;
   onRegisterSuccess: (user: UserAccount) => void;
 }
 
@@ -38,6 +39,7 @@ export default function AuthModal({
   isOpen,
   onClose,
   onLoginSuccess,
+  onAdminLoginSuccess,
   onRegisterSuccess,
 }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'register' | 'otp_verify'>('login');
@@ -195,6 +197,11 @@ export default function AuthModal({
     setIsLoggingIn(true);
     try {
       const mongoResult = await apiLoginCustomer(emailInput, passwordInput);
+      if (mongoResult.success && mongoResult.role === 'admin') {
+        onAdminLoginSuccess();
+        onClose();
+        return;
+      }
       if (!mongoResult.success || !mongoResult.user) {
         setError(mongoResult.error || 'Invalid email or password. If you are new, please sign up and verify your email.');
         return;
@@ -215,7 +222,7 @@ export default function AuthModal({
         {/* Header */}
         <div className="p-6 bg-gradient-to-r from-rose-50/80 via-white to-amber-50/60 border-b border-stone-200 flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700">Jerry's Garden</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700">Jame Bouquets</span>
             <h2 className="font-serif text-2xl font-bold text-stone-900 mt-0.5">
               {mode === 'login' && 'Sign In to Your Account'}
               {mode === 'register' && 'Create Customer Account'}

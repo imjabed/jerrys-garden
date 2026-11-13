@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { X, ShieldAlert, KeyRound, Mail, ArrowRight, Lock, CheckCircle2 } from 'lucide-react';
+import { X, ArrowRight } from 'lucide-react';
 import { ownerLogin } from '../services/api';
 
 interface OwnerLoginModalProps {
@@ -10,136 +10,45 @@ interface OwnerLoginModalProps {
 
 export default function OwnerLoginModal({ isOpen, onClose, onOwnerLoginSuccess }: OwnerLoginModalProps) {
   const [email, setEmail] = useState('');
-  const [adminCode, setAdminCode] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-
+  const [busy, setBusy] = useState(false);
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
+    setBusy(true);
     setError('');
     try {
-      await ownerLogin(email, adminCode);
-      setSuccess(true);
-      setTimeout(() => { onOwnerLoginSuccess(); onClose(); }, 500);
+      await ownerLogin(email.trim(), password);
+      onOwnerLoginSuccess();
+      onClose();
     } catch (err: any) {
-      setError(err.message || 'Access denied. Invalid owner credentials.');
+      setError(err.message || 'Unable to sign in.');
+    } finally {
+      setBusy(false);
     }
   };
 
-  const handleQuickFillDemo = () => {
-    setError('Owner credentials are configured securely on the server. Enter them here to sign in.');
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden my-8">
-        
-        {/* Top Security Banner */}
-        <div className="p-6 bg-stone-900 text-white flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center">
-              <Lock className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400">
-                Restricted Access
-              </span>
-              <h2 className="font-serif text-xl font-bold">
-                Owner Portal Verification
-              </h2>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-stone-400 hover:text-white rounded-full hover:bg-stone-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
+    <div className="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-md flex items-center justify-center p-5" role="dialog" aria-modal="true">
+      <div className="w-full max-w-md relative bg-[#FAF8F5] p-9 sm:p-12 shadow-2xl">
+        <button aria-label="Close" className="absolute top-5 right-5 text-stone-500 hover:text-stone-900" onClick={onClose}><X size={20} /></button>
+        <p className="text-[10px] tracking-[0.3em] uppercase text-stone-500">Jame Bouquets</p>
+        <h2 className="font-serif text-4xl font-normal text-stone-900 mt-5 mb-2">Welcome back.</h2>
+        <p className="text-stone-500 text-sm mb-10">Sign in to your atelier.</p>
+        <form className="space-y-5" onSubmit={submit}>
+          <label className="block text-[11px] text-stone-600 uppercase tracking-wider">Email
+            <input required type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 block w-full rounded-none bg-transparent border-b border-stone-300 py-3 outline-none focus:border-stone-900 text-sm text-stone-900" />
+          </label>
+          <label className="block text-[11px] text-stone-600 uppercase tracking-wider">Password
+            <input required type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} className="mt-2 block w-full rounded-none bg-transparent border-b border-stone-300 py-3 outline-none focus:border-stone-900 text-sm text-stone-900" />
+          </label>
+          {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+          <button type="submit" disabled={busy} className="w-full bg-stone-900 text-white px-6 py-4 text-xs tracking-widest uppercase flex items-center justify-center gap-3 hover:bg-stone-700 disabled:opacity-50">
+            {busy ? 'Signing in...' : 'Sign in'} <ArrowRight size={16} />
           </button>
-        </div>
-
-        {/* Informative Notice */}
-        <div className="px-6 py-3 bg-amber-50 border-b border-amber-100 flex items-start gap-2.5 text-xs text-amber-900">
-          <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-          <p className="leading-snug">
-            Protected area for <strong>Jerry's Garden</strong> management. Customers cannot switch to owner mode.
-          </p>
-        </div>
-
-        {/* Verification Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="p-3.5 text-xs text-red-800 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2">
-              <ShieldAlert className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {success && (
-            <div className="p-3 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Identity Verified. Opening Owner Dashboard...</span>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-bold text-stone-700 mb-1">
-              Authorized Owner Email *
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
-              <input
-                type="email"
-                required
-                placeholder="Enter authorized owner email..."
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-stone-700 mb-1">
-              Secret Admin Code *
-            </label>
-            <div className="relative">
-              <KeyRound className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
-              <input
-                type="password"
-                required
-                placeholder="Enter secret code..."
-                value={adminCode}
-                onChange={(e) => setAdminCode(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white"
-              />
-            </div>
-          </div>
-
-          {/* Quick Demo Helper Button */}
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={handleQuickFillDemo}
-              className="text-[11px] text-stone-500 hover:text-stone-800 underline font-medium cursor-pointer"
-            >
-              Owner credentials are verified securely on the server
-            </button>
-          </div>
-
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={success}
-              className="w-full py-3.5 rounded-xl bg-stone-900 hover:bg-black text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <span>Verify & Access Owner Dashboard</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
         </form>
-
       </div>
     </div>
   );

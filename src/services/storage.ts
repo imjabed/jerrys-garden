@@ -1,5 +1,5 @@
 import { RibbonBouquet, UserAccount, StoreSettings, CartItem } from '../types';
-import { INITIAL_BOUQUETS, INITIAL_SETTINGS } from '../data/initialData';
+import { INITIAL_SETTINGS } from '../data/initialData';
 
 const KEYS = {
   BOUQUETS: 'jg_bouquets_v1',
@@ -32,7 +32,7 @@ const setStorageItem = <T>(key: string, value: T): void => {
 
 // Bouquets
 export const getBouquets = (): RibbonBouquet[] => {
-  return getStorageItem<RibbonBouquet[]>(KEYS.BOUQUETS, INITIAL_BOUQUETS);
+  return getStorageItem<RibbonBouquet[]>(KEYS.BOUQUETS, []);
 };
 
 export const saveBouquet = (bouquet: RibbonBouquet): RibbonBouquet[] => {

@@ -125,7 +125,7 @@ if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET) {
 // Email delivery uses AgentMail's HTTPS API instead of SMTP so it works on Render Free.
 const AGENTMAIL_API_KEY = process.env.AGENTMAIL_API_KEY || '';
 const AGENTMAIL_INBOX_ID = process.env.AGENTMAIL_INBOX_ID || '';
-const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || "Jerry's Garden";
+const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || "Jame Bouquets";
 
 async function sendEmailWithAgentMail({
   to,
@@ -255,7 +255,9 @@ async function startServer() {
   // Add FRONTEND_URL in Render Environment Variables.
   const allowedOrigins = [
     'http://localhost:5173',
+    'https://jamebouquets.vercel.app',
     'https://jerrys-garden.vercel.app',
+    'https://jerrysgarden-iggf6pgbv-jabedsprojects.vercel.app',
     ...(process.env.FRONTEND_URL || '')
       .split(',')
       .map((origin) => origin.trim())
@@ -297,7 +299,7 @@ async function startServer() {
   app.get('/api/health', (req, res) => {
     res.json({
       status: 'ok',
-      service: "Jerry's Garden Bouquet API",
+      service: "Jame Bouquets Bouquet API",
       auth: { ownerConfigured: Boolean(ADMIN_EMAIL && ADMIN_PASSWORD && AUTH_SECRET) },
       cloudinary: {
         configured: Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET),
@@ -611,6 +613,12 @@ async function startServer() {
       const password = String(req.body?.password || '');
       if (!allowLoginAttempt(String(req.ip || 'unknown'), 10)) return res.status(429).json({ success: false, error: 'Too many login attempts. Please try again later.' });
       if (!email || !password) return res.status(400).json({ success: false, error: 'Email and password are required.' });
+      if (ADMIN_EMAIL && email === ADMIN_EMAIL) {
+        if (!ADMIN_PASSWORD || !AUTH_SECRET || password !== ADMIN_PASSWORD) return res.status(401).json({ success: false, connected: true, error: 'Invalid email or password.' });
+        const token = signToken({ role: 'owner', email }, 60 * 60 * 12);
+        setAuthCookie(res, OWNER_COOKIE, token, 60 * 60 * 12);
+        return res.json({ success: true, connected: true, role: 'admin' });
+      }
       const verification = await mongoVerifyCustomerLogin(email, password);
       if (verification === null) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable. Please try again.' });
       if (!verification.success) return res.status(401).json({ success: false, connected: true, error: verification.reason === 'NOT_FOUND' ? 'No account found with this email.' : 'Incorrect password.' });
@@ -844,8 +852,8 @@ async function startServer() {
       if (safeCustomer.email) {
         try {
           const rows = normalizedItems.map((item: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${String(item.bouquet.title)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">₹${Number(item.bouquet.price) * item.quantity}</td></tr>`).join('');
-          await sendEmailWithAgentMail({ to: safeCustomer.email, subject: `Jerry's Garden Order ${order.orderNumber} — Confirmed`, html: `<div style="font-family:Arial,sans-serif;max-width:650px;margin:auto;color:#292524"><div style="padding:24px;background:#fff1f2;border-radius:16px"><h1 style="margin:0;color:#881337">Jerry's Garden</h1><p>Your order <strong>${order.orderNumber}</strong> has been received.</p></div><div style="padding:24px"><h2>Order details</h2><table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:8px">Item</th><th style="padding:8px">Qty</th><th style="text-align:right;padding:8px">Amount</th></tr></thead><tbody>${rows}</tbody></table><p>Subtotal: ₹${subtotal}</p>${discountAmount > 0 ? `<p style="color:#047857">Coupon (${couponCode}): -₹${discountAmount}</p>` : ''}<p>Delivery: ${deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}</p>${codHandlingCharge ? `<p>COD handling: ₹${codHandlingCharge}</p>` : ''}<h3>Total: ₹${totalAmount}</h3><p><strong>Delivery date:</strong> ${safeCustomer.deliveryDate}<br><strong>Time:</strong> ${safeCustomer.deliveryTimeSlot || 'Not specified'}<br><strong>Payment:</strong> ${paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online / UPI — Awaiting confirmation'}${paymentMethod === 'ONLINE' ? `<br><strong>UPI ID:</strong> ${String(settings?.upiId || '')}<br><strong>UTR:</strong> ${String(order.payment.transactionRef || 'Not provided')}` : ''}</p><p><strong>Delivery address:</strong> ${safeCustomer.deliveryAddress}, ${safeCustomer.city} - ${safeCustomer.pincode}</p></div></div>` });
-        } catch (emailErr) { console.error("[Jerry's Garden] Order confirmation email failed:", emailErr); }
+          await sendEmailWithAgentMail({ to: safeCustomer.email, subject: `Jame Bouquets Order ${order.orderNumber} — Confirmed`, html: `<div style="font-family:Arial,sans-serif;max-width:650px;margin:auto;color:#292524"><div style="padding:24px;background:#fff1f2;border-radius:16px"><h1 style="margin:0;color:#881337">Jame Bouquets</h1><p>Your order <strong>${order.orderNumber}</strong> has been received.</p></div><div style="padding:24px"><h2>Order details</h2><table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:8px">Item</th><th style="padding:8px">Qty</th><th style="text-align:right;padding:8px">Amount</th></tr></thead><tbody>${rows}</tbody></table><p>Subtotal: ₹${subtotal}</p>${discountAmount > 0 ? `<p style="color:#047857">Coupon (${couponCode}): -₹${discountAmount}</p>` : ''}<p>Delivery: ${deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}</p>${codHandlingCharge ? `<p>COD handling: ₹${codHandlingCharge}</p>` : ''}<h3>Total: ₹${totalAmount}</h3><p><strong>Delivery date:</strong> ${safeCustomer.deliveryDate}<br><strong>Time:</strong> ${safeCustomer.deliveryTimeSlot || 'Not specified'}<br><strong>Payment:</strong> ${paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online / UPI — Awaiting confirmation'}${paymentMethod === 'ONLINE' ? `<br><strong>UPI ID:</strong> ${String(settings?.upiId || '')}<br><strong>UTR:</strong> ${String(order.payment.transactionRef || 'Not provided')}` : ''}</p><p><strong>Delivery address:</strong> ${safeCustomer.deliveryAddress}, ${safeCustomer.city} - ${safeCustomer.pincode}</p></div></div>` });
+        } catch (emailErr) { console.error("[Jame Bouquets] Order confirmation email failed:", emailErr); }
       }
       return res.status(201).json({ success: true, connected: true, order: saved });
     } catch (err: any) { console.error('Order creation error:', err); return res.status(500).json({ success: false, error: 'Could not place your order. Please try again.' }); }

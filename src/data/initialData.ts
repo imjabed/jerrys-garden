@@ -1,11 +1,11 @@
 import { RibbonBouquet, Order, StoreSettings } from '../types';
 
 export const INITIAL_SETTINGS: StoreSettings = {
-  storeName: "Jerry's Garden",
-  tagline: "Artisan Ribbon Floristry • Everlasting Handcrafted Blooms",
+  storeName: "Jame Bouquets",
+  tagline: "Everlasting, by hand.",
   ownerEmail: "meherkhan7190@gmail.com",
   upiId: "jerrysgarden@axl",
-  upiName: "Jerry's Garden Handcrafts",
+  upiName: "Jame Bouquets Handcrafts",
   phone: "Contact on Order Confirmation",
   whatsapp: "Available on Order Confirmation",
   city: "Berhampore, Murshidabad",
