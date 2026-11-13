@@ -35,7 +35,23 @@ export interface CustomerDetails {
   giftNote?: string;
 }
 
+export interface CustomOrderDetails {
+  occasion: string;
+  flowerCount: number;
+  flowerColors: string;
+  wrapperColor: string;
+  wrapperType: 'paper' | 'net';
+  wrapperCount: number;
+  gypsy: boolean;
+  glitter: boolean;
+  extraNotes: string;
+  estimatedMin: number;
+  estimatedMax: number;
+}
+
 export interface Order {
+  orderType?: 'Standard' | 'Custom';
+  customDetails?: CustomOrderDetails;
   id: string;
   orderNumber: string;
   createdAt: string;
