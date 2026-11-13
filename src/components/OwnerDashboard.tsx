@@ -554,6 +554,9 @@ export default function OwnerDashboard({
                             <span className="font-mono font-bold text-stone-900 text-sm block">
                               {order.orderNumber}
                             </span>
+                            {order.orderType === 'Custom' && (
+                              <span className="mt-1 inline-block border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-rose-800">Custom</span>
+                            )}
                             <span className="text-[11px] text-stone-500">
                               {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </span>
@@ -569,7 +572,9 @@ export default function OwnerDashboard({
                           {/* Items Summary */}
                           <td className="py-3.5 px-4">
                             <p className="font-medium text-stone-800">
-                              {order.items.map((it) => `${it.quantity}x ${it.bouquet.title}`).join(', ')}
+                              {order.orderType === 'Custom' && order.customDetails
+                                ? `${order.customDetails.occasion} · ${order.customDetails.flowerCount} flowers`
+                                : order.items.map(it => `${it.quantity}x ${it.bouquet.title}`).join(', ')}
                             </p>
                             <p className="text-[10px] text-stone-400">
                               {order.items.reduce((sum, it) => sum + (it.bouquet.flowerCount * it.quantity), 0)} Items
@@ -578,13 +583,17 @@ export default function OwnerDashboard({
 
                           {/* Amount & Payment */}
                           <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className="font-bold text-stone-900 text-sm block">₹{order.totalAmount}</span>
+                            <span className="font-bold text-stone-900 text-sm block">
+                              {order.orderType === 'Custom' && order.customDetails
+                                ? `₹${order.customDetails.estimatedMin.toLocaleString('en-IN')} – ₹${order.customDetails.estimatedMax.toLocaleString('en-IN')}`
+                                : `₹${order.totalAmount}`}
+                            </span>
                             <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${
                               order.payment.method === 'COD' 
                                 ? 'text-amber-800 bg-amber-100 font-bold' 
                                 : 'text-emerald-700 bg-emerald-50'
                             }`}>
-                              {order.payment.method === 'CONTACT_LATER' ? 'Call to confirm' : 'Legacy order'}
+                              {order.orderType === 'Custom' ? 'Custom enquiry · Call' : order.payment.method === 'CONTACT_LATER' ? 'Call to confirm' : 'Legacy order'}
                             </span>
                           </td>
 
