@@ -245,6 +245,15 @@ export default function Navbar({
           </button>
           <button
             onClick={() => {
+              onNavigateToBuilder();
+              setMobileMenuOpen(false);
+            }}
+            className="block w-full text-left py-2 text-sm font-medium text-stone-800 hover:text-rose-600 border-b border-stone-100"
+          >
+            Custom Event Bouquets
+          </button>
+          <button
+            onClick={() => {
               onOpenTracking();
               setMobileMenuOpen(false);
             }}
