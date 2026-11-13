@@ -79,7 +79,7 @@ export default function BouquetDetailModal({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Left: Product Image & Ribbon Craftsmanship Badges */}
+        {/* Left: Product Image & Handmade with care Badges */}
         <div className="w-full md:w-1/2 bg-stone-100 relative min-h-[320px] md:min-h-full flex flex-col justify-end">
           <img
             src={currentImage}
@@ -136,7 +136,7 @@ export default function BouquetDetailModal({
               Ribbon Craftsmanship
             </span>
             <p className="text-xs text-white/90">
-              Each flower is carefully rolled by hand using {bouquet.ribbonMaterial}.
+              Crafted from {bouquet.ribbonMaterial} with careful attention to detail.
             </p>
           </div>
         </div>
@@ -150,7 +150,7 @@ export default function BouquetDetailModal({
                   {bouquet.category}
                 </span>
                 <span className="text-[11px] text-stone-500 font-medium">
-                  {bouquet.flowerCount} Handcrafted Blooms
+                  {bouquet.category.toLowerCase().includes('keychain') ? 'Handcrafted keepsake' : `${bouquet.flowerCount} handmade flowers`}
                 </span>
               </div>
               <h2 className="font-serif text-2xl font-bold text-stone-900 leading-tight">
