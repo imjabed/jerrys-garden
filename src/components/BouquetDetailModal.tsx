@@ -147,7 +147,7 @@ export default function BouquetDetailModal({
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded-full">
-                  {bouquet.category} Bouquet
+                  {bouquet.category}
                 </span>
                 <span className="text-[11px] text-stone-500 font-medium">
                   {bouquet.flowerCount} Handcrafted Blooms
@@ -181,10 +181,18 @@ export default function BouquetDetailModal({
               </div>
               <div className="flex items-center gap-2 text-stone-800 font-medium">
                 <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span>UPI / QR & Cash on Delivery (COD) supported</span>
+                <span>Our team will contact you to confirm your order</span>
               </div>
             </div>
 
+            <section className="border-t border-stone-200 pt-4">
+              <h3 className="font-serif text-lg font-normal text-stone-900 mb-2">What's Inside</h3>
+              {bouquet.whatsInside?.length ? (
+                <ul className="space-y-1.5 text-sm text-stone-600">
+                  {bouquet.whatsInside.map((item, index) => <li key={index} className="flex gap-2"><Check className="w-4 h-4 text-stone-500 shrink-0" />{item}</li>)}
+                </ul>
+              ) : <p className="text-sm text-stone-500">Packaging details available on request.</p>}
+            </section>
             {/* Quantity Selector */}
             <div className="flex items-center gap-3 pt-2">
               <span className="text-xs font-bold text-stone-700">Quantity:</span>
@@ -219,7 +227,7 @@ export default function BouquetDetailModal({
               onClick={handleBuy}
               className="w-full py-3.5 rounded-xl bg-stone-900 hover:bg-rose-700 text-white font-semibold text-xs tracking-wide uppercase transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>Buy Now (UPI / COD)</span>
+              <span>Buy Now</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
