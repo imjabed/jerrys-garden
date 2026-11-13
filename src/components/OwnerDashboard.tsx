@@ -33,7 +33,7 @@ import {
   Tag
 } from 'lucide-react';
 import { Order, OrderStatus, RibbonBouquet, StoreSettings, UserAccount, Coupon } from '../types';
-import { isCloudinaryUrl } from '../services/cloudinary';
+import { isCloudinaryUrl, uploadImageToCloudinary } from '../services/cloudinary';
 import {
   checkMongoStatus,
   syncDataToMongo,
@@ -217,7 +217,32 @@ export default function OwnerDashboard({
 
   // Editable settings form
   const [settingsForm, setSettingsForm] = useState<StoreSettings>(storeSettings);
+  useEffect(() => setSettingsForm(storeSettings), [storeSettings]);
   const [settingsSavedMessage, setSettingsSavedMessage] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoUploadError, setLogoUploadError] = useState('');
+
+  const handleLogoUpload = async (file?: File) => {
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      setLogoUploadError('Choose a PNG, JPG or WebP logo.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setLogoUploadError('Maximum file size is 5 MB.');
+      return;
+    }
+    setLogoUploading(true);
+    setLogoUploadError('');
+    try {
+      const upload = await uploadImageToCloudinary(file, 'jame_bouquets_branding');
+      setSettingsForm(current => ({ ...current, logoUrl: upload.url }));
+    } catch (err: any) {
+      setLogoUploadError(err?.message || 'Unable to upload the brand logo.');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
 
   // Analytics Metrics
   const totalOrdersCount = orders.length;
@@ -1001,7 +1026,40 @@ export default function OwnerDashboard({
 
               <form onSubmit={handleSaveSettings} className="space-y-4 text-xs">
                 
-                <p className="text-xs text-stone-500">Customers provide details online; our team arranges confirmation and payment by phone.</p>
+                <div className="border border-stone-200 bg-[#FCFAF7] p-5 sm:p-6 space-y-4">
+                  <div>
+                    <h4 className="font-serif text-xl text-stone-900">Brand Logo</h4>
+                    <p className="mt-1.5 text-xs leading-relaxed text-stone-500">Upload your logo and save settings to update the website header and footer. PNG with a transparent background works best.</p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+                    <div className="flex h-24 w-48 items-center justify-center border border-stone-200 bg-white p-3">
+                      {settingsForm.logoUrl ? (
+                        <img src={settingsForm.logoUrl} alt="Selected Jame Bouquets brand logo" className="max-h-full max-w-full object-contain"/>
+                      ) : (
+                        <span className="font-serif text-xl text-stone-800">Jame Bouquets</span>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <label className="inline-flex cursor-pointer items-center gap-2 border border-stone-300 px-4 py-3 text-xs font-medium text-stone-800 hover:bg-stone-100">
+                        <Cloud className="h-4 w-4"/>
+                        {logoUploading ? 'Uploading...' : 'Upload Brand Logo'}
+                        <input
+                          type="file" accept="image/png,image/jpeg,image/webp"
+                          disabled={logoUploading}
+                          className="sr-only"
+                          onChange={event => void handleLogoUpload(event.target.files?.[0])}
+                        />
+                      </label>
+                      {settingsForm.logoUrl && (
+                        <button type="button" onClick={() => setSettingsForm(current => ({ ...current, logoUrl: '' }))}
+                          className="block text-xs text-stone-500 underline hover:text-stone-900">Restore default logo</button>
+                      )}
+                      {logoUploadError && <p role="alert" className="text-xs text-red-700">{logoUploadError}</p>}
+                      {settingsForm.logoUrl && <p className="text-[11px] text-stone-500">Preview ready. Click Save Store Settings below to publish.</p>}
+                    </div>
+                  </div>
+                </div>
+                                <p className="text-xs text-stone-500">Customers provide details online; our team arranges confirmation and payment by phone.</p>
 
                 {/* Contact Info */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
