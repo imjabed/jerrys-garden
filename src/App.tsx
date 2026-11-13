@@ -136,6 +136,24 @@ export default function App() {
     };
   }, []);
 
+  // Keep the order queue current while the admin is viewing the dashboard.
+  useEffect(() => {
+    if (!isOwner) return;
+    const refreshOrders = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const res = await apiGetOrders();
+      if (res.connected) setOrders(res.orders);
+    };
+    const refreshOnFocus = () => { void refreshOrders(); };
+    document.addEventListener('visibilitychange', refreshOnFocus);
+    const interval = window.setInterval(refreshOrders, 30000);
+    void refreshOrders();
+    return () => {
+      document.removeEventListener('visibilitychange', refreshOnFocus);
+      window.clearInterval(interval);
+    };
+  }, [isOwner]);
+
   // Sync cart to storage when modified
   const updateCart = (newItems: CartItem[]) => {
     setCartItems(newItems);
@@ -552,7 +570,6 @@ export default function App() {
 
           <CustomOrderSection onSubmit={async payload => {
             const result = await apiSendCustomEnquiry(payload);
-            setOrders(current => current);
             return { orderNumber: result.orderNumber };
           }} />
           {/* The Ribbon Craft Story Section */}
