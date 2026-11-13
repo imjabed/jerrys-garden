@@ -426,7 +426,7 @@ export default function OwnerDashboard({
               </div>
             </div>
             <p className="text-2xl sm:text-3xl font-bold text-stone-900 mt-2">₹{totalRevenue}</p>
-            <p className="text-[11px] text-emerald-600 font-medium mt-0.5">Via UPI & QR Pay</p>
+            <p className="text-[11px] text-emerald-600 font-medium mt-0.5">Orders collected for follow-up</p>
           </div>
 
         </section>
@@ -485,7 +485,7 @@ export default function OwnerDashboard({
                 : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'
             }`}
           >
-            ⚙️ UPI & Cloud DB Setup
+            ⚙️ Store & Database
           </button>
         </div>
 
@@ -542,7 +542,7 @@ export default function OwnerDashboard({
                         <th className="py-3.5 px-4">Order # & Date</th>
                         <th className="py-3.5 px-4">Customer Info</th>
                         <th className="py-3.5 px-4">Items Summary</th>
-                        <th className="py-3.5 px-4">Amount & Payment</th>
+                        <th className="py-3.5 px-4">Products & Confirmation</th>
                         <th className="py-3.5 px-4">Status & Action</th>
                         <th className="py-3.5 px-4 text-right">Customer Details</th>
                       </tr>
@@ -574,7 +574,7 @@ export default function OwnerDashboard({
                               {order.items.map((it) => `${it.quantity}x ${it.bouquet.title}`).join(', ')}
                             </p>
                             <p className="text-[10px] text-stone-400">
-                              {order.items.reduce((sum, it) => sum + (it.bouquet.flowerCount * it.quantity), 0)} Total Ribbon Blooms
+                              {order.items.reduce((sum, it) => sum + (it.bouquet.flowerCount * it.quantity), 0)} Items
                             </p>
                           </td>
 
@@ -586,7 +586,7 @@ export default function OwnerDashboard({
                                 ? 'text-amber-800 bg-amber-100 font-bold' 
                                 : 'text-emerald-700 bg-emerald-50'
                             }`}>
-                              {order.payment.method === 'COD' ? 'COD (₹7 Fee)' : order.payment.method}
+                              {order.payment.method === 'CONTACT_LATER' ? 'Call to confirm' : 'Legacy order'}
                             </span>
                           </td>
 
@@ -637,10 +637,10 @@ export default function OwnerDashboard({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-stone-200">
               <div>
                 <h3 className="font-serif font-bold text-lg text-stone-900">
-                  Ribbon Bouquet Showcase Management
+                  Product Catalogue
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Post new bouquets, customize images, titles, pricing, and ribbon folding styles.
+                  Add products, select collections, set packaging contents and pricing.
                 </p>
               </div>
 
@@ -665,7 +665,7 @@ export default function OwnerDashboard({
                 className="px-5 py-2.5 rounded-xl bg-stone-900 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>Post New Bouquet</span>
+                <span>Add Product</span>
               </button>
             </div>
 
@@ -993,10 +993,10 @@ export default function OwnerDashboard({
             <div className="lg:col-span-2 bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-xs space-y-6">
               <div>
                 <h3 className="font-serif font-bold text-xl text-stone-900">
-                  UPI Payment & Store Settings
+                  Store Settings (Legacy Fields)
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Configure your official UPI ID, merchant display name, and local delivery charges.
+                  Customer checkout collects no payment. Legacy fields are retained for historical records.
                 </p>
               </div>
 
