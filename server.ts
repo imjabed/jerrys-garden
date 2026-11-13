@@ -326,7 +326,8 @@ async function startServer() {
       if (!/^data:image\/(jpeg|jpg|png|webp);base64,/i.test(image)) return res.status(400).json({ success: false, error: 'Only JPEG, PNG and WebP images are allowed.' });
 
       const uploadResponse = await cloudinary.uploader.upload(image, {
-        folder: 'jerrys_garden_bouquets',
+        // Only allow predefined storage folders; never trust arbitrary folder paths.
+        folder: folder === 'jame_bouquets_branding' ? 'jame_bouquets_branding' : 'jerrys_garden_bouquets',
         resource_type: 'image',
       });
 
