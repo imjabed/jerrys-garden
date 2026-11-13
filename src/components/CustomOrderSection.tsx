@@ -128,19 +128,21 @@ export default function CustomOrderSection({ onSubmit }: CustomOrderSectionProps
           </div>
 
           <div className="border border-stone-200/80 bg-[#FCFAF7] p-6 shadow-sm sm:p-10">
-            {confirmed ? (
-              <div className="py-14 text-center" role="status" aria-live="polite">
-                <CheckCircle2 className="mx-auto h-12 w-12 text-stone-700" strokeWidth={1.25}/>
-                <h3 className="mt-6 font-serif text-3xl text-stone-900">Enquiry received.</h3>
-                <p className="mt-4 text-sm leading-7 text-stone-600">
-                  Our team will contact <strong>{name}</strong> at <strong>{phone}</strong> to discuss your custom order.
-                </p>
-                <p className="mt-4 text-xs text-stone-500">Reference: {confirmed}</p>
-                <button type="button" onClick={() => { setConfirmed(null); setError(''); }}
-                  className="mt-8 border-b border-stone-800 pb-2 text-xs uppercase tracking-widest text-stone-800">Another enquiry</button>
+            {confirmed && (
+              <div className="fixed inset-0 z-[80] flex items-center justify-center bg-stone-950/60 p-5 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Custom enquiry received">
+                <div className="w-full max-w-md border border-stone-200 bg-[#FCFAF7] px-8 py-12 text-center shadow-2xl">
+                  <CheckCircle2 className="mx-auto h-12 w-12 text-stone-700" strokeWidth={1.25}/>
+                  <h3 className="mt-6 font-serif text-3xl text-stone-900">Enquiry received.</h3>
+                  <p className="mt-4 text-sm leading-7 text-stone-600">
+                    Our team will contact <strong>{name}</strong> at <strong>{phone}</strong> to discuss your custom order.
+                  </p>
+                  <p className="mt-4 text-xs text-stone-500">Reference: {confirmed}</p>
+                  <button type="button" onClick={() => { setConfirmed(null); setError(''); }}
+                    className="mt-8 bg-stone-900 px-8 py-3 text-xs uppercase tracking-widest text-white hover:bg-stone-700">Close</button>
+                </div>
               </div>
-            ) : (
-              <form onSubmit={send}>
+            )}
+            <form onSubmit={send}>
                 <div className="flex items-center gap-3 border-b border-stone-200 pb-6">
                   <Flower2 className="h-6 w-6 text-[#9E777C]" strokeWidth={1.4}/>
                   <div>
@@ -241,7 +243,6 @@ export default function CustomOrderSection({ onSubmit }: CustomOrderSectionProps
                 </button>
                 <p className="mt-4 text-center text-[11px] text-stone-500">Our team will call to confirm the design, availability and final price.</p>
               </form>
-            )}
           </div>
         </div>
       </div>
