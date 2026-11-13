@@ -67,6 +67,12 @@ export default function Navbar({
               Shop Products
             </button>
             <button
+              onClick={onNavigateToBuilder}
+              className="hover:text-rose-700 transition-colors py-2"
+            >
+              Custom Orders
+            </button>
+            <button
               id="nav-track-btn"
               onClick={onOpenTracking}
               className="hover:text-rose-600 transition-colors py-2 flex items-center gap-1.5"
