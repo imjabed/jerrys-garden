@@ -610,7 +610,7 @@ export default function OwnerDashboard({
                               id={`view-order-details-${order.id}`}
                               onClick={() => onOpenOrderDetails(order)}
                               className="px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-rose-700 text-white font-semibold text-xs transition-colors inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
-                              title="Show customer entire details with payment"
+                              title="View order and contact information"
                             >
                               <Eye className="w-3.5 h-3.5" />
                               <span>View Details</span>
