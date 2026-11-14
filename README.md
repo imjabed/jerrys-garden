@@ -1,20 +1,82 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Jame Bouquets
 
-# Run and deploy your AI Studio app
+A premium handmade-gift storefront with product catalogue, custom-event enquiries,
+contact-first checkout, an owner operations workspace, and order-based customer insights.
 
-This contains everything you need to run your app locally.
+## Develop locally
 
-View your app in AI Studio: https://ai.studio/apps/1b3c2814-6645-43c1-aca7-42318957cc51
+Requires Node.js 22+ and a MongoDB Atlas database.
 
-## Run Locally
+```bash
+npm install
+npm run lint
+npm run build
+npm run dev
+```
 
-**Prerequisites:**  Node.js
+Configure server secrets in Render (or a local, uncommitted `.env`). Configure
+`VITE_API_URL` for the frontend in Vercel, and `FRONTEND_URL=https://jamebouquets.vercel.app`
+on Render. Never commit credentials, secret keys, customer data or database URIs.
 
+## Owner security
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+The dashboard uses a short-lived, signed, HttpOnly session cookie; owner-only
+API authorization; rate-limited sign-in; permitted-origin request checks; and
+read-only database diagnostics. The customer analytics section is restricted
+to authenticated owners.
+
+**Required server variables**
+- `ADMIN_EMAIL`: owner login email
+- `AUTH_SECRET`: high-entropy random key. Rotating this invalidates all sessions
+- `ADMIN_PASSWORD_SCRYPT`: recommended salted scrypt password hash (see below)
+- `MONGODB_URI`: server-side database connection
+- Cloudinary credentials for logo and product image uploads
+
+**Optional stronger protection**
+- `ADMIN_TOTP_SECRET`: base32 secret for an authenticator app (6-digit, 30-second TOTP).
+  If configured, both owner login paths require a valid app-generated code.
+  Generate the secret securely and enroll it in the authenticator app before
+  setting it on Render. Store recovery material offline. Losing the secret and
+  authenticator access requires a secure environment-level recovery by the owner.
+- `ADMIN_PASSWORD`: backward-compatible legacy password. Once
+  `ADMIN_PASSWORD_SCRYPT` has been tested, remove `ADMIN_PASSWORD` from Render.
+- `ALLOW_DATABASE_MAINTENANCE`: defaults to disabled in production. Only
+  temporarily set to `true` during controlled maintenance; restore the default
+  immediately afterward.
+
+Generate a salted hash **locally**, replacing the example password with your
+own long unique password. Do not paste your password into chat or store it in
+GitHub:
+
+```bash
+node -e "const c=require('node:crypto');const p=process.env.NEW_ADMIN_PASSWORD;if(!p)throw Error('Set NEW_ADMIN_PASSWORD locally');const salt=c.randomBytes(16);console.log(salt.toString('hex')+':'+c.scryptSync(p,salt,64).toString('hex'))"
+```
+
+Set the output as `ADMIN_PASSWORD_SCRYPT` on Render. The example command
+reads `NEW_ADMIN_PASSWORD` from your local shell environment; clear it
+afterwards. Test owner sign-in before removing the legacy variable.
+
+**Important:** No application can be guaranteed impossible to hack. Enable
+multifactor authentication, use unique credentials, keep dependencies updated,
+limit MongoDB network access and database permissions, protect your hosting
+accounts with MFA, and keep secure backups. The per-instance login limiter is
+not a substitute for a managed WAF or distributed rate limiting.
+
+## Owner workspace
+
+Sign in as owner using the normal customer sign-in form (plus an authenticator
+code if enabled). Use **Customer insights** to see recorded-order segments:
+- **Needs follow-up:** any order placed or pending
+- **Priority:** repeat buyers (3+ delivered orders), or 2+ delivered orders
+  and top-quartile completed order value when there is enough data
+- **Re-engage:** last order more than 60 days ago
+- **New:** no delivered orders
+- **Regular:** other returning buyers
+
+These are operational segments derived from order history, not behavioral
+tracking. Order values are not verified receipts or payment totals. Custom
+order ranges are estimates and are not treated as revenue.
+
+Go to **Settings → Brand identity** to upload a logo and edit the business
+display name. The name always appears beside the logo in header and footer.
+The change takes effect after saving the settings.
