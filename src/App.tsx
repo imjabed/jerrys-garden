@@ -399,10 +399,11 @@ export default function App() {
           onDeleteBouquet={handleDeleteBouquet}
           onUpdateSettings={async (newSettings) => {
             const result = await apiUpdateSettings(newSettings);
-            if (!result.success) { showToast(result.error || 'Could not save settings.'); return; }
-            updateStoreSettings(newSettings);
-            setSettings(newSettings);
+            if (!result.success || !result.settings) { showToast(result.error || 'Could not save settings.'); return false; }
+            updateStoreSettings(result.settings);
+            setSettings(result.settings);
             showToast('Settings saved!');
+            return true;
           }}
           onLogoutOwner={handleLogoutOwner}
           onCloseDashboard={() => setIsOwnerView(false)}
