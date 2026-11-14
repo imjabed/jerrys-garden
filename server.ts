@@ -39,6 +39,9 @@ dotenv.config();
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+// Optional upgrades: a salted scrypt password hash and TOTP authenticator MFA.
+const ADMIN_PASSWORD_SCRYPT = process.env.ADMIN_PASSWORD_SCRYPT || '';
+const ADMIN_TOTP_SECRET = (process.env.ADMIN_TOTP_SECRET || '').replace(/\s/g, '').toUpperCase();
 const AUTH_SECRET = process.env.AUTH_SECRET || '';
 const isProduction = process.env.NODE_ENV === 'production';
 const OWNER_COOKIE = 'jg_owner_session';
@@ -100,10 +103,55 @@ function requireClientHeader(req: express.Request, res: express.Response, next: 
 
 const ADMIN_SESSION_SECONDS = 60 * 60 * 2;
 function safeAdminCredentials(email: string, password: string): boolean {
-  if (!ADMIN_EMAIL || !ADMIN_PASSWORD || !AUTH_SECRET) return false;
-  const supplied = crypto.createHmac('sha256', AUTH_SECRET).update(email + '\\0' + password).digest();
-  const expected = crypto.createHmac('sha256', AUTH_SECRET).update(ADMIN_EMAIL + '\\0' + ADMIN_PASSWORD).digest();
-  return crypto.timingSafeEqual(supplied, expected);
+  if (!ADMIN_EMAIL || !AUTH_SECRET || (!ADMIN_PASSWORD && !ADMIN_PASSWORD_SCRYPT)) return false;
+  const suppliedEmail = crypto.createHmac('sha256', AUTH_SECRET).update(email).digest();
+  const expectedEmail = crypto.createHmac('sha256', AUTH_SECRET).update(ADMIN_EMAIL).digest();
+  const emailValid = crypto.timingSafeEqual(suppliedEmail, expectedEmail);
+  let passwordValid = false;
+  if (ADMIN_PASSWORD_SCRYPT) {
+    const [salt, encodedHash] = ADMIN_PASSWORD_SCRYPT.split(':');
+    try {
+      if (salt && encodedHash && /^[a-f0-9]{32,}$/i.test(salt) && /^[a-f0-9]{128}$/i.test(encodedHash)) {
+        const candidate = crypto.scryptSync(password, Buffer.from(salt, 'hex'), 64);
+        passwordValid = crypto.timingSafeEqual(candidate, Buffer.from(encodedHash, 'hex'));
+      }
+    } catch { passwordValid = false; }
+  } else {
+    const supplied = crypto.createHmac('sha256', AUTH_SECRET).update(password).digest();
+    const expected = crypto.createHmac('sha256', AUTH_SECRET).update(ADMIN_PASSWORD).digest();
+    passwordValid = crypto.timingSafeEqual(supplied, expected);
+  }
+  return emailValid && passwordValid;
+}
+function decodeBase32(secret: string): Buffer | null {
+  if (!/^[A-Z2-7]+=*$/.test(secret)) return null;
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = 0, value = 0;
+  const output: number[] = [];
+  for (const character of secret.replace(/=+$/, '')) {
+    value = (value << 5) | alphabet.indexOf(character);
+    bits += 5;
+    if (bits >= 8) { bits -= 8; output.push((value >>> bits) & 255); }
+  }
+  return output.length >= 10 ? Buffer.from(output) : null;
+}
+function verifyAdminTotp(code: string): boolean {
+  if (!ADMIN_TOTP_SECRET) return true;
+  if (!/^\d{6}$/.test(code)) return false;
+  const secret = decodeBase32(ADMIN_TOTP_SECRET);
+  if (!secret) return false;
+  const counter = Math.floor(Date.now() / 30000);
+  for (let offset = -1; offset <= 1; offset++) {
+    const buffer = Buffer.alloc(8);
+    buffer.writeBigUInt64BE(BigInt(counter + offset));
+    const digest = crypto.createHmac('sha1', secret).update(buffer).digest();
+    const position = digest[digest.length - 1] & 0x0f;
+    const number = ((digest[position] & 0x7f) << 24) | (digest[position + 1] << 16)
+      | (digest[position + 2] << 8) | digest[position + 3];
+    const expected = String(number % 1000000).padStart(6, '0');
+    if (crypto.timingSafeEqual(Buffer.from(code), Buffer.from(expected))) return true;
+  }
+  return false;
 }
 function requireOwner(req: express.Request, res: express.Response, next: express.NextFunction) {
   const token = parseCookies(req)[OWNER_COOKIE];
@@ -316,7 +364,7 @@ async function startServer() {
     res.json({
       status: 'ok',
       service: "Jame Bouquets Bouquet API",
-      auth: { ownerConfigured: Boolean(ADMIN_EMAIL && ADMIN_PASSWORD && AUTH_SECRET) },
+      auth: { ownerConfigured: Boolean(ADMIN_EMAIL && (ADMIN_PASSWORD || ADMIN_PASSWORD_SCRYPT) && AUTH_SECRET) },
       cloudinary: {
         configured: Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET),
       },
@@ -370,11 +418,12 @@ async function startServer() {
   app.post('/api/admin/login', requireClientHeader, (req, res) => {
     const email = String(req.body?.email || '').trim().toLowerCase();
     const password = String(req.body?.password || '');
+    const otp = String(req.body?.otp || '').trim();
     if (!allowLoginAttempt(String(req.ip || 'unknown'), 8)) return res.status(429).json({ success: false, error: 'Too many login attempts. Please try again later.' });
-    if (!ADMIN_EMAIL || !ADMIN_PASSWORD || !AUTH_SECRET) {
+    if (!ADMIN_EMAIL || (!ADMIN_PASSWORD && !ADMIN_PASSWORD_SCRYPT) || !AUTH_SECRET) {
       return res.status(503).json({ success: false, error: 'Owner authentication is not configured on the server.' });
     }
-    if (!email || !password || !safeAdminCredentials(email, password)) {
+    if (!email || !password || !safeAdminCredentials(email, password) || !verifyAdminTotp(otp)) {
       return res.status(401).json({ success: false, error: 'Invalid owner credentials.' });
     }
     const token = signToken({ role: 'owner', email }, ADMIN_SESSION_SECONDS);
@@ -628,10 +677,11 @@ async function startServer() {
     try {
       const email = String(req.body?.email || '').trim().toLowerCase();
       const password = String(req.body?.password || '');
+      const otp = String(req.body?.otp || '').trim();
       if (!allowLoginAttempt(String(req.ip || 'unknown'), 10)) return res.status(429).json({ success: false, error: 'Too many login attempts. Please try again later.' });
       if (!email || !password) return res.status(400).json({ success: false, error: 'Email and password are required.' });
       if (ADMIN_EMAIL && email === ADMIN_EMAIL) {
-        if (!ADMIN_PASSWORD || !AUTH_SECRET || !safeAdminCredentials(email, password)) return res.status(401).json({ success: false, connected: true, error: 'Invalid email or password.' });
+        if ((!ADMIN_PASSWORD && !ADMIN_PASSWORD_SCRYPT) || !AUTH_SECRET || !safeAdminCredentials(email, password) || !verifyAdminTotp(otp)) return res.status(401).json({ success: false, connected: true, error: 'Invalid email or password.' });
         const token = signToken({ role: 'owner', email }, ADMIN_SESSION_SECONDS);
         setAuthCookie(res, OWNER_COOKIE, token, ADMIN_SESSION_SECONDS);
         return res.json({ success: true, connected: true, role: 'admin' });
