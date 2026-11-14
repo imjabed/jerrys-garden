@@ -304,6 +304,8 @@ async function resolveCouponItems(items: any[], database: any) {
 async function startServer() {
 
   const app = express();
+  app.disable('x-powered-by');
+  if (isProduction) app.set('trust proxy', 1);
   const PORT = Number(process.env.PORT) || 3000;
 
   // Allow the Vercel frontend to call this Render backend.
@@ -340,6 +342,7 @@ async function startServer() {
     res.header('X-Content-Type-Options', 'nosniff');
     res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.header('X-Frame-Options', 'DENY');
+    if (isProduction) res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     if (req.path.startsWith('/api/')) res.header('Cache-Control', 'no-store');
     const fetchSite = req.headers['sec-fetch-site'];
     if (origin && !allowedOrigins.includes(origin)) return res.status(403).json({ success: false, error: 'Origin not allowed.' });
@@ -1047,14 +1050,17 @@ async function startServer() {
         return res.status(400).json({ success: false, error: 'The logo must be a secure Cloudinary image.' });
       }
       const existing = await mongoGetSettings();
-      if (!existing) return res.status(503).json({ success: false, error: 'Store settings are temporarily unavailable.' });
       const saved = await mongoUpdateSettings({
-        ...existing, storeName, logoUrl,
+        ...(existing || {
+          tagline: 'Everlasting, by hand.', ownerEmail: ADMIN_EMAIL, upiId: '', upiName: '',
+          city: 'Berhampore', deliveryFee: 0, freeDeliveryThreshold: 0,
+        }), storeName, logoUrl,
         phone: String(settings.phone || '').slice(0, 100),
         whatsapp: String(settings.whatsapp || '').slice(0, 100),
         address: String(settings.address || '').slice(0, 300),
       });
-      return res.json({ success: true, connected: saved !== null, settings: saved });
+      if (!saved) return res.status(503).json({ success: false, error: 'Unable to save settings.' });
+      return res.json({ success: true, connected: true, settings: saved });
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
     }
