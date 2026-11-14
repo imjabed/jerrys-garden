@@ -120,7 +120,7 @@ export default function OrderTrackingModal({
               <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
               <input
                 type="text"
-                placeholder="Enter Order # (e.g. JB-8492) or Phone number..."
+                placeholder="Enter your order reference (e.g. JB-...)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-3 py-2.5 text-xs rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
@@ -161,7 +161,7 @@ export default function OrderTrackingModal({
             <div className="text-center py-12 space-y-3">
               <p className="text-sm font-semibold text-stone-700">No order found matching your search</p>
               <p className="text-xs text-stone-400 max-w-sm mx-auto">
-                Please verify your Order Number (e.g. JG-8492) or the phone number used during checkout.
+                Please verify your Order Number (e.g. JB-8492) from your order confirmation.
               </p>
             </div>
           ) : (
@@ -183,10 +183,10 @@ export default function OrderTrackingModal({
 
                 <div className="sm:text-right">
                   <span className="text-[10px] font-bold tracking-wider uppercase text-stone-500">
-                    Total Amount
+                    {selectedOrder.orderType === 'Custom' ? 'Estimated quote' : 'Total Amount'}
                   </span>
                   <p className="text-xl font-bold text-rose-700">
-                    ₹{selectedOrder.totalAmount}
+                    {selectedOrder.orderType === 'Custom' ? `₹${selectedOrder.customDetails?.estimatedMin?.toLocaleString('en-IN')} – ₹${selectedOrder.customDetails?.estimatedMax?.toLocaleString('en-IN')}` : `₹${selectedOrder.totalAmount.toLocaleString('en-IN')}`}
                   </p>
                   <span className="inline-block text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md mt-0.5">
                     {selectedOrder.payment.method === 'CONTACT_LATER' ? 'Our team will call to confirm' : 'Legacy order'}
@@ -287,12 +287,12 @@ export default function OrderTrackingModal({
                       key={idx}
                       className="p-3 rounded-xl border border-stone-200/80 bg-stone-50/50 flex items-center gap-3"
                     >
-                      <img
+                      {item.bouquet.imageUrl && <img
                         src={item.bouquet.imageUrl}
                         alt={item.bouquet.title}
                         referrerPolicy="no-referrer"
                         className="w-14 h-14 rounded-lg object-cover border border-stone-200"
-                      />
+                      />}
                       <div className="flex-1 min-w-0 text-xs">
                         <p className="font-bold text-stone-900 truncate">{item.bouquet.title}</p>
                         <p className="text-stone-500 text-[11px]">
@@ -309,7 +309,7 @@ export default function OrderTrackingModal({
 
               {/* Contact-first ordering: no payment is taken on the website. */}
               <div className="p-4 border border-stone-200 bg-[#FAF8F5] text-sm text-stone-700">
-                <p className="font-medium text-stone-900">Products subtotal · ₹{selectedOrder.subtotal}</p>
+                <p className="font-medium text-stone-900">{selectedOrder.orderType === 'Custom' ? 'Final price confirmed by our team' : `Products subtotal · ₹${selectedOrder.subtotal.toLocaleString('en-IN')}`}</p>
                 <p className="mt-1 text-xs text-stone-500">Our team will contact you for order confirmation and payment arrangements.</p>
               </div>
 
@@ -342,17 +342,18 @@ export default function OrderTrackingModal({
               <div className="p-4 bg-stone-100/70 rounded-2xl flex items-center justify-between gap-3 text-xs">
                 <div>
                   <p className="font-bold text-stone-800">Need immediate help with this order?</p>
-                  <p className="text-stone-500 text-[11px]">Contact Jerry's Garden ribbon studio</p>
+                  <p className="text-stone-500 text-[11px]">Contact Jame Bouquets ribbon studio</p>
                 </div>
-                <a
-                  href={`https://wa.me/${storeSettings.whatsapp.replace(/\D/g, '')}?text=Hi%20Jame%20Bouquets,%20checking%20status%20for%20order%20${selectedOrder.orderNumber}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-1.5 transition-colors shrink-0 shadow-xs"
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  <span>WhatsApp Florist</span>
-                </a>
+                {/^\+?[0-9\s()-]{10,20}$/.test(storeSettings.whatsapp || '') ? (
+                  <a href={`https://wa.me/${storeSettings.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent('Hi Jame Bouquets, checking status for order ' + selectedOrder.orderNumber)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="px-3.5 py-2 rounded-lg bg-stone-900 hover:bg-stone-700 text-white font-medium flex items-center gap-1.5 shrink-0">
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>WhatsApp us</span>
+                  </a>
+                ) : (
+                  <span className="text-[11px] text-stone-600">Our team will contact you</span>
+                )}
               </div>
 
             </div>

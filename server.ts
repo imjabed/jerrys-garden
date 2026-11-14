@@ -4,7 +4,8 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { v2 as cloudinary } from 'cloudinary';
 import dotenv from 'dotenv';
-import { estimateCustomBouquet, indiaDate, leadDays, minimumWrappers } from './shared/customPricing.js';
+import { estimateCustomBouquet, indiaDate, minimumWrappers } from './shared/customPricing.js';
+import { isValidCustomDeliveryDate, isValidCustomPhone, isValidCustomEmail } from './shared/customOrderValidation.js';
 import {
   getMongoStatus,
   seedMongoCollections,
@@ -950,12 +951,12 @@ async function startServer() {
         || !flowerColors || flowerColors.length > 200 || !wrapperColor || wrapperColor.length > 120) {
         return res.status(400).json({ success: false, error: 'Provide a valid occasion and flower and wrapper colours.' });
       }
-      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(deliveryDate) || leadDays(deliveryDate) < 7 || !Number.isFinite(Date.parse(deliveryDate))) {
+      if (!isValidCustomDeliveryDate(deliveryDate)) {
         return res.status(400).json({ success: false, error: `Delivery must be at least 7 days ahead (from ${indiaDate(7)}).` });
       }
-      if (!name || name.length > 120 || !/^\\+?[0-9\\s()-]{10,20}$/.test(phone) || phone.replace(/\\D/g,'').length < 10
+      if (!name || name.length > 120 || !isValidCustomPhone(phone)
         || !address || address.length > 500 || extraNotes.length > 1200
-        || (email.length > 0 && (email.length > 254 || !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)))) {
+        || (email.length > 0 && !isValidCustomEmail(email))) {
         return res.status(400).json({ success: false, error: 'Please review your name, phone, email and delivery location.' });
       }
 

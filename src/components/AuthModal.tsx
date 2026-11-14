@@ -48,6 +48,7 @@ export default function AuthModal({
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginAdminOtp, setLoginAdminOtp] = useState('');
+  const [showOwnerCode, setShowOwnerCode] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
 
   // Register fields
@@ -170,7 +171,7 @@ export default function AuthModal({
       onRegisterSuccess(newUser);
 
       // Set success notice and redirect to login screen
-      setSuccessNotice(`Email verified successfully! Your JericasGarden account is active. Please log in with your password.`);
+      setSuccessNotice(`Email verified successfully! Your Jame Bouquets account is active. Please log in with your password.`);
       setLoginEmail(regEmail.trim());
       setLoginPassword('');
       setMode('login');
@@ -332,12 +333,21 @@ export default function AuthModal({
                 </div>
               </div>
 
-              <label className="block text-xs font-medium text-stone-600">
-                Authenticator code <span className="text-stone-400">(only for owner accounts with 2FA enabled)</span>
-                <input type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}"
-                  maxLength={6} value={loginAdminOtp} onChange={event => setLoginAdminOtp(event.target.value.replace(/\D/g, ''))}
-                  placeholder="6-digit code" className="mt-2 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-stone-900"/>
-              </label>
+              <div className="pt-1">
+                <button type="button" onClick={() => setShowOwnerCode(value => !value)}
+                  aria-expanded={showOwnerCode}
+                  className="text-[11px] text-stone-500 underline underline-offset-4 hover:text-stone-800">
+                  Owner access {showOwnerCode ? '−' : '+'}
+                </button>
+                {showOwnerCode && (
+                  <label className="mt-3 block text-xs font-medium text-stone-600">
+                    Authenticator code (if enabled)
+                    <input type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}"
+                      maxLength={6} value={loginAdminOtp} onChange={event => setLoginAdminOtp(event.target.value.replace(/\D/g, ''))}
+                      placeholder="6-digit code" className="mt-2 w-full border border-stone-300 bg-white px-3 py-3 text-sm outline-none focus:border-stone-700"/>
+                  </label>
+                )}
+              </div>
               <button
                 type="submit"
                 disabled={isLoggingIn}
@@ -346,7 +356,7 @@ export default function AuthModal({
                 {isLoggingIn ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-rose-300" />
-                    <span>Verifying with MongoDB Atlas...</span>
+                    <span>Signing you in...</span>
                   </>
                 ) : (
                   <>
@@ -506,7 +516,7 @@ export default function AuthModal({
               <div>
                 <label className="block text-xs font-bold text-stone-700 mb-1.5 flex items-center justify-between">
                   <span>Enter 6-Digit Email Code *</span>
-                  <span className="text-[10px] text-stone-400">JericasGarden Email Verification</span>
+                  <span className="text-[10px] text-stone-400">Jame Bouquets Email Verification</span>
                 </label>
                 <div className="relative">
                   <KeyRound className="w-5 h-5 text-rose-500 absolute left-3.5 top-3" />

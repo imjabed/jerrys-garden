@@ -111,7 +111,7 @@ export default function CartDrawer({
 
                       {/* Price & Flower Count */}
                       <p className="text-[11px] text-stone-500 mt-0.5">
-                        {item.bouquet.flowerCount} Handcrafted Satin Blooms
+                        {item.bouquet.category.toLowerCase().includes('keychain') ? 'Handmade keepsake' : `${item.bouquet.flowerCount} handmade flowers`}
                       </p>
                     </div>
 
@@ -155,6 +155,7 @@ export default function CartDrawer({
               <button
                 id="cart-checkout-btn"
                 onClick={onCheckout}
+              disabled={cartItems.some(item => item.bouquet.inStock === false)}
                 className="w-full py-3.5 rounded-xl bg-stone-900 hover:bg-rose-700 text-white font-semibold text-xs tracking-wider uppercase transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>Buy · Continue</span>
@@ -163,7 +164,7 @@ export default function CartDrawer({
 
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-stone-500">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Order now, confirm with our team</span>
+                <span>{cartItems.some(item => item.bouquet.inStock === false) ? "Remove unavailable items to continue" : "Order now, confirm with our team"}</span>
               </div>
             </div>
           )}

@@ -73,6 +73,7 @@ export default function App() {
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [customMobileOpen, setCustomMobileOpen] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [directBuyItems, setDirectBuyItems] = useState<CartItem[] | null>(null);
   const [trackingModalOpen, setTrackingModalOpen] = useState(false);
   const [preselectedTrackingId, setPreselectedTrackingId] = useState<string | undefined>(undefined);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -124,7 +125,7 @@ export default function App() {
     };
     initRemoteData();
 
-    const refreshCatalog = async () => setBouquets((await apiGetBouquets()).bouquets);
+    const refreshCatalog = async () => { const response = await apiGetBouquets(); if (response.connected) setBouquets(response.bouquets); }
     const onVisible = () => { if (document.visibilityState === 'visible') void refreshCatalog(); };
     document.addEventListener('visibilitychange', onVisible);
     const poll = window.setInterval(onVisible, 30000);
@@ -161,6 +162,7 @@ export default function App() {
 
   // Cart operations
   const handleAddToCart = (bouquet: RibbonBouquet, quantity = 1) => {
+    if (bouquet.inStock === false) { showToast('This piece is currently unavailable.'); return; }
     const existingIndex = cart.findIndex((item) => item.bouquet.id === bouquet.id);
 
     let updatedCart: CartItem[];
@@ -198,13 +200,8 @@ export default function App() {
 
   // Quick Buy (add & open checkout immediately)
   const handleQuickBuy = (bouquet: RibbonBouquet, quantity = 1) => {
-    const directCart: CartItem[] = [
-      {
-        bouquet,
-        quantity,
-      },
-    ];
-    updateCart(directCart);
+    if (bouquet.inStock === false) { showToast('This piece is currently unavailable.'); return; }
+    setDirectBuyItems([{ bouquet, quantity }]);
     setCheckoutModalOpen(true);
   };
 
@@ -215,7 +212,7 @@ export default function App() {
       showToast(result.error || 'Could not place the order. Please try again.');
       throw new Error(result.error || 'Order creation failed');
     }
-    updateCart([]);
+    if (!directBuyItems) updateCart([]);
     setOrders((current) => [result.order!, ...current]);
     showToast(`Order #${result.order.orderNumber} placed successfully!`);
     return result.order;
@@ -582,6 +579,7 @@ export default function App() {
           onRemoveItem={handleRemoveCartItem}
           onCheckout={() => {
             setCartDrawerOpen(false);
+            setDirectBuyItems(null);
             setCheckoutModalOpen(true);
           }}
           deliveryFee={storeSettings.deliveryFee}
@@ -593,8 +591,8 @@ export default function App() {
       {checkoutModalOpen && (
         <CheckoutModal
           isOpen={checkoutModalOpen}
-          onClose={() => setCheckoutModalOpen(false)}
-          cartItems={cart}
+          onClose={() => { setCheckoutModalOpen(false); setDirectBuyItems(null); }}
+          cartItems={directBuyItems ?? cart}
           storeSettings={storeSettings}
           activeUser={activeUser}
           onOrderSuccess={async (order) => {

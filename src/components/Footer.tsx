@@ -26,7 +26,7 @@ export default function Footer({
           
           {/* Brand Col (4 cols) */}
           <div className="lg:col-span-4 space-y-4">
-            <div className="brightness-125 invert-0">
+            <div className="[&_.font-serif]:!text-[#FAF8F5] [&_p]:!text-stone-400 [&_.text-stone-900]:!text-[#FAF8F5]">
               <Logo size="md" showSubtitle={true} logoUrl={storeSettings.logoUrl} brandName={storeSettings.storeName || "Jame Bouquets"} />
             </div>
             
@@ -72,9 +72,9 @@ export default function Footer({
             </h4>
             <ul className="space-y-2 text-xs text-stone-400">
               <li>• Keep in room temperature away from direct rain</li>
-              <li>• No water needed — everlasting beauty for 5+ years</li>
+              <li>• No watering needed for ribbon flowers</li>
               <li>• Gentle dusting with dry soft brush if required</li>
-              <li>• Hypoallergenic & safe around pets and children</li>
+              <li>• Keep away from flames and unattended young children</li>
             </ul>
           </div>
 
@@ -90,11 +90,15 @@ export default function Footer({
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-rose-400 shrink-0" />
-                <span className="italic">Phone: Hidden</span>
+                {/^\+?[0-9\s()-]{10,20}$/.test(storeSettings.phone || '') ?
+                  <a href={`tel:${storeSettings.phone.replace(/[^+0-9]/g, '')}`} className="hover:text-white">{storeSettings.phone}</a> :
+                  <span>Support available after order confirmation</span>}
               </div>
               <div className="flex items-center gap-2">
                 <MessageCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Order Support: Active Tracking Portal</span>
+                {/^\+?[0-9\s()-]{10,20}$/.test(storeSettings.whatsapp || '') ?
+                  <a href={`https://wa.me/${storeSettings.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="hover:text-white">WhatsApp our team</a> :
+                  <button type="button" onClick={onOpenTracking} className="hover:text-white">Track or enquire about an order</button>}
               </div>
             </div>
           </div>
@@ -103,7 +107,7 @@ export default function Footer({
 
         {/* Bottom copyright & Owner Portal trigger (Invisible unless logged in as Owner) */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
-          <p>© 2026 Jame Bouquets. Berhampore, Murshidabad. Handcrafted with precision.</p>
+          <p>© 2026 Jame Bouquets. Berhampore, Murshidabad. Made by hand, in Berhampore.</p>
 
           <div className="flex items-center gap-4">
             {isOwner && <button

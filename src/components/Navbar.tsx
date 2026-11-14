@@ -43,10 +43,10 @@ export default function Navbar({
   const [showSearchBar, setShowSearchBar] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-stone-200/80 transition-all">
+    <header className="sticky top-0 z-40 bg-[#FAF8F5]/95 backdrop-blur-md border-b border-stone-200/80 transition-all">
       {/* Top micro-announcement banner */}
-      <div className="bg-gradient-to-r from-rose-50 via-rose-100/70 to-amber-50 text-stone-700 text-xs py-1.5 px-4 text-center border-b border-rose-100/60 font-medium flex items-center justify-center gap-2">
-        <Sparkles className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
+      <div className="bg-[#F1ECE5] text-stone-700 text-xs py-1.5 px-4 text-center border-b border-rose-100/60 font-medium flex items-center justify-center gap-2">
+        <Sparkles className="w-3.5 h-3.5 text-[#A77B84]" />
         <span>{storeSettings.storeName || "Jame Bouquets"} • Handmade flowers, keepsakes & gifts</span>
         <span className="hidden md:inline text-rose-400">•</span>
         <span className="hidden md:inline text-stone-600">Personal order confirmation by our team</span>
@@ -96,7 +96,7 @@ export default function Navbar({
             {/* Search Toggle */}
             <div className="relative">
               {showSearchBar ? (
-                <div className="flex items-center bg-stone-100 rounded-full px-3 py-1.5 border border-stone-300 w-44 sm:w-64 transition-all">
+                <div className="flex items-center bg-[#F5F1EC] rounded-lg px-3 py-1.5 border border-stone-300 w-44 sm:w-64 transition-all">
                   <Search className="w-4 h-4 text-stone-400 mr-2 shrink-0" />
                   <input
                     type="text"
@@ -121,7 +121,7 @@ export default function Navbar({
                   id="search-toggle-btn"
                   onClick={() => setShowSearchBar(true)}
                   aria-label="Search products"
-                  className="p-2 text-stone-600 hover:text-rose-600 hover:bg-rose-50/60 rounded-full transition-colors"
+                  className="p-2 text-stone-600 hover:text-rose-600 hover:bg-stone-100 rounded-lg transition-colors"
                 >
                   <Search className="w-5 h-5" />
                 </button>
@@ -148,7 +148,7 @@ export default function Navbar({
             >
               <ShoppingBag className="w-5 h-5" />
               {cartCount > 0 && (
-                <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-rose-600 rounded-full px-1 shadow-sm animate-scale">
+                <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-stone-800 rounded-full px-1 shadow-sm animate-scale">
                   {cartCount}
                 </span>
               )}

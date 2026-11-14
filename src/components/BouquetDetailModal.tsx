@@ -43,7 +43,7 @@ export default function BouquetDetailModal({
       setUploadMessage(null);
       const res = await uploadImageToCloudinary(file);
       setCurrentImage(res.url);
-      setUploadMessage('Photo saved to Cloudinary! Exact image loaded.');
+      setUploadMessage('New product photo uploaded.');
       if (onUpdateBouquetImage) {
         onUpdateBouquetImage(bouquet.id, res.url);
       }
@@ -57,17 +57,19 @@ export default function BouquetDetailModal({
   };
 
   const handleAdd = () => {
+    if (bouquet.inStock === false) return;
     onAddToCart({ ...bouquet, imageUrl: currentImage }, quantity);
     onClose();
   };
 
   const handleBuy = () => {
+    if (bouquet.inStock === false) return;
     onBuyNow({ ...bouquet, imageUrl: currentImage }, quantity);
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+    <div role="dialog" aria-modal="true" aria-label={`Details for ${bouquet.title}`} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
       <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden my-8 max-h-[90vh] flex flex-col md:flex-row">
         
         {/* Close Button */}
@@ -85,18 +87,12 @@ export default function BouquetDetailModal({
             src={currentImage}
             alt={bouquet.title}
             referrerPolicy="no-referrer"
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-contain bg-stone-100"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-stone-950/70 via-black/10 to-transparent pointer-events-none" />
           
           {/* Top Left Cloudinary indicator */}
           <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5 items-start">
-            {isCloudinaryUrl(currentImage) && (
-              <span className="px-2.5 py-1 text-[10px] font-bold bg-sky-600/90 backdrop-blur-xs text-white rounded-full shadow-xs flex items-center gap-1">
-                <Cloud className="w-3 h-3" />
-                Cloudinary Photo
-              </span>
-            )}
             {uploadMessage && (
               <span className="px-2.5 py-1 text-[10px] font-medium bg-emerald-600 text-white rounded-full shadow-xs flex items-center gap-1 animate-in fade-in">
                 <Sparkles className="w-3 h-3" />
@@ -209,7 +205,8 @@ export default function BouquetDetailModal({
                 </span>
                 <button
                   type="button"
-                  onClick={() => setQuantity(quantity + 1)}
+                  onClick={() => setQuantity(Math.min(20, quantity + 1))}
+                  disabled={quantity >= 20 || bouquet.inStock === false}
                   className="px-3 py-1.5 text-stone-600 hover:bg-stone-200 font-bold"
                 >
                   +
@@ -225,18 +222,20 @@ export default function BouquetDetailModal({
           <div className="space-y-2 pt-4 border-t border-stone-100">
             <button
               onClick={handleBuy}
-              className="w-full py-3.5 rounded-xl bg-stone-900 hover:bg-rose-700 text-white font-semibold text-xs tracking-wide uppercase transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              disabled={bouquet.inStock === false}
+              className="w-full py-3.5 rounded-xl bg-stone-900 hover:bg-rose-700 text-white font-semibold text-xs tracking-wide uppercase transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span>Buy Now</span>
+              <span>{bouquet.inStock === false ? "Currently Unavailable" : "Buy Now"}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
             <button
               onClick={handleAdd}
+              disabled={bouquet.inStock === false}
               className="w-full py-3 rounded-xl border border-stone-300 hover:border-stone-400 hover:bg-stone-50 text-stone-800 font-medium text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               <ShoppingBag className="w-4 h-4 text-stone-600" />
-              <span>Add to Cart</span>
+              <span>{bouquet.inStock === false ? "Unavailable" : "Add to Cart"}</span>
             </button>
           </div>
         </div>

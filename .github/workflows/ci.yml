@@ -23,5 +23,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Typecheck
         run: npm run lint
+      - name: Test custom order validation
+        run: npm run test
       - name: Build frontend and server
         run: npm run build
