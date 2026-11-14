@@ -136,7 +136,7 @@ export default function BouquetDetailModal({
               Ribbon Craftsmanship
             </span>
             <p className="text-xs text-white/90">
-              Crafted from {bouquet.ribbonMaterial} with careful attention to detail.
+              Carefully crafted by hand, with thoughtful details in every piece.
             </p>
           </div>
         </div>
