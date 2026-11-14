@@ -18,6 +18,29 @@ Configure server secrets in Render (or a local, uncommitted `.env`). Configure
 `VITE_API_URL` for the frontend in Vercel, and `FRONTEND_URL=https://jamebouquets.vercel.app`
 on Render. Never commit credentials, secret keys, customer data or database URIs.
 
+## Render deployment
+
+Render service: **Web Service**, runtime **Node**, branch **main**.
+
+- **Build command:** `npm install --include=dev && npm run build`
+- **Start command:** `npm start`
+- **Node:** use Node.js 22 (for example, `NODE_VERSION=22` on Render).
+- **Root directory:** repository root (leave blank unless your service uses a separate app directory).
+- **Environment:** `NODE_ENV=production`, `MONGODB_URI`, `AUTH_SECRET`, `ADMIN_EMAIL`, and configured admin password credentials; plus mail/Cloudinary secrets when enabled.
+
+**Do not use `npm ci` for the moment.** The old lockfile was inconsistent
+with `package.json` (it omitted the MongoDB dependency), so it was removed.
+A fresh `package-lock.json` should be regenerated and committed after a
+successful clean install. On a development computer, run `npm install` and
+commit the resulting lockfile, then `npm ci` will become safe again.
+
+The server is built to `dist/server.mjs` (ES module). An older Render
+start command such as `node dist/server.cjs` will no longer work.
+
+If a deployment fails, inspect **Render → Logs / Events** and find the first
+installation, TypeScript, build, or runtime error. Out-of-memory, service
+suspension and paid-plan/resource limits cannot be confirmed from source code.
+
 ## Owner security
 
 The dashboard uses a short-lived, signed, HttpOnly session cookie; owner-only
