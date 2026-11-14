@@ -417,6 +417,56 @@ async function startServer() {
     }
   });
 
+  // Only delete assets uploaded into this project's two managed Cloudinary folders.
+  // External URLs, arbitrary Cloudinary IDs, and shared images are never destroyed.
+  function managedCloudinaryId(imageUrl: unknown, expectedFolder: 'jerrys_garden_bouquets' | 'jame_bouquets_branding'): string | null {
+    if (typeof imageUrl !== 'string' || !CLOUDINARY_CLOUD_NAME) return null;
+    try {
+      const url = new URL(imageUrl);
+      if (url.protocol !== 'https:' || url.hostname !== 'res.cloudinary.com') return null;
+      const parts = decodeURIComponent(url.pathname).split('/').filter(Boolean);
+      if (parts[0] !== CLOUDINARY_CLOUD_NAME || parts[1] !== 'image' || parts[2] !== 'upload') return null;
+      let start = 3;
+      if (/^v[0-9]+$/.test(parts[start] || '')) start++;
+      if (parts.length !== start + 2 || parts[start] !== expectedFolder) return null;
+      const filename = parts[start + 1];
+      const match = /^([A-Za-z0-9_-]+)\.(?:png|jpe?g|webp|gif|avif)$/i.exec(filename);
+      return match ? `${expectedFolder}/${match[1]}` : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function cleanupUnreferencedCloudinaryImage(
+    imageUrl: unknown,
+    folder: 'jerrys_garden_bouquets' | 'jame_bouquets_branding'
+  ): Promise<{ status: 'deleted' | 'skipped' | 'failed'; warning?: string }> {
+    const publicId = managedCloudinaryId(imageUrl, folder);
+    if (!publicId) return { status: 'skipped' };
+    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+      return { status: 'failed', warning: 'Image cleanup was skipped because Cloudinary is not configured.' };
+    }
+    try {
+      const database = await getMongoDb();
+      // Fail closed: don't delete when references cannot be verified.
+      if (!database) return { status: 'failed', warning: 'Image cleanup could not check database references.' };
+      const imageRefs = await database.collection('products').find({}, { projection: { imageUrl: 1 } }).toArray();
+      if (imageRefs.some(doc => managedCloudinaryId(doc.imageUrl, folder) === publicId)) return { status: 'skipped' };
+      const currentSettings = await database.collection('settings').findOne({ key: 'store_settings' });
+      if (managedCloudinaryId(currentSettings?.data?.logoUrl, folder) === publicId) return { status: 'skipped' };
+
+      const result = await cloudinary.uploader.destroy(publicId, { resource_type: 'image', invalidate: true });
+      if (result.result !== 'ok' && result.result !== 'not found') {
+        console.error('[Cloudinary cleanup] Unexpected result for managed asset:', publicId, result.result);
+        return { status: 'failed', warning: 'The old Cloudinary image could not be deleted. Check server logs.' };
+      }
+      return { status: 'deleted' };
+    } catch (error) {
+      console.error('[Cloudinary cleanup] Failed:', publicId, error);
+      return { status: 'failed', warning: 'The old Cloudinary image could not be deleted. Check server logs.' };
+    }
+  }
+
   // Owner authentication
   app.post('/api/admin/login', requireClientHeader, (req, res) => {
     const email = String(req.body?.email || '').trim().toLowerCase();
@@ -746,17 +796,29 @@ async function startServer() {
     try {
       const bouquet = req.body;
       if (!bouquet || !bouquet.id || !bouquet.title || typeof bouquet.price !== 'number' || bouquet.price < 0) return res.status(400).json({ success: false, error: 'Valid bouquet data is required.' });
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable.' });
+      const previous = await database.collection('products').findOne({ id: bouquet.id });
       const saved = await mongoSaveBouquet(bouquet);
       if (!saved) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable.' });
-      return res.json({ success: true, connected: true, bouquet: saved });
+      const cleanup = previous && previous.imageUrl !== saved.imageUrl
+        ? await cleanupUnreferencedCloudinaryImage(previous.imageUrl, 'jerrys_garden_bouquets')
+        : { status: 'skipped' as const };
+      return res.json({ success: true, connected: true, bouquet: saved, cleanupWarning: cleanup.warning });
     } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
   });
 
   app.delete('/api/bouquets/:id', requireOwner, requireClientHeader, async (req, res) => {
     try {
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable.' });
+      const previous = await database.collection('products').findOne({ id: req.params.id });
       const deleted = await mongoDeleteBouquet(req.params.id);
       if (deleted === null) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable.' });
-      return res.json({ success: true, connected: true, deleted });
+      const cleanup = deleted && previous
+        ? await cleanupUnreferencedCloudinaryImage(previous.imageUrl, 'jerrys_garden_bouquets')
+        : { status: 'skipped' as const };
+      return res.json({ success: true, connected: true, deleted, cleanupWarning: cleanup.warning });
     } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
   });
 
@@ -1066,7 +1128,10 @@ async function startServer() {
         address: String(settings.address || '').slice(0, 300),
       });
       if (!saved) return res.status(503).json({ success: false, error: 'Unable to save settings.' });
-      return res.json({ success: true, connected: true, settings: saved });
+      const cleanup = existing?.logoUrl && existing.logoUrl !== saved.logoUrl
+        ? await cleanupUnreferencedCloudinaryImage(existing.logoUrl, 'jame_bouquets_branding')
+        : { status: 'skipped' as const };
+      return res.json({ success: true, connected: true, settings: saved, cleanupWarning: cleanup.warning });
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
     }
