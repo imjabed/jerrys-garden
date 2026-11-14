@@ -47,7 +47,7 @@ export default function Navbar({
       {/* Top micro-announcement banner */}
       <div className="bg-gradient-to-r from-rose-50 via-rose-100/70 to-amber-50 text-stone-700 text-xs py-1.5 px-4 text-center border-b border-rose-100/60 font-medium flex items-center justify-center gap-2">
         <Sparkles className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
-        <span>Jame Bouquets • Handmade flowers, keepsakes & gifts</span>
+        <span>{storeSettings.storeName || "Jame Bouquets"} • Handmade flowers, keepsakes & gifts</span>
         <span className="hidden md:inline text-rose-400">•</span>
         <span className="hidden md:inline text-stone-600">Personal order confirmation by our team</span>
       </div>
@@ -56,7 +56,7 @@ export default function Navbar({
         <div className="flex items-center justify-between h-20">
           {/* Brand Logo */}
           <div onClick={onNavigateToShop}>
-            <Logo size="md" logoUrl={storeSettings.logoUrl} />
+            <Logo size="md" logoUrl={storeSettings.logoUrl} brandName={storeSettings.storeName || "Jame Bouquets"} />
           </div>
 
           {/* Desktop Navigation Links */}
