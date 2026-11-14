@@ -52,7 +52,7 @@ interface OwnerDashboardProps {
   onOpenOrderDetails: (order: Order) => void;
   onOpenBouquetEditor: (bouquet?: RibbonBouquet) => void;
   onDeleteBouquet: (id: string) => void;
-  onUpdateSettings: (settings: StoreSettings) => void;
+  onUpdateSettings: (settings: StoreSettings) => Promise<boolean>;
   onLogoutOwner: () => void;
   onCloseDashboard: () => void;
 }
@@ -159,11 +159,14 @@ export default function OwnerDashboard({
     return matchesStatus && matchesSearch;
   });
 
-  const handleSaveSettings = (e: FormEvent) => {
+  const handleSaveSettings = async (e: FormEvent) => {
     e.preventDefault();
-    onUpdateSettings(settingsForm);
-    setSettingsSavedMessage(true);
-    setTimeout(() => setSettingsSavedMessage(false), 3000);
+    setSettingsSavedMessage(false);
+    const ok = await onUpdateSettings(settingsForm);
+    if (ok) {
+      setSettingsSavedMessage(true);
+      setTimeout(() => setSettingsSavedMessage(false), 3000);
+    }
   };
 
   const getStatusBadge = (status: OrderStatus) => {
