@@ -613,22 +613,29 @@ async function startServer() {
     catch (err: any) { return res.status(500).json({ configured: false, connected: false, error: err.message }); }
   });
 
+  // Disabled in production unless explicitly enabled during supervised maintenance.
+  const requireMaintenance = (_req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (isProduction && process.env.ALLOW_DATABASE_MAINTENANCE !== 'true') {
+      return res.status(403).json({ success: false, error: 'Database maintenance is disabled in production.' });
+    }
+    next();
+  };
   // Development/database maintenance endpoints are owner-only.
-  app.post('/api/mongodb/build-collections', requireOwner, requireClientHeader, async (req, res) => {
+  app.post('/api/mongodb/build-collections', requireOwner, requireClientHeader, requireMaintenance, async (req, res) => {
     try {
       const results = await buildCollections(req.body || {});
       return res.json({ success: true, message: 'Collections verified successfully.', results });
     } catch (err: any) { return res.status(500).json({ success: false, error: err.message || 'Failed to build collections' }); }
   });
 
-  app.post('/api/mongodb/build-customers-products', requireOwner, requireClientHeader, async (req, res) => {
+  app.post('/api/mongodb/build-customers-products', requireOwner, requireClientHeader, requireMaintenance, async (req, res) => {
     try {
       const results = await buildCollectionsForCustomersAndProducts(req.body || {});
       return res.json({ success: true, message: 'Collections verified successfully.', results });
     } catch (err: any) { return res.status(500).json({ success: false, error: err.message || 'Failed to build collections' }); }
   });
 
-  app.post('/api/mongodb/config', requireOwner, requireClientHeader, async (req, res) => {
+  app.post('/api/mongodb/config', requireOwner, requireClientHeader, requireMaintenance, async (req, res) => {
     // Intentionally retained for the existing dashboard, but now owner-only.
     try {
       const { uri, database } = req.body || {};
@@ -638,7 +645,7 @@ async function startServer() {
     } catch (err: any) { return res.status(500).json({ success: false, error: err.message || 'Failed to update MongoDB configuration' }); }
   });
 
-  app.post('/api/mongodb/seed', requireOwner, requireClientHeader, async (req, res) => {
+  app.post('/api/mongodb/seed', requireOwner, requireClientHeader, requireMaintenance, async (req, res) => {
     try {
       const results = await seedMongoCollections(req.body || {});
       return res.json({ success: true, message: 'Data synchronized with MongoDB.', results });
@@ -1030,8 +1037,23 @@ async function startServer() {
 
   app.post('/api/settings', requireOwner, requireClientHeader, async (req, res) => {
     try {
-      const settings = req.body;
-      const saved = await mongoUpdateSettings(settings);
+      const settings = req.body || {};
+      const storeName = String(settings.storeName || '').trim();
+      const logoUrl = String(settings.logoUrl || '').trim();
+      if (storeName.length < 2 || storeName.length > 60) {
+        return res.status(400).json({ success: false, error: 'Business name must contain 2 to 60 characters.' });
+      }
+      if (logoUrl && (logoUrl.length > 1000 || !/^https:\/\/res\.cloudinary\.com\//i.test(logoUrl))) {
+        return res.status(400).json({ success: false, error: 'The logo must be a secure Cloudinary image.' });
+      }
+      const existing = await mongoGetSettings();
+      if (!existing) return res.status(503).json({ success: false, error: 'Store settings are temporarily unavailable.' });
+      const saved = await mongoUpdateSettings({
+        ...existing, storeName, logoUrl,
+        phone: String(settings.phone || '').slice(0, 100),
+        whatsapp: String(settings.whatsapp || '').slice(0, 100),
+        address: String(settings.address || '').slice(0, 300),
+      });
       return res.json({ success: true, connected: saved !== null, settings: saved });
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
