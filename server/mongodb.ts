@@ -147,7 +147,7 @@ export async function getMongoStatus() {
       database: activeDbName,
       activeConfig: getActiveMongoConfig(),
       message: lastConnectionError?.includes('IP Access Denied')
-        ? 'MongoDB Atlas is configured, but access was denied by your cluster IP whitelist. Allow only your hosting service's trusted outbound network or use a private endpoint in MongoDB Atlas.'
+        ? "MongoDB Atlas is configured, but access was denied by your cluster IP whitelist. Allow only your hosting service's trusted outbound network or use a private endpoint in MongoDB Atlas."
         : 'Configured, but connection to MongoDB Atlas failed.',
       error: lastConnectionError,
       ipWhitelistRequired: lastConnectionError?.includes('IP Access Denied'),
