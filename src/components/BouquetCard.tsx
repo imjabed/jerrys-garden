@@ -51,7 +51,7 @@ export default function BouquetCard({
     <div className="group bg-white border border-stone-200/60 hover:border-stone-300 transition-all duration-300 flex flex-col overflow-hidden relative">
       {/* Image container */}
       <div
-        className="relative aspect-[4/5] overflow-hidden bg-stone-100 cursor-pointer"
+        className="relative aspect-[5/4] sm:aspect-[4/5] overflow-hidden bg-stone-100 cursor-pointer"
         onClick={() => onSelect(bouquet)}
       >
         <img
@@ -73,13 +73,13 @@ export default function BouquetCard({
         )}
 
         {/* Top badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start z-10">
+        <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-col gap-1.5 items-start z-10">
           {false && bouquet.featured && (
             <span className="px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase bg-rose-600 text-white rounded-full shadow-xs">
               Featured
             </span>
           )}
-          <span className="px-2.5 py-1 text-[10px] font-semibold bg-white/90 backdrop-blur-xs text-stone-800 rounded-full shadow-xs border border-stone-100">
+          <span className="px-2 py-1 text-[9px] sm:text-[10px] font-semibold bg-white/90 backdrop-blur-xs text-stone-800 rounded-full shadow-xs border border-stone-100">
             {(bouquet.category || '').toLowerCase().includes('keychain') ? 'Handmade keepsake' : `${bouquet.flowerCount} flowers`}
           </span>
           {false && (isCloudinaryUrl(bouquet.imageUrl) || justUploaded) && (
@@ -126,7 +126,7 @@ export default function BouquetCard({
       </div>
 
       {/* Details container */}
-      <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-4">
+      <div className="p-2.5 sm:p-5 flex-1 flex flex-col justify-between gap-2 sm:gap-4">
         <div>
           {/* Ribbon Color tags */}
           <div className="hidden">
@@ -142,7 +142,7 @@ export default function BouquetCard({
 
           <h3
             onClick={() => onSelect(bouquet)}
-            className="font-serif font-normal text-stone-900 text-lg sm:text-xl hover:text-stone-600 transition-colors line-clamp-1 cursor-pointer"
+            className="font-serif font-normal text-stone-900 text-sm sm:text-xl hover:text-stone-600 transition-colors line-clamp-1 cursor-pointer"
           >
             {bouquet.title}
           </h3>
@@ -153,14 +153,14 @@ export default function BouquetCard({
         </div>
 
         {/* Price & Action button */}
-        <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-2">
+        <div className="pt-2 border-t border-stone-100 flex flex-wrap items-center justify-between gap-1 sm:gap-2">
           <div>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-base sm:text-lg font-medium text-stone-900">
+              <span className="text-sm sm:text-lg font-medium text-stone-900">
                 ₹{bouquet.price}
               </span>
               {bouquet.originalPrice && bouquet.originalPrice > bouquet.price && (
-                <span className="text-xs text-stone-400 line-through">
+                <span className="hidden sm:inline text-xs text-stone-400 line-through">
                   ₹{bouquet.originalPrice}
                 </span>
               )}
@@ -168,19 +168,19 @@ export default function BouquetCard({
 
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5">
             <button
               onClick={() => onAddToCart(bouquet)}
               title="Add to Shopping Bag"
-              className="p-2.5 border border-stone-200 hover:border-stone-400 hover:bg-stone-50 text-stone-700 hover:text-rose-700 transition-colors cursor-pointer"
+              className="p-2 sm:p-2.5 border border-stone-200 hover:border-stone-400 hover:bg-stone-50 text-stone-700 hover:text-rose-700 transition-colors cursor-pointer"
               aria-label="Add to cart"
             >
-              <ShoppingBag className="w-4 h-4" />
+              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
             <button
               onClick={() => onQuickBuy(bouquet)}
-              className="px-4 py-2.5 text-[11px] tracking-wider font-medium bg-stone-900 hover:bg-stone-700 text-white transition-colors cursor-pointer shadow-xs"
+              className="px-2.5 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-[11px] tracking-normal sm:tracking-wider font-medium bg-stone-900 hover:bg-stone-700 text-white transition-colors cursor-pointer shadow-xs whitespace-nowrap"
             >
               Buy Now
             </button>
