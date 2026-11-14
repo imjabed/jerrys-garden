@@ -2,9 +2,10 @@ interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
   showSubtitle?: boolean;
   logoUrl?: string;
+  brandName?: string;
 }
 
-export default function Logo({ size = 'md', showSubtitle = true, logoUrl }: LogoProps) {
+export default function Logo({ size = 'md', showSubtitle = true, logoUrl, brandName = 'Jame Bouquets' }: LogoProps) {
   const iconSizes = {
     sm: 'w-7 h-7',
     md: 'w-9 h-9',
@@ -20,13 +21,8 @@ export default function Logo({ size = 'md', showSubtitle = true, logoUrl }: Logo
   return (
     <div className="flex items-center gap-2.5 group cursor-pointer select-none">
       {logoUrl ? (
-        <img
-          src={logoUrl}
-          alt="Jame Bouquets logo"
-          className={`block object-contain max-w-[220px] ${size === 'lg' ? 'h-16' : size === 'sm' ? 'h-9' : 'h-12'}`}
-        />
+        <img src={logoUrl} alt="" className={`block shrink-0 object-contain ${size === 'lg' ? 'h-14 w-14' : size === 'sm' ? 'h-8 w-8' : 'h-10 w-10'}`} />
       ) : (
-      <>
       {/* Handcrafted Ribbon Flower Emblem */}
       <div className={`relative flex items-center justify-center rounded-full bg-rose-50 border border-rose-200/80 text-rose-600 shadow-sm transition-transform duration-300 group-hover:scale-105 ${iconSizes[size]}`}>
         <svg
@@ -67,22 +63,21 @@ export default function Logo({ size = 'md', showSubtitle = true, logoUrl }: Logo
           />
         </svg>
       </div>
+      )}
 
       <div>
         <div className="flex items-center gap-1.5">
           <span className={`font-serif font-medium tracking-tight text-stone-900 leading-none ${titleSizes[size]}`}>
-            Jame Bouquets
+            {brandName}
           </span>
           <span className="hidden sm:inline-block w-1.5 h-1.5 rounded-full bg-rose-400" />
         </div>
         {showSubtitle && (
           <p className="text-[10px] tracking-wider uppercase font-medium text-stone-500 mt-0.5">
-            Ribbon Floristry
+            Handmade Gifts
           </p>
         )}
       </div>
-      </>
-      )}
     </div>
   );
 }
