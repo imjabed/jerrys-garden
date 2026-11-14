@@ -1032,7 +1032,13 @@ async function startServer() {
   app.get('/api/settings', async (req, res) => {
     try {
       const settings = await mongoGetSettings();
-      return res.json({ success: true, connected: settings !== null, settings });
+      // Translate old business-name defaults without overwriting intentional custom names.
+      const legacyName = /^(jerry(?:'s|s)? garden|jericasgarden)$/i;
+      const displaySettings = settings
+        ? { ...settings, storeName: legacyName.test(String(settings.storeName || '').trim())
+            ? 'Jame Bouquets' : (settings.storeName || 'Jame Bouquets') }
+        : null;
+      return res.json({ success: true, connected: settings !== null, settings: displaySettings });
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
     }
