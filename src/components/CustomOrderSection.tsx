@@ -7,6 +7,8 @@ import {
 
 interface CustomOrderSectionProps {
   onSubmit: (payload: CustomEnquiryPayload) => Promise<{ orderNumber: string }>;
+  mobileOpen: boolean;
+  onMobileToggle: () => void;
 }
 export interface CustomEnquiryPayload {
   occasion: string;
@@ -27,7 +29,7 @@ export interface CustomEnquiryPayload {
 
 const occasions = ['Wedding', 'Anniversary', 'Birthday', 'Event', 'Other'];
 
-export default function CustomOrderSection({ onSubmit }: CustomOrderSectionProps) {
+export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggle }: CustomOrderSectionProps) {
   const [occasion, setOccasion] = useState('Wedding');
   const [flowers, setFlowers] = useState(25);
   const [flowerColors, setFlowerColors] = useState('');
@@ -94,10 +96,24 @@ export default function CustomOrderSection({ onSubmit }: CustomOrderSectionProps
   const fieldClass = 'mt-2 w-full border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-stone-700 focus:ring-0';
   const labelClass = 'block text-[11px] uppercase tracking-[0.14em] text-stone-600';
   return (
-    <section id="custom-builder" className="bg-[#F1ECE5] border-y border-stone-200/70 py-20 sm:py-28">
+    <section id="custom-builder" className="bg-[#F1ECE5] border-y border-stone-200/70 py-14 sm:py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
-        <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] lg:gap-20">
-          <div className="lg:sticky lg:top-28">
+        <div className="mb-0 lg:hidden">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-stone-500">Your celebration, your bouquet</p>
+          <h2 className="mt-3 font-serif text-3xl text-stone-900">Made for <span className="italic text-[#9E777C]">your moment.</span></h2>
+          <p className="mt-3 text-sm leading-6 text-stone-600">Planning a wedding, birthday or anniversary? Create a custom arrangement.</p>
+          <button
+            type="button"
+            onClick={onMobileToggle}
+            aria-expanded={mobileOpen}
+            aria-controls="custom-order-content"
+            className="mt-6 flex w-full items-center justify-center gap-3 bg-stone-900 px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-white"
+          >
+            {mobileOpen ? 'Close Custom Order' : 'Create a Custom Order'} <ArrowRight className={`h-4 w-4 transition-transform ${mobileOpen ? '-rotate-90' : ''}`}/>
+          </button>
+        </div>
+        <div id="custom-order-content" className={`${mobileOpen ? 'grid mt-8' : 'hidden'} items-start gap-12 lg:mt-0 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] lg:gap-20`}>
+          <div className="hidden lg:block lg:sticky lg:top-28">
             <p className="text-[10px] uppercase tracking-[0.32em] text-stone-500">Your celebration, your bouquet</p>
             <h2 className="mt-5 font-serif text-5xl leading-[1.1] tracking-tight text-stone-900 sm:text-6xl">
               Made for <span className="italic text-[#9E777C]">your moment.</span>
