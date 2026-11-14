@@ -23,7 +23,8 @@ export default function Logo({ size = 'md', showSubtitle = true, logoUrl, brandN
       {logoUrl ? (
         <img src={logoUrl} alt="" className={`block shrink-0 object-contain ${size === 'lg' ? 'h-14 w-14' : size === 'sm' ? 'h-8 w-8' : 'h-10 w-10'}`} />
       ) : (
-      {/* Handcrafted Ribbon Flower Emblem */}
+      // Default handcrafted emblem when no custom image is configured.
+
       <div className={`relative flex items-center justify-center rounded-full bg-rose-50 border border-rose-200/80 text-rose-600 shadow-sm transition-transform duration-300 group-hover:scale-105 ${iconSizes[size]}`}>
         <svg
           viewBox="0 0 40 40"
