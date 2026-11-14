@@ -231,17 +231,17 @@ export default function App() {
 
   // Bouquet Editor
   const handleSaveBouquet = async (saved: RibbonBouquet) => {
-    const ok = await apiSaveBouquet(saved);
-    if (!ok) { showToast('Could not save bouquet. Please try again.'); return; }
+    const outcome = await apiSaveBouquet(saved);
+    if (!outcome.success) { showToast(outcome.error || 'Could not save bouquet. Please try again.'); return; }
     setBouquets((current) => { const i = current.findIndex(b => b.id === saved.id); if (i < 0) return [saved, ...current]; const next = [...current]; next[i] = saved; return next; });
-    showToast(`Bouquet "${saved.title}" saved to catalog!`);
+    showToast(outcome.cleanupWarning || `Bouquet "${saved.title}" saved to catalog!`);
   };
 
   const handleDeleteBouquet = async (id: string) => {
-    const ok = await apiDeleteBouquet(id);
-    if (!ok) { showToast('Could not remove bouquet. Please try again.'); return; }
+    const outcome = await apiDeleteBouquet(id);
+    if (!outcome.success) { showToast(outcome.error || 'Could not remove bouquet. Please try again.'); return; }
     setBouquets((current) => current.filter((b) => b.id !== id));
-    showToast('Bouquet removed from catalog');
+    showToast(outcome.cleanupWarning || 'Bouquet removed from catalog and unused Cloudinary image cleaned up.');
   };
 
   // Instant Cloudinary Photo Update for Any Bouquet
@@ -249,13 +249,13 @@ export default function App() {
     const current = bouquets.find((b) => b.id === bouquetId);
     if (!current) return;
     const updatedBouquet = { ...current, imageUrl: newImageUrl };
-    const ok = await apiSaveBouquet(updatedBouquet);
-    if (!ok) { showToast('Could not save bouquet image. Please try again.'); return; }
+    const outcome = await apiSaveBouquet(updatedBouquet);
+    if (!outcome.success) { showToast(outcome.error || 'Could not save bouquet image. Please try again.'); return; }
     setBouquets((items) => items.map((b) => b.id === bouquetId ? updatedBouquet : b));
     setCartItems((items) => items.map((item) => item.bouquet.id === bouquetId ? { ...item, bouquet: updatedBouquet } : item));
     setCart((items) => items.map((item) => item.bouquet.id === bouquetId ? { ...item, bouquet: updatedBouquet } : item));
     if (detailModalBouquet && detailModalBouquet.id === bouquetId) setDetailModalBouquet(updatedBouquet);
-    showToast('✨ Photo saved to Cloudinary! Bouquet updated.');
+    showToast(outcome.cleanupWarning || 'Photo updated. Unused previous Cloudinary image cleaned up.');
   };
 
   // Owner Auth
@@ -402,7 +402,7 @@ export default function App() {
             if (!result.success || !result.settings) { showToast(result.error || 'Could not save settings.'); return false; }
             updateStoreSettings(result.settings);
             setSettings(result.settings);
-            showToast('Settings saved!');
+            showToast(result.cleanupWarning || 'Settings saved!');
             return true;
           }}
           onLogoutOwner={handleLogoutOwner}
