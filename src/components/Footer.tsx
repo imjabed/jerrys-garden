@@ -27,7 +27,7 @@ export default function Footer({
           {/* Brand Col (4 cols) */}
           <div className="lg:col-span-4 space-y-4">
             <div className="brightness-125 invert-0">
-              <Logo size="md" showSubtitle={true} logoUrl={storeSettings.logoUrl} />
+              <Logo size="md" showSubtitle={true} logoUrl={storeSettings.logoUrl} brandName={storeSettings.storeName || "Jame Bouquets"} />
             </div>
             
             <p className="text-xs text-stone-400 leading-relaxed">
