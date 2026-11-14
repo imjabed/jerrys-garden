@@ -33,6 +33,7 @@ import {
   Tag
 } from 'lucide-react';
 import { Order, OrderStatus, RibbonBouquet, StoreSettings, UserAccount, Coupon } from '../types';
+import CustomerInsights from './CustomerInsights';
 import { isCloudinaryUrl, uploadImageToCloudinary } from '../services/cloudinary';
 import {
   checkMongoStatus,
@@ -289,83 +290,26 @@ export default function OwnerDashboard({
   };
 
   return (
-    <div className="min-h-screen bg-stone-100/70 pb-20">
+    <div className="min-h-screen bg-[#F6F5F2] pb-20">
       
-      {/* Top Owner Header Bar */}
-      <header className="bg-stone-900 text-white sticky top-0 z-30 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            
-            <div className="flex items-center gap-3">
-              <button
-                onClick={onCloseDashboard}
-                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-stone-200 transition-colors flex items-center gap-1 text-xs cursor-pointer"
-                title="Back to Customer Shop"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Back to Shop</span>
-              </button>
-
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold uppercase">
-                  Owner Mode
-                </span>
-                <h1 className="font-serif font-bold text-base sm:text-lg">
-                  Jame Bouquets Florist HQ
-                </h1>
-              </div>
+      <header className="sticky top-0 z-30 border-b border-stone-200 bg-[#FCFBF9]/95 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-4">
+            <button onClick={onCloseDashboard} aria-label="Return to shop" title="Back to storefront"
+              className="border border-stone-200 p-2.5 text-stone-600 transition hover:bg-stone-100"><ArrowLeft size={17}/></button>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.24em] text-stone-500">Jame Bouquets · Private workspace</p>
+              <h1 className="mt-0.5 truncate font-serif text-xl font-normal text-stone-900">Owner dashboard</h1>
             </div>
-
-            {/* Current authorized account, MongoDB Status & Logout */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleBuildCollections}
-                disabled={isBuildingCollections}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-900/80 hover:bg-rose-800 text-rose-100 border border-rose-700/60 text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
-                title="Build and initialize MongoDB Atlas collections for Customers, Products, Bouquets, and Orders"
-              >
-                <Layers className={`w-3.5 h-3.5 ${isBuildingCollections ? 'animate-spin text-white' : 'text-rose-300'}`} />
-                <span>{isBuildingCollections ? 'Building...' : 'Build Collections'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSyncAllToMongo}
-                disabled={isSyncingMongo}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
-                title="Synchronize all Customers, Bouquets, Orders, and Settings to MongoDB Atlas"
-              >
-                <Database className={`w-3.5 h-3.5 ${isSyncingMongo ? 'animate-spin text-rose-400' : 'text-emerald-400'}`} />
-                <span>{isSyncingMongo ? 'Syncing...' : 'Sync Atlas'}</span>
-              </button>
-
-              <div
-                className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono border ${
-                  mongoStatus?.connected
-                    ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/30'
-                    : 'bg-amber-950/60 text-amber-300 border-amber-500/30'
-                }`}
-                title={mongoStatus?.message || 'MongoDB Atlas Status'}
-              >
-                <div className={`w-2 h-2 rounded-full ${mongoStatus?.connected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-                <span>{mongoStatus?.connected ? 'Atlas: Connected' : 'Atlas: Setup Needed'}</span>
-              </div>
-
-              <span className="hidden lg:inline text-xs text-emerald-400 font-mono flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Owner Portal</span>
-              </span>
-
-              <button
-                onClick={onLogoutOwner}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-xs font-semibold transition-colors cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Exit</span>
-              </button>
-            </div>
-
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
+            <span className="hidden items-center gap-2 text-[11px] text-stone-600 sm:flex">
+              <span className={`h-2 w-2 rounded-full ${mongoStatus?.connected ? 'bg-emerald-600' : 'bg-amber-500'}`}/>
+              {mongoStatus?.connected ? 'Database connected' : 'Database unavailable'}
+            </span>
+            <button onClick={onLogoutOwner} className="flex items-center gap-2 border border-stone-300 px-3 py-2.5 text-xs text-stone-700 transition hover:bg-stone-100">
+              <LogOut size={15}/> Sign out
+            </button>
           </div>
         </div>
       </header>
@@ -389,14 +333,18 @@ export default function OwnerDashboard({
           </div>
         )}
 
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div><p className="text-[10px] uppercase tracking-[0.25em] text-stone-500">Business operations</p><h2 className="mt-2 font-serif text-3xl font-normal text-stone-900">At a glance</h2></div><p className="text-xs text-stone-500">Order counts and quoted values · No payment collected online</p>
+        </div>
+
         {/* Analytics KPI Metric Cards */}
         <section className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-5">
           
           {/* Total Orders */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs">
+          <div className="p-4 sm:p-5 bg-white border border-stone-200">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Total Orders</span>
-              <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-stone-100 text-stone-600 flex items-center justify-center">
                 <Package className="w-4 h-4" />
               </div>
             </div>
@@ -408,19 +356,19 @@ export default function OwnerDashboard({
           <div className="p-4 sm:p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">Pending</span>
-              <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-stone-100 text-stone-600 flex items-center justify-center">
                 <Clock className="w-4 h-4" />
               </div>
             </div>
             <p className="text-2xl sm:text-3xl font-bold text-amber-600 mt-2">{pendingOrdersCount}</p>
-            <p className="text-[11px] text-stone-500 mt-0.5">In ribbon preparation</p>
+            <p className="text-[11px] text-stone-500 mt-0.5">Requires fulfillment</p>
           </div>
 
           {/* Delivered Orders */}
           <div className="p-4 sm:p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Delivered</span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-stone-100 text-stone-600 flex items-center justify-center">
                 <CheckCircle2 className="w-4 h-4" />
               </div>
             </div>
@@ -432,12 +380,12 @@ export default function OwnerDashboard({
           <div className="p-4 sm:p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-red-700 uppercase tracking-wider">Cancelled</span>
-              <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-stone-100 text-stone-600 flex items-center justify-center">
                 <XCircle className="w-4 h-4" />
               </div>
             </div>
             <p className="text-2xl sm:text-3xl font-bold text-red-600 mt-2">{cancelledOrdersCount}</p>
-            <p className="text-[11px] text-stone-500 mt-0.5">Refunded / cancelled</p>
+            <p className="text-[11px] text-stone-500 mt-0.5">Closed without fulfillment</p>
           </div>
 
           {/* Total Revenue */}
@@ -454,63 +402,20 @@ export default function OwnerDashboard({
 
         </section>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-stone-300/80 pb-1">
-          <button
-            onClick={() => setActiveTab('orders')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-              activeTab === 'orders'
-                ? 'bg-stone-900 text-white shadow-sm'
-                : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'
-            }`}
-          >
-            📦 Customer Orders ({orders.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('catalog')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-              activeTab === 'catalog'
-                ? 'bg-stone-900 text-white shadow-sm'
-                : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'
-            }`}
-          >
-            🎀 Bouquet Catalog ({bouquets.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('customers')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-              activeTab === 'customers'
-                ? 'bg-stone-900 text-white shadow-sm'
-                : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'
-            }`}
-          >
-            👥 Registered Customers ({customers.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('coupons')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-              activeTab === 'coupons'
-                ? 'bg-stone-900 text-white shadow-sm'
-                : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'
-            }`}
-          >
-            🏷️ Coupons ({coupons.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-              activeTab === 'settings'
-                ? 'bg-stone-900 text-white shadow-sm'
-                : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'
-            }`}
-          >
-            ⚙️ Store & Database
-          </button>
-        </div>
+        <nav aria-label="Owner dashboard sections" className="flex flex-wrap gap-1.5 border-b border-stone-200 pb-3">
+          {([
+            ['orders', 'Orders', orders.length],
+            ['customers', 'Customer insights', customers.length],
+            ['catalog', 'Products', bouquets.length],
+            ['coupons', 'Offers', coupons.length],
+            ['settings', 'Settings', null],
+          ] as const).map(([tab, label, count]) => (
+            <button key={tab} type="button" onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2.5 text-xs font-medium transition-colors ${activeTab === tab ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'}`}>
+              {label}{count === null ? '' : ` · ${count}`}
+            </button>
+          ))}
+        </nav>
 
         {/* TAB 1: ORDERS LIST & STATUS MANAGEMENT */}
         {activeTab === 'orders' && (
@@ -752,228 +657,7 @@ export default function OwnerDashboard({
 
         {/* TAB 3: REGISTERED CUSTOMERS (MONGODB ATLAS & LOCAL) */}
         {activeTab === 'customers' && (
-          <div className="space-y-6">
-            
-            {/* Top Bar: Search & Sync */}
-            <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search customer by name, email, phone, address..."
-                  value={customerSearch}
-                  onChange={(e) => setCustomerSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-stone-200 bg-stone-50/50 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleSyncAllToMongo}
-                  disabled={isSyncingMongo}
-                  className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <Database className={`w-3.5 h-3.5 ${isSyncingMongo ? 'animate-spin text-rose-400' : 'text-emerald-400'}`} />
-                  <span>{isSyncingMongo ? 'Syncing to Atlas...' : 'Sync Customers & Data to MongoDB'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const st = await checkMongoStatus();
-                    setMongoStatus(st);
-                    const res = await apiGetCustomers();
-                    if (res.customers?.length) setCustomers(res.customers);
-                  }}
-                  className="p-2 rounded-xl border border-stone-200 hover:bg-stone-100 text-stone-600 transition-colors cursor-pointer"
-                  title="Refresh customer records from database"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Customers Overview Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Total Registered</span>
-                <p className="text-2xl font-bold text-stone-900 mt-1">{customers.length}</p>
-                <p className="text-[11px] text-stone-500 mt-0.5">Customer accounts</p>
-              </div>
-
-              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Email Verified</span>
-                <p className="text-2xl font-bold text-emerald-600 mt-1">
-                  {customers.filter((c) => c.verified).length}
-                </p>
-                <p className="text-[11px] text-stone-500 mt-0.5">Via JericasGarden OTP</p>
-              </div>
-
-              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600">Active Buyers</span>
-                <p className="text-2xl font-bold text-rose-600 mt-1">
-                  {customers.filter((c) => orders.some((o) => String(o.customer?.email || '').toLowerCase() === String(c.email || '').toLowerCase())).length}
-                </p>
-                <p className="text-[11px] text-stone-500 mt-0.5">Placed at least 1 order</p>
-              </div>
-
-              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Cloud Storage</span>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className={`w-2.5 h-2.5 rounded-full ${mongoStatus?.connected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                  <p className="text-xs font-bold text-stone-900">
-                    {mongoStatus?.connected ? 'MongoDB Atlas' : 'Local Fallback'}
-                  </p>
-                </div>
-                <p className="text-[11px] text-stone-500 mt-0.5">Database status</p>
-              </div>
-            </div>
-
-            {/* Customers List / Grid */}
-            {customers.length === 0 ? (
-              <div className="bg-white rounded-3xl p-12 text-center border border-stone-200">
-                <Users className="w-12 h-12 text-stone-300 mx-auto mb-3" />
-                <h3 className="font-serif font-bold text-lg text-stone-800">No Customers Registered Yet</h3>
-                <p className="text-xs text-stone-500 max-w-md mx-auto mt-1">
-                  Customers who register with email OTP verification or place orders will appear here and be stored in MongoDB Atlas.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {customers
-                  .filter((c) => {
-                    const q = customerSearch.trim().toLowerCase();
-                    if (!q) return true;
-                    const name = String(c.name || (c as any).fullName || '').toLowerCase();
-                    const email = String(c.email || '').toLowerCase();
-                    const phone = String(c.phone || '').toLowerCase();
-                    const address = String(c.address || (c as any).deliveryAddress || '').toLowerCase();
-                    return name.includes(q) || email.includes(q) || phone.includes(q) || address.includes(q);
-                  })
-                  .map((customer) => {
-                    const customerName = String(customer.name || (customer as any).fullName || 'Customer').trim() || 'Customer';
-                    const customerEmail = String(customer.email || '').trim().toLowerCase();
-                    const customerPhone = String(customer.phone || '').trim();
-                    const customerAddress = String(customer.address || (customer as any).deliveryAddress || '').trim();
-
-                    // Calculate orders for this customer
-                    const customerOrders = orders.filter(
-                      (o) => String(o.customer?.email || '').trim().toLowerCase() === customerEmail
-                    );
-                    const customerSpend = customerOrders
-                      .filter((o) => o.status !== 'Cancelled')
-                      .reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
-
-                    // Name initials
-                    const initials = customerName
-                      .split(/\s+/)
-                      .filter(Boolean)
-                      .map((p) => p[0])
-                      .join('')
-                      .slice(0, 2)
-                      .toUpperCase();
-
-                    return (
-                      <div
-                        key={customer.id || customer.email}
-                        className="bg-white rounded-2xl p-5 border border-stone-200 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between"
-                      >
-                        <div className="space-y-3">
-                          
-                          {/* Header: Avatar, Name & Verification */}
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-rose-500 to-amber-500 text-white font-bold text-sm flex items-center justify-center shadow-xs">
-                                {initials || 'C'}
-                              </div>
-                              <div>
-                                <h4 className="font-serif font-bold text-sm text-stone-900 leading-tight">
-                                  {customerName}
-                                </h4>
-                                <span className="text-[11px] text-stone-400">
-                                  Joined {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : '—'}
-                                </span>
-                              </div>
-                            </div>
-
-                            {(customer.isVerified ?? (customer as any).verified) ? (
-                              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                <span>Verified</span>
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">
-                                Pending OTP
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Contact Details */}
-                          <div className="space-y-1.5 text-xs text-stone-600 pt-1 border-t border-stone-100">
-                            <div className="flex items-center gap-2">
-                              <Mail className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                              <span className="truncate select-all">{customer.email || '—'}</span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <Phone className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                              <a
-                                href={customerPhone ? `tel:${customerPhone}` : undefined}
-                                className="hover:text-rose-600 font-mono transition-colors"
-                              >
-                                {customer.phone}
-                              </a>
-                            </div>
-
-                            <div className="flex items-start gap-2">
-                              <MapPin className="w-3.5 h-3.5 text-stone-400 shrink-0 mt-0.5" />
-                              <span className="line-clamp-2 text-stone-500">
-                                {customerAddress || 'Address not provided'}{(customer as any).pincode ? `, ${(customer as any).pincode}` : ''}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Order Metrics */}
-                          <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-100 flex items-center justify-between text-xs">
-                            <div>
-                              <span className="text-[10px] text-stone-500 uppercase tracking-wider block">Orders</span>
-                              <span className="font-bold text-stone-900">{customerOrders.length} placed</span>
-                            </div>
-                            <div className="text-right">
-                              <span className="text-[10px] text-stone-500 uppercase tracking-wider block">Total Spent</span>
-                              <span className="font-bold text-rose-700">₹{customerSpend}</span>
-                            </div>
-                          </div>
-
-                        </div>
-
-                        {/* Card Footer: View Orders action */}
-                        <div className="pt-3 mt-3 border-t border-stone-100 flex items-center justify-end">
-                          {customerOrders.length > 0 ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setOrderSearch(customerEmail);
-                                setActiveTab('orders');
-                              }}
-                              className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
-                            >
-                              <span>View {customerOrders.length} Orders</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
-                          ) : (
-                            <span className="text-[11px] text-stone-400 italic">No orders yet</span>
-                          )}
-                        </div>
-
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
-
-          </div>
+          <CustomerInsights customers={customers} orders={orders} onViewOrder={onOpenOrderDetails}/>
         )}
 
         {/* TAB 4: UPI & STORE SETTINGS */}
@@ -1010,7 +694,7 @@ export default function OwnerDashboard({
             <div className="lg:col-span-2 bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-xs space-y-6">
               <div>
                 <h3 className="font-serif font-bold text-xl text-stone-900">
-                  Store Settings (Legacy Fields)
+                  Brand & store settings
                 </h3>
                 <p className="text-xs text-stone-500">
                   Customer checkout collects no payment. Legacy fields are retained for historical records.
