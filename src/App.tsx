@@ -71,6 +71,7 @@ export default function App() {
 
   // Modals & Drawers
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [customMobileOpen, setCustomMobileOpen] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [trackingModalOpen, setTrackingModalOpen] = useState(false);
   const [preselectedTrackingId, setPreselectedTrackingId] = useState<string | undefined>(undefined);
@@ -427,7 +428,7 @@ export default function App() {
                 setOwnerLoginModalOpen(true);
               }
             }}
-            onNavigateToBuilder={() => scrollToSection('custom-builder')}
+            onNavigateToBuilder={() => { setCustomMobileOpen(true); scrollToSection('custom-builder'); }}
             onNavigateToShop={() => scrollToSection('shop-section')}
             onNavigateToStory={() => scrollToSection('ribbon-story')}
             activeUser={activeUser}
@@ -528,7 +529,7 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-6">
                 {filteredBouquets.map((bouquet) => (
                   <BouquetCard
                     key={bouquet.id}
@@ -545,7 +546,7 @@ export default function App() {
 
           </main>
 
-          <CustomOrderSection onSubmit={async payload => {
+          <CustomOrderSection mobileOpen={customMobileOpen} onMobileToggle={() => setCustomMobileOpen(current => !current)} onSubmit={async payload => {
             const result = await apiSendCustomEnquiry(payload);
             return { orderNumber: result.orderNumber };
           }} />
