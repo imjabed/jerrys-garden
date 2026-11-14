@@ -98,10 +98,17 @@ function requireClientHeader(req: express.Request, res: express.Response, next: 
   next();
 }
 
+const ADMIN_SESSION_SECONDS = 60 * 60 * 2;
+function safeAdminCredentials(email: string, password: string): boolean {
+  if (!ADMIN_EMAIL || !ADMIN_PASSWORD || !AUTH_SECRET) return false;
+  const supplied = crypto.createHmac('sha256', AUTH_SECRET).update(email + '\\0' + password).digest();
+  const expected = crypto.createHmac('sha256', AUTH_SECRET).update(ADMIN_EMAIL + '\\0' + ADMIN_PASSWORD).digest();
+  return crypto.timingSafeEqual(supplied, expected);
+}
 function requireOwner(req: express.Request, res: express.Response, next: express.NextFunction) {
   const token = parseCookies(req)[OWNER_COOKIE];
   const auth = verifyToken(token);
-  if (!auth || auth.role !== 'owner') return res.status(401).json({ success: false, error: 'Owner authentication required.' });
+  if (!auth || auth.role !== 'owner' || auth.email !== ADMIN_EMAIL) return res.status(401).json({ success: false, error: 'Owner authentication required.' });
   next();
 }
 
@@ -282,6 +289,15 @@ async function startServer() {
     );
 
     res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('X-Content-Type-Options', 'nosniff');
+    res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.header('X-Frame-Options', 'DENY');
+    if (req.path.startsWith('/api/')) res.header('Cache-Control', 'no-store');
+    const fetchSite = req.headers['sec-fetch-site'];
+    if (origin && !allowedOrigins.includes(origin)) return res.status(403).json({ success: false, error: 'Origin not allowed.' });
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && !origin && fetchSite === 'cross-site') {
+      return res.status(403).json({ success: false, error: 'Origin required.' });
+    }
 
     if (req.method === 'OPTIONS') {
       return res.sendStatus(204);
@@ -358,17 +374,17 @@ async function startServer() {
     if (!ADMIN_EMAIL || !ADMIN_PASSWORD || !AUTH_SECRET) {
       return res.status(503).json({ success: false, error: 'Owner authentication is not configured on the server.' });
     }
-    if (!email || !password || email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+    if (!email || !password || !safeAdminCredentials(email, password)) {
       return res.status(401).json({ success: false, error: 'Invalid owner credentials.' });
     }
-    const token = signToken({ role: 'owner', email }, 60 * 60 * 12);
-    setAuthCookie(res, OWNER_COOKIE, token, 60 * 60 * 12);
+    const token = signToken({ role: 'owner', email }, ADMIN_SESSION_SECONDS);
+    setAuthCookie(res, OWNER_COOKIE, token, ADMIN_SESSION_SECONDS);
     return res.json({ success: true, user: { email } });
   });
 
   app.get('/api/admin/session', (req, res) => {
     const auth = verifyToken(parseCookies(req)[OWNER_COOKIE]);
-    return res.json({ authenticated: Boolean(auth?.role === 'owner'), email: auth?.email || null });
+    return res.json({ authenticated: Boolean(auth?.role === 'owner' && auth?.email === ADMIN_EMAIL), email: auth?.role === 'owner' && auth?.email === ADMIN_EMAIL ? ADMIN_EMAIL : null });
   });
 
   app.post('/api/admin/logout', requireClientHeader, (req, res) => {
@@ -615,9 +631,9 @@ async function startServer() {
       if (!allowLoginAttempt(String(req.ip || 'unknown'), 10)) return res.status(429).json({ success: false, error: 'Too many login attempts. Please try again later.' });
       if (!email || !password) return res.status(400).json({ success: false, error: 'Email and password are required.' });
       if (ADMIN_EMAIL && email === ADMIN_EMAIL) {
-        if (!ADMIN_PASSWORD || !AUTH_SECRET || password !== ADMIN_PASSWORD) return res.status(401).json({ success: false, connected: true, error: 'Invalid email or password.' });
-        const token = signToken({ role: 'owner', email }, 60 * 60 * 12);
-        setAuthCookie(res, OWNER_COOKIE, token, 60 * 60 * 12);
+        if (!ADMIN_PASSWORD || !AUTH_SECRET || !safeAdminCredentials(email, password)) return res.status(401).json({ success: false, connected: true, error: 'Invalid email or password.' });
+        const token = signToken({ role: 'owner', email }, ADMIN_SESSION_SECONDS);
+        setAuthCookie(res, OWNER_COOKIE, token, ADMIN_SESSION_SECONDS);
         return res.json({ success: true, connected: true, role: 'admin' });
       }
       const verification = await mongoVerifyCustomerLogin(email, password);
