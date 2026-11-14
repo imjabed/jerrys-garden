@@ -146,6 +146,11 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
           </div>
 
           <div className="border border-stone-200/80 bg-[#FCFAF7] p-6 shadow-sm sm:p-10">
+            <div className="mb-7 border-b border-stone-200 pb-6 lg:hidden" aria-live="polite">
+              <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-stone-500">Live approximate price</p>
+              <p className="mt-3 font-serif text-2xl text-stone-900">₹{quote.minimum.toLocaleString('en-IN')} – ₹{quote.maximum.toLocaleString('en-IN')}</p>
+              <p className="mt-2 text-xs leading-5 text-stone-500">Estimate only. Our team will confirm the final price before your order.</p>
+            </div>
             {confirmed && (
               <div className="fixed inset-0 z-[80] flex items-center justify-center bg-stone-950/60 p-5 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Custom enquiry received">
                 <div className="w-full max-w-md border border-stone-200 bg-[#FCFAF7] px-8 py-12 text-center shadow-2xl">
