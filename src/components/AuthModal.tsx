@@ -335,7 +335,7 @@ export default function AuthModal({
               <label className="block text-xs font-medium text-stone-600">
                 Authenticator code <span className="text-stone-400">(only for owner accounts with 2FA enabled)</span>
                 <input type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}"
-                  maxLength={6} value={loginAdminOtp} onChange={event => setLoginAdminOtp(event.target.value.replace(/\\D/g, ''))}
+                  maxLength={6} value={loginAdminOtp} onChange={event => setLoginAdminOtp(event.target.value.replace(/\D/g, ''))}
                   placeholder="6-digit code" className="mt-2 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-stone-900"/>
               </label>
               <button
