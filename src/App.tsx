@@ -253,8 +253,7 @@ export default function App() {
     const outcome = await apiSaveBouquet(updatedBouquet);
     if (!outcome.success) { showToast(outcome.error || 'Could not save bouquet image. Please try again.'); return; }
     setBouquets((items) => items.map((b) => b.id === bouquetId ? updatedBouquet : b));
-    setCartItems((items) => items.map((item) => item.bouquet.id === bouquetId ? { ...item, bouquet: updatedBouquet } : item));
-    setCart((items) => items.map((item) => item.bouquet.id === bouquetId ? { ...item, bouquet: updatedBouquet } : item));
+    updateCart(cart.map((item) => item.bouquet.id === bouquetId ? { ...item, bouquet: updatedBouquet } : item));
     if (detailModalBouquet && detailModalBouquet.id === bouquetId) setDetailModalBouquet(updatedBouquet);
     showToast(outcome.cleanupWarning || 'Photo updated successfully.');
   };
