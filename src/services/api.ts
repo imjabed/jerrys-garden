@@ -28,8 +28,8 @@ export interface MongoStatusResponse {
   counts: { customers: number; Customerinfo?: number; products?: number; bouquets: number; orders: number };
 }
 
-export async function ownerLogin(email: string, password: string) {
-  const res = await fetch(`${API_URL}/api/admin/login`, { method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify({ email, password }) });
+export async function ownerLogin(email: string, password: string, otp?: string) {
+  const res = await fetch(`${API_URL}/api/admin/login`, { method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify({ email, password, otp }) });
   return parseResponse<{ success: boolean; user?: { email: string }; error?: string }>(res);
 }
 
@@ -97,9 +97,9 @@ export async function apiRegisterCustomer(customer: {
   } catch (err: any) { return { success: false, connected: false, error: err.message }; }
 }
 
-export async function apiLoginCustomer(email: string, password?: string) {
+export async function apiLoginCustomer(email: string, password?: string, otp?: string) {
   try {
-    const res = await fetch(`${API_URL}/api/customers/login`, { method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify({ email, password }) });
+    const res = await fetch(`${API_URL}/api/customers/login`, { method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify({ email, password, otp }) });
     return await parseResponse<{ success: boolean; connected: boolean; role?: 'admin'; user?: UserAccount; error?: string }>(res);
   } catch (err: any) { return { success: false, connected: false, error: err.message, fallbackToClient: false }; }
 }
