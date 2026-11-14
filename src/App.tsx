@@ -241,7 +241,7 @@ export default function App() {
     const outcome = await apiDeleteBouquet(id);
     if (!outcome.success) { showToast(outcome.error || 'Could not remove bouquet. Please try again.'); return; }
     setBouquets((current) => current.filter((b) => b.id !== id));
-    showToast(outcome.cleanupWarning || 'Bouquet removed from catalog and unused Cloudinary image cleaned up.');
+    showToast(outcome.cleanupWarning || 'Bouquet removed from catalog.');
   };
 
   // Instant Cloudinary Photo Update for Any Bouquet
@@ -255,7 +255,7 @@ export default function App() {
     setCartItems((items) => items.map((item) => item.bouquet.id === bouquetId ? { ...item, bouquet: updatedBouquet } : item));
     setCart((items) => items.map((item) => item.bouquet.id === bouquetId ? { ...item, bouquet: updatedBouquet } : item));
     if (detailModalBouquet && detailModalBouquet.id === bouquetId) setDetailModalBouquet(updatedBouquet);
-    showToast(outcome.cleanupWarning || 'Photo updated. Unused previous Cloudinary image cleaned up.');
+    showToast(outcome.cleanupWarning || 'Photo updated successfully.');
   };
 
   // Owner Auth
