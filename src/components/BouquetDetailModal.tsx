@@ -1,7 +1,8 @@
 import { useState, useEffect, type ChangeEvent } from 'react';
 import { X, ArrowRight, Check, Camera, Loader2, Cloud, ShoppingBag } from 'lucide-react';
 import { RibbonBouquet } from '../types';
-import { uploadImageToCloudinary, isCloudinaryUrl } from '../services/cloudinary';
+import { uploadImageToCloudinary } from '../services/cloudinary';
+import ProductReviews from './ProductReviews';
 
 interface BouquetDetailModalProps {
   bouquet: RibbonBouquet | null;
@@ -10,6 +11,9 @@ interface BouquetDetailModalProps {
   onAddToCart: (bouquet: RibbonBouquet, quantity: number) => void;
   onBuyNow: (bouquet: RibbonBouquet, quantity: number) => void;
   onUpdateBouquetImage?: (bouquetId: string, newImageUrl: string) => void;
+  activeUserEmail?: string;
+  onReviewSignIn: () => void;
+  onReviewSubmitted: () => void;
 }
 
 export default function BouquetDetailModal({
@@ -19,6 +23,9 @@ export default function BouquetDetailModal({
   onAddToCart,
   onBuyNow,
   onUpdateBouquetImage,
+  activeUserEmail,
+  onReviewSignIn,
+  onReviewSubmitted,
 }: BouquetDetailModalProps) {
   const [quantity, setQuantity] = useState(1);
   const [currentImage, setCurrentImage] = useState(bouquet?.imageUrl || '');
@@ -238,6 +245,8 @@ export default function BouquetDetailModal({
               <span>{bouquet.inStock === false ? "Unavailable" : "Add to Cart"}</span>
             </button>
           </div>
+          <ProductReviews productId={bouquet.id} activeUserEmail={activeUserEmail}
+            onSignIn={onReviewSignIn} onReviewSubmitted={onReviewSubmitted}/>
         </div>
 
       </div>
