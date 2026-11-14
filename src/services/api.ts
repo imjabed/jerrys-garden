@@ -97,10 +97,19 @@ export async function apiRegisterCustomer(customer: {
   } catch (err: any) { return { success: false, connected: false, error: err.message }; }
 }
 
-export async function apiLoginCustomer(email: string, password?: string, otp?: string) {
+export type CustomerLoginResponse = {
+  success: boolean;
+  connected: boolean;
+  role?: 'admin';
+  user?: UserAccount;
+  error?: string;
+  fallbackToClient?: boolean;
+};
+
+export async function apiLoginCustomer(email: string, password?: string, otp?: string): Promise<CustomerLoginResponse> {
   try {
     const res = await fetch(`${API_URL}/api/customers/login`, { method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify({ email, password, otp }) });
-    return await parseResponse<{ success: boolean; connected: boolean; role?: 'admin'; user?: UserAccount; error?: string }>(res);
+    return await parseResponse<CustomerLoginResponse>(res);
   } catch (err: any) { return { success: false, connected: false, error: err.message, fallbackToClient: false }; }
 }
 
