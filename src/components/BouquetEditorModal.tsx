@@ -37,9 +37,6 @@ export default function BouquetEditorModal({
   const [ribbonColorsText, setRibbonColorsText] = useState(
     bouquetToEdit?.ribbonColors.join(', ') || ''
   );
-  const [ribbonMaterial, setRibbonMaterial] = useState<RibbonBouquet['ribbonMaterial']>(
-    bouquetToEdit?.ribbonMaterial || 'Double-faced Satin'
-  );
   const [flowerCount, setFlowerCount] = useState(bouquetToEdit?.flowerCount?.toString() || '1');
   const [category, setCategory] = useState<RibbonBouquet['category']>(bouquetToEdit?.category || 'Ribbon Bouquets');
   const [whatsInsideText, setWhatsInsideText] = useState((bouquetToEdit?.whatsInside || []).join('\n'));
@@ -104,7 +101,7 @@ export default function BouquetEditorModal({
       imageUrl: imageUrl.trim(),
       description: description.trim() || 'Handcrafted gift, made with care.',
       ribbonColors: colors.length > 0 ? colors : ['Custom Ribbon Colors'],
-      ribbonMaterial,
+      ribbonMaterial: bouquetToEdit?.ribbonMaterial || 'Handcrafted',
       flowerCount: Number(flowerCount) || 1,
       category: category.trim() || 'Other',
       whatsInside: whatsInsideText.split('\n').map(item => item.trim()).filter(Boolean),
@@ -348,39 +345,15 @@ export default function BouquetEditorModal({
             />
             <p className="mt-1.5 text-[11px] text-stone-500">Only list what the customer actually receives. Each line appears in the product's What's Inside section.</p>
           </div>
-          {/* Ribbon Colors & Material */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-stone-700 mb-1">
-                Colours / Variants (comma separated)
-              </label>
-              <input
-                type="text"
-                placeholder="Blush Pink, Champagne Gold, Ivory"
-                value={ribbonColorsText}
-                onChange={(e) => setRibbonColorsText(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-stone-700 mb-1">
-                Main Material
-              </label>
-              <select
-                value={ribbonMaterial}
-                onChange={(e) => setRibbonMaterial(e.target.value as any)}
-                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
-              >
-                <option value="Double-faced Satin">Double-faced Satin</option>
-                <option value="Silk Lustre">Silk Lustre</option>
-                <option value="Organza & Satin">Organza & Satin</option>
-                <option value="Velvet & Grosgrain">Velvet & Grosgrain</option>
-                <option value="Pipecleaner">Pipecleaner</option>
-                <option value="Mixed Materials">Mixed Materials</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-xs font-medium text-stone-700 mb-2">Colours / Variants (comma separated)</label>
+            <input
+              type="text"
+              placeholder="Blush pink, champagne gold, ivory"
+              value={ribbonColorsText}
+              onChange={(e) => setRibbonColorsText(e.target.value)}
+              className="w-full border border-stone-200 bg-white px-3.5 py-3 text-sm outline-none focus:border-stone-800"
+            />
           </div>
 
           {/* Category & Status Toggles */}
