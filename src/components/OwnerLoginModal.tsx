@@ -47,7 +47,7 @@ export default function OwnerLoginModal({ isOpen, onClose, onOwnerLoginSuccess }
           </label>
           <label className="block text-[11px] text-stone-600 uppercase tracking-wider">Authenticator code (if enabled)
             <input type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6}
-              value={otp} onChange={e => setOtp(e.target.value.replace(/\\D/g, ''))}
+              value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
               className="mt-2 block w-full rounded-none bg-transparent border-b border-stone-300 py-3 outline-none focus:border-stone-900 text-sm text-stone-900" />
           </label>
           {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
