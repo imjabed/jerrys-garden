@@ -131,18 +131,25 @@ export async function apiGetBouquets(): Promise<{ connected: boolean; bouquets: 
   } catch { return { connected: false, bouquets: [] }; }
 }
 
-export async function apiSaveBouquet(bouquet: RibbonBouquet): Promise<boolean> {
+export interface ProductMutationResponse {
+  success: boolean;
+  cleanupWarning?: string;
+  error?: string;
+}
+export async function apiSaveBouquet(bouquet: RibbonBouquet): Promise<ProductMutationResponse> {
   try {
     const res = await fetch(`${API_URL}/api/bouquets`, { method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify(bouquet) });
-    return res.ok;
-  } catch { return false; }
+    const data = await res.json().catch(() => ({}));
+    return { success: Boolean(res.ok && data.success), cleanupWarning: data.cleanupWarning, error: data.error };
+  } catch (err: any) { return { success: false, error: err?.message || 'Unable to save product.' }; }
 }
 
-export async function apiDeleteBouquet(id: string): Promise<boolean> {
+export async function apiDeleteBouquet(id: string): Promise<ProductMutationResponse> {
   try {
     const res = await fetch(`${API_URL}/api/bouquets/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { 'X-JG-Client': '1' }, credentials: 'include' });
-    return res.ok;
-  } catch { return false; }
+    const data = await res.json().catch(() => ({}));
+    return { success: Boolean(res.ok && data.success && data.deleted), cleanupWarning: data.cleanupWarning, error: data.error };
+  } catch (err: any) { return { success: false, error: err?.message || 'Unable to delete product.' }; }
 }
 
 export async function apiGetOrders(): Promise<{ connected: boolean; orders: Order[] }> {
@@ -182,7 +189,7 @@ export async function apiGetSettings(): Promise<{ connected: boolean; settings: 
   } catch { return { connected: false, settings: null }; }
 }
 
-export async function apiUpdateSettings(settings: StoreSettings): Promise<{ success: boolean; settings?: StoreSettings; error?: string }> {
+export async function apiUpdateSettings(settings: StoreSettings): Promise<{ success: boolean; settings?: StoreSettings; error?: string; cleanupWarning?: string }> {
   try {
     const res = await fetch(`${API_URL}/api/settings`, { method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify(settings) });
     return await parseResponse<any>(res);
