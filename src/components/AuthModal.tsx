@@ -47,6 +47,7 @@ export default function AuthModal({
   // Login fields
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [loginAdminOtp, setLoginAdminOtp] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
 
   // Register fields
@@ -187,7 +188,7 @@ export default function AuthModal({
     setError('');
 
     const emailInput = loginEmail.trim().toLowerCase();
-    const passwordInput = loginPassword.trim();
+    const passwordInput = loginPassword;
 
     if (!emailInput || !passwordInput) {
       setError('Please enter your email and password.');
@@ -196,7 +197,7 @@ export default function AuthModal({
 
     setIsLoggingIn(true);
     try {
-      const mongoResult = await apiLoginCustomer(emailInput, passwordInput);
+      const mongoResult = await apiLoginCustomer(emailInput, passwordInput, loginAdminOtp.trim());
       if (mongoResult.success && mongoResult.role === 'admin') {
         onAdminLoginSuccess();
         onClose();
@@ -331,6 +332,12 @@ export default function AuthModal({
                 </div>
               </div>
 
+              <label className="block text-xs font-medium text-stone-600">
+                Authenticator code <span className="text-stone-400">(only for owner accounts with 2FA enabled)</span>
+                <input type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}"
+                  maxLength={6} value={loginAdminOtp} onChange={event => setLoginAdminOtp(event.target.value.replace(/\\D/g, ''))}
+                  placeholder="6-digit code" className="mt-2 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-stone-900"/>
+              </label>
               <button
                 type="submit"
                 disabled={isLoggingIn}
