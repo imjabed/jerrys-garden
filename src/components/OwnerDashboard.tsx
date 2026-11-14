@@ -37,10 +37,6 @@ import CustomerInsights from './CustomerInsights';
 import { isCloudinaryUrl, uploadImageToCloudinary } from '../services/cloudinary';
 import {
   checkMongoStatus,
-  syncDataToMongo,
-  apiBuildCollections,
-  apiBuildCollectionsForCustomersAndProducts,
-  apiUpdateMongoConfig,
   apiGetCustomers,
   type MongoStatusResponse,
   apiGetCoupons,
@@ -81,11 +77,7 @@ export default function OwnerDashboard({
   // Customers & MongoDB states
   const [customers, setCustomers] = useState<UserAccount[]>([]);
   const [mongoStatus, setMongoStatus] = useState<MongoStatusResponse | null>(null);
-  const [isSyncingMongo, setIsSyncingMongo] = useState(false);
-  const [isBuildingCollections, setIsBuildingCollections] = useState(false);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
-  const [customMongoUriInput, setCustomMongoUriInput] = useState('');
-  const [isUpdatingUri, setIsUpdatingUri] = useState(false);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [couponEditingId, setCouponEditingId] = useState<string | null>(null);
   const [couponForm, setCouponForm] = useState<Coupon>({ id: '', code: '', discountType: 'PERCENT', discountValue: 10, expiresAt: '', applicableProductIds: [], usageLimitPerCustomer: undefined, firstOrderOnly: false, active: true, createdAt: '', updatedAt: '' });
@@ -97,9 +89,6 @@ export default function OwnerDashboard({
       try {
         const status = await checkMongoStatus();
         setMongoStatus(status);
-        if (status.activeConfig?.uri) {
-          setCustomMongoUriInput(status.activeConfig.uri);
-        }
       } catch (err) {
         console.warn('Could not check MongoDB status:', err);
       }
@@ -116,105 +105,6 @@ export default function OwnerDashboard({
 
     loadCustomersAndStatus();
   }, []);
-
-  const handleBuildCustomersAndProducts = async () => {
-    setIsBuildingCollections(true);
-    setSyncNotice(null);
-    try {
-      const res = await apiBuildCollectionsForCustomersAndProducts({
-        customers,
-        products: bouquets,
-        bouquets,
-      });
-
-      if (res.success) {
-        const counts = res.results?.counts;
-        const countMsg = counts
-          ? ` (${counts.customers} customers, ${counts.products} products)`
-          : '';
-        setSyncNotice(`✨ Collections for Customers & Products built successfully in Atlas!${countMsg}`);
-        const updatedStatus = await checkMongoStatus();
-        setMongoStatus(updatedStatus);
-      } else {
-        setSyncNotice(`⚠️ ${res.error || res.message}`);
-      }
-    } catch (err: any) {
-      setSyncNotice(`Failed to build customers and products collections: ${err.message}`);
-    } finally {
-      setIsBuildingCollections(false);
-      setTimeout(() => setSyncNotice(null), 8000);
-    }
-  };
-
-  const handleBuildCollections = async () => {
-    setIsBuildingCollections(true);
-    setSyncNotice(null);
-    try {
-      const res = await apiBuildCollections({
-        customers,
-        bouquets,
-        orders,
-        settings: storeSettings,
-      });
-
-      if (res.success) {
-        setSyncNotice(`✨ Collections for Customers, Products, Bouquets, and Orders built successfully in Atlas!`);
-        const updatedStatus = await checkMongoStatus();
-        setMongoStatus(updatedStatus);
-      } else {
-        setSyncNotice(`⚠️ ${res.error || res.message}`);
-      }
-    } catch (err: any) {
-      setSyncNotice(`Failed to build collections: ${err.message}`);
-    } finally {
-      setIsBuildingCollections(false);
-      setTimeout(() => setSyncNotice(null), 8000);
-    }
-  };
-
-  const handleUpdateUriConfig = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!customMongoUriInput.trim()) return;
-    setIsUpdatingUri(true);
-    try {
-      const res = await apiUpdateMongoConfig(customMongoUriInput.trim(), 'jerrysgarden');
-      if (res.success && res.status) {
-        setMongoStatus(res.status);
-        setSyncNotice(res.status.connected ? '✨ Successfully connected to MongoDB Atlas!' : `⚠️ ${res.status.message}`);
-      }
-    } catch (err: any) {
-      setSyncNotice(`Failed to update URI: ${err.message}`);
-    } finally {
-      setIsUpdatingUri(false);
-    }
-  };
-
-  const handleSyncAllToMongo = async () => {
-    setIsSyncingMongo(true);
-    setSyncNotice(null);
-    try {
-      const res = await syncDataToMongo({
-        customers,
-        bouquets,
-        orders,
-        settings: storeSettings,
-      });
-
-      if (res.success) {
-        setSyncNotice(`✨ ${res.message || 'Data successfully synchronized with MongoDB Atlas!'}`);
-        // Re-check status
-        const updatedStatus = await checkMongoStatus();
-        setMongoStatus(updatedStatus);
-      } else {
-        setSyncNotice(`⚠️ ${res.message}`);
-      }
-    } catch (err: any) {
-      setSyncNotice(`Failed to sync: ${err.message}`);
-    } finally {
-      setIsSyncingMongo(false);
-      setTimeout(() => setSyncNotice(null), 6000);
-    }
-  };
 
   // Editable settings form
   const [settingsForm, setSettingsForm] = useState<StoreSettings>(storeSettings);
@@ -697,14 +587,14 @@ export default function OwnerDashboard({
                   Brand & store settings
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Customer checkout collects no payment. Legacy fields are retained for historical records.
+                  Manage the boutique identity and contact information.
                 </p>
               </div>
 
               {settingsSavedMessage && (
                 <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-medium flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-600" />
-                  <span>Store settings saved</span>
+                  <span>Store settings updated</span>
                 </div>
               )}
 
@@ -869,91 +759,10 @@ export default function OwnerDashboard({
                 )}
               </div>
 
-              {/* Action Buttons: Build Collections & Sync */}
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={handleBuildCustomersAndProducts}
-                  disabled={isBuildingCollections}
-                  className="w-full py-2.5 px-4 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
-                >
-                  <Layers className={`w-4 h-4 ${isBuildingCollections ? 'animate-spin' : ''}`} />
-                  <span>{isBuildingCollections ? 'Building Collections...' : '✨ Build Collections (Customers & Products)'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSyncAllToMongo}
-                  disabled={isSyncingMongo}
-                  className="w-full py-2.5 px-4 rounded-xl bg-stone-900 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <Database className={`w-4 h-4 ${isSyncingMongo ? 'animate-spin' : 'text-emerald-400'}`} />
-                  <span>{isSyncingMongo ? 'Syncing to Atlas...' : '⚡ Run Full Sync to MongoDB Atlas'}</span>
-                </button>
-                <p className="text-[10px] text-stone-500 text-center">
-                  Creates schemas, indexes, and syncs Customers, Products, and Orders to Atlas
-                </p>
-              </div>
-
-              {/* Step-by-step IP Whitelist Resolution Card */}
-              {(!mongoStatus?.connected || mongoStatus?.ipWhitelistRequired) && (
-                <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-300/80 space-y-2.5 text-xs text-stone-800">
-                  <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
-                    <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0" />
-                    <span>Fix Atlas IP Whitelist (SSL Alert 80):</span>
-                  </div>
-                  <p className="text-[11px] text-stone-700 leading-relaxed">
-                    MongoDB Atlas blocks external connections until you add an IP rule. Please complete these quick steps in your Atlas console:
-                  </p>
-                  <ol className="list-decimal pl-4 space-y-1 text-[11px] text-stone-700 font-medium">
-                    <li>Log into <strong className="text-stone-900">cloud.mongodb.com</strong></li>
-                    <li>In the left menu under <strong className="text-stone-900">Security</strong>, click <strong className="text-stone-900">Network Access</strong></li>
-                    <li>Click <strong className="text-stone-900">+ ADD IP ADDRESS</strong></li>
-                    <li>Click the green button: <strong className="text-rose-700">"ALLOW ACCESS FROM ANYWHERE"</strong> (<code className="bg-amber-100 px-1 rounded text-stone-900">0.0.0.0/0</code>)</li>
-                    <li>Click <strong className="text-stone-900">Confirm</strong> (takes 15-30s to deploy)</li>
-                    <li>Return here and click <strong className="text-stone-900">"Build Collections"</strong> above!</li>
-                  </ol>
-                </div>
-              )}
-
-              {/* Active Connection String & Quick Editor */}
-              <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/80 space-y-2.5 text-xs text-stone-700">
-                <span className="font-bold text-[11px] text-stone-900 block">
-                  ⚙️ Active Cluster Configuration:
-                </span>
-                
-                <div>
-                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-0.5">
-                    Connection String:
-                  </label>
-                  <div className="p-2 bg-white rounded-lg border border-stone-200 font-mono text-[10px] break-all select-all text-stone-700">
-                    {mongoStatus?.activeConfig?.uri || (mongoStatus?.configured ? 'Configured via server environment (MONGODB_URI)' : 'Not configured (Set MONGODB_URI in .env)')}
-                  </div>
-                </div>
-
-                <form onSubmit={handleUpdateUriConfig} className="pt-1 space-y-2">
-                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
-                    Update / Reconnect URI:
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={customMongoUriInput}
-                      onChange={(e) => setCustomMongoUriInput(e.target.value)}
-                      placeholder="mongodb+srv://..."
-                      className="flex-1 px-2.5 py-1.5 rounded-lg border border-stone-200 bg-white font-mono text-[10px] focus:outline-none focus:ring-1 focus:ring-rose-500"
-                    />
-                    <button
-                      type="submit"
-                      disabled={isUpdatingUri}
-                      className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-900 text-white font-bold text-[10px] cursor-pointer shrink-0 disabled:opacity-50"
-                    >
-                      {isUpdatingUri ? 'Saving...' : 'Apply'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-
+              <p className="border-t border-stone-200 pt-4 text-xs leading-6 text-stone-500">
+                Database maintenance and connection credentials are managed in your secure Render environment.
+                This dashboard intentionally offers read-only database status.
+              </p>
             </div>
 
           </div>
