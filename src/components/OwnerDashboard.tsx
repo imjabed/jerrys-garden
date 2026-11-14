@@ -712,8 +712,15 @@ export default function OwnerDashboard({
                 
                 <div className="border border-stone-200 bg-[#FCFAF7] p-5 sm:p-6 space-y-4">
                   <div>
-                    <h4 className="font-serif text-xl text-stone-900">Brand Logo</h4>
-                    <p className="mt-1.5 text-xs leading-relaxed text-stone-500">Upload your logo and save settings to update the website header and footer. PNG with a transparent background works best.</p>
+                    <h4 className="font-serif text-xl text-stone-900">Brand identity</h4>
+                    <label className="mt-5 block text-[11px] font-medium uppercase tracking-wider text-stone-600">
+                      Display name beside logo
+                      <input required minLength={2} maxLength={60} value={settingsForm.storeName || ''}
+                        onChange={event => setSettingsForm(current => ({...current, storeName: event.target.value}))}
+                        placeholder="Jame Bouquets"
+                        className="mt-2 w-full border border-stone-300 bg-white px-4 py-3 text-sm font-normal tracking-normal text-stone-900 outline-none focus:border-stone-900"/>
+                    </label>
+                    <p className="mt-1.5 text-xs leading-relaxed text-stone-500">Upload your logo and edit your business name, then save. Both appear beside each other in the storefront header and footer. Transparent PNG works best.</p>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-5">
                     <div className="flex h-24 w-48 items-center justify-center border border-stone-200 bg-white p-3">
