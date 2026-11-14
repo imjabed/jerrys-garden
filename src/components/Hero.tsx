@@ -1,4 +1,4 @@
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import type { RibbonBouquet } from '../types';
 
 interface HeroProps {
@@ -58,7 +58,7 @@ export default function Hero({ onExploreClick, onFeaturedClick, featuredProduct 
         ) : (
           <div className="hidden items-center justify-center lg:flex" aria-hidden="true">
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-stone-400">
-              <Sparkles className="h-4 w-4" /> Made by hand
+              Made by hand
             </div>
           </div>
         )}

@@ -6,6 +6,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import dotenv from 'dotenv';
 import { estimateCustomBouquet, indiaDate, minimumWrappers } from './shared/customPricing.js';
 import { isValidCustomDeliveryDate, isValidCustomPhone, isValidCustomEmail } from './shared/customOrderValidation.js';
+import { customerReviewId, reviewerDisplayName, reviewInputError } from './shared/reviewRules.js';
 import {
   getMongoStatus,
   seedMongoCollections,
@@ -821,6 +822,146 @@ async function startServer() {
         : { status: 'skipped' as const };
       return res.json({ success: true, connected: true, deleted, cleanupWarning: cleanup.warning });
     } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+  });
+
+  // Genuine, product-specific reviews: only verified account holders who have
+  // received this exact product (a Delivered order) may post one review.
+  // Clients cannot supply the customer identity, verified flag or product details.
+  app.get('/api/reviews/summary', async (_req, res) => {
+    try {
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, error: 'Reviews are temporarily unavailable.' });
+      const rows = await database.collection('reviews').aggregate([
+        { $match: { verifiedPurchase: true } },
+        { $group: { _id: '$productId', count: { $sum: 1 }, average: { $avg: '$rating' } } },
+      ]).toArray();
+      const summary = Object.fromEntries(rows.map(row => [
+        String(row._id), { count: Number(row.count), average: Math.round(Number(row.average) * 10) / 10 },
+      ]));
+      return res.json({ success: true, summary });
+    } catch (err) {
+      console.error('Review summary error:', err);
+      return res.status(500).json({ success: false, error: 'Could not load reviews.' });
+    }
+  });
+
+  app.get('/api/reviews/highlights', async (_req, res) => {
+    try {
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, error: 'Reviews are temporarily unavailable.' });
+      const latest = await database.collection('reviews')
+        .find({ verifiedPurchase: true }).sort({ createdAt: -1 }).limit(12).toArray();
+      const ids = [...new Set(latest.map(review => String(review.productId)))];
+      const products = await database.collection('products').find({ id: { $in: ids } }, { projection: { id: 1, title: 1 } }).toArray();
+      const titles = new Map(products.map(product => [String(product.id), String(product.title)]));
+      const reviews = latest.filter(review => titles.has(String(review.productId))).slice(0, 3)
+        .map(review => ({
+          productId: review.productId, productTitle: titles.get(String(review.productId)),
+          rating: review.rating, comment: review.comment, customerName: review.customerName,
+          createdAt: review.createdAt, verifiedPurchase: true,
+        }));
+      return res.json({ success: true, reviews });
+    } catch (error) {
+      console.error('Homepage review error:', error);
+      return res.status(500).json({ success: false, error: 'Could not load customer reviews.' });
+    }
+  });
+
+  const deliveredPurchaseFilter = (email: string, productId: string) => ({
+    status: 'Delivered',
+    'items.bouquet.id': productId,
+    $or: [{ customerEmail: email }, { 'customer.email': email }],
+  });
+
+  app.get('/api/reviews/:productId', async (req, res) => {
+    try {
+      const productId = String(req.params.productId || '').trim();
+      if (!productId || productId.length > 160) return res.status(400).json({ success: false, error: 'Invalid product.' });
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, error: 'Reviews are temporarily unavailable.' });
+      const rows = await database.collection('reviews')
+        .find({ productId, verifiedPurchase: true }).sort({ createdAt: -1 }).limit(60).toArray();
+      const stats = await database.collection('reviews').aggregate([
+        { $match: { productId, verifiedPurchase: true } },
+        { $group: { _id: null, count: { $sum: 1 }, average: { $avg: '$rating' } } },
+      ]).toArray();
+      const auth = getCustomerAuth(req);
+      const email = auth?.role === 'customer' && auth.email ? auth.email.toLowerCase() : null;
+      let eligible = false;
+      let hasReviewed = false;
+      let isSignedIn = false;
+      if (email) {
+        isSignedIn = Boolean(await mongoFindCustomerByEmail(email));
+        if (isSignedIn) {
+          const [order, existingReview] = await Promise.all([
+            database.collection('orders').findOne(deliveredPurchaseFilter(email, productId), { projection: { _id: 1 } }),
+            database.collection('reviews').findOne({ _id: customerReviewId(email, productId) } as any, { projection: { _id: 1 } }),
+          ]);
+          eligible = Boolean(order);
+          hasReviewed = Boolean(existingReview);
+        }
+      }
+      return res.json({
+        success: true,
+        reviews: rows.map(row => ({
+          id: String(row.productId) + ':' + String(row.createdAt),
+          productId: row.productId, rating: row.rating, comment: row.comment,
+          customerName: row.customerName, createdAt: row.createdAt, verifiedPurchase: true,
+        })),
+        summary: stats[0] ? { count: Number(stats[0].count), average: Math.round(Number(stats[0].average) * 10) / 10 } : { count: 0, average: 0 },
+        canReview: isSignedIn && eligible && !hasReviewed,
+        hasReviewed, hasDeliveredPurchase: eligible, isSignedIn,
+      });
+    } catch (err) {
+      console.error('Review fetch error:', err);
+      return res.status(500).json({ success: false, error: 'Could not load this product’s reviews.' });
+    }
+  });
+
+  app.post('/api/reviews/:productId', requireClientHeader, async (req, res) => {
+    try {
+      const auth = getCustomerAuth(req);
+      if (!auth || auth.role !== 'customer' || !auth.email) {
+        return res.status(401).json({ success: false, error: 'Sign in to review a product you have received.' });
+      }
+      if (!allowLoginAttempt(`review:${String(req.ip || 'unknown')}`, 15)) {
+        return res.status(429).json({ success: false, error: 'Too many review attempts. Please try again later.' });
+      }
+      const productId = String(req.params.productId || '').trim();
+      if (!productId || productId.length > 160) return res.status(400).json({ success: false, error: 'Invalid product.' });
+      const rating = req.body?.rating;
+      const comment = req.body?.comment;
+      const validationError = reviewInputError(rating, comment);
+      if (validationError) return res.status(400).json({ success: false, error: validationError });
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, error: 'Reviews are temporarily unavailable.' });
+      const [product, customer, deliveredOrder] = await Promise.all([
+        database.collection('products').findOne({ id: productId }, { projection: { id: 1 } }),
+        mongoFindCustomerByEmail(auth.email),
+        database.collection('orders').findOne(deliveredPurchaseFilter(auth.email.toLowerCase(), productId), { projection: { _id: 1 } }),
+      ]);
+      if (!product) return res.status(404).json({ success: false, error: 'Product not found.' });
+      if (!customer || !deliveredOrder) {
+        return res.status(403).json({ success: false, error: 'Only customers with a delivered order for this product can review it.' });
+      }
+      const review = {
+        _id: customerReviewId(auth.email, productId),
+        productId, rating: Number(rating), comment: String(comment).trim(),
+        customerName: reviewerDisplayName(String(customer.name || 'Verified customer')),
+        verifiedPurchase: true,
+        createdAt: new Date().toISOString(),
+      };
+      try {
+        await database.collection('reviews').insertOne(review as any);
+      } catch (err: any) {
+        if (err?.code === 11000) return res.status(409).json({ success: false, error: 'You have already reviewed this product.' });
+        throw err;
+      }
+      return res.status(201).json({ success: true });
+    } catch (err) {
+      console.error('Review submission error:', err);
+      return res.status(500).json({ success: false, error: 'Could not submit your review. Please try again.' });
+    }
   });
 
   // Owner-only full order list.

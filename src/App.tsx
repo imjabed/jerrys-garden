@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, Filter, Check, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Filter, Check, ShoppingBag, ArrowRight } from 'lucide-react';
 import {
   RibbonBouquet,
   Order,
@@ -36,6 +36,10 @@ import {
   apiUpdateSettings,
   apiGetSettings,
   apiSendCustomEnquiry,
+  apiGetReviewSummaries,
+  apiGetReviewHighlights,
+  type ProductReview,
+  type ReviewSummary,
 } from './services/api';
 
 // Components
@@ -54,10 +58,13 @@ import BouquetEditorModal from './components/BouquetEditorModal';
 import RibbonStory from './components/RibbonStory';
 import CustomOrderSection from './components/CustomOrderSection';
 import Footer from './components/Footer';
+import CustomerReviewsSection from './components/CustomerReviewsSection';
 
 export default function App() {
   // Core App State
   const [bouquets, setBouquets] = useState<RibbonBouquet[]>([]);
+  const [reviewSummaries, setReviewSummaries] = useState<Record<string, ReviewSummary>>({});
+  const [reviewHighlights, setReviewHighlights] = useState<ProductReview[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [cart, setCartItems] = useState<CartItem[]>(getCart);
   const [activeUser, setUser] = useState<UserAccount | null>(getActiveUser);
@@ -89,6 +96,11 @@ export default function App() {
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const refreshReviewDisplays = () => {
+    void apiGetReviewSummaries().then(setReviewSummaries).catch(() => {});
+    void apiGetReviewHighlights().then(setReviewHighlights).catch(() => {});
   };
 
   // Sync state with storage updates & remote MongoDB
@@ -124,6 +136,7 @@ export default function App() {
       }
     };
     initRemoteData();
+    refreshReviewDisplays();
 
     const refreshCatalog = async () => { const response = await apiGetBouquets(); if (response.connected) setBouquets(response.bouquets); }
     const onVisible = () => { if (document.visibilityState === 'visible') void refreshCatalog(); };
@@ -376,7 +389,6 @@ export default function App() {
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-stone-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl border border-stone-700 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-3">
-          <Sparkles className="w-4 h-4 text-rose-400" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -535,12 +547,18 @@ export default function App() {
                     onAddToCart={(b) => handleAddToCart(b, 1)}
                     onQuickBuy={(b) => handleQuickBuy(b, 1)}
                     onUpdatePhoto={handleUpdateBouquetImage}
+                    reviewSummary={reviewSummaries[bouquet.id]}
                   />
                 ))}
               </div>
             )}
 
           </main>
+
+          <CustomerReviewsSection reviews={reviewHighlights} onSelect={productId => {
+            const product = bouquets.find(item => item.id === productId);
+            if (product) setDetailModalBouquet(product);
+          }}/>
 
           <CustomOrderSection mobileOpen={customMobileOpen} onMobileToggle={() => setCustomMobileOpen(current => !current)} onSubmit={async payload => {
             const result = await apiSendCustomEnquiry(payload);
@@ -625,6 +643,9 @@ export default function App() {
           onAddToCart={(b, qty) => handleAddToCart(b, qty)}
           onBuyNow={(b, qty) => handleQuickBuy(b, qty)}
           onUpdateBouquetImage={handleUpdateBouquetImage}
+          activeUserEmail={activeUser?.email}
+          onReviewSignIn={() => { setDetailModalBouquet(null); setAuthModalOpen(true); }}
+          onReviewSubmitted={refreshReviewDisplays}
         />
       )}
 

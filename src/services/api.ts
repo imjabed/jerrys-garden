@@ -140,6 +140,50 @@ export async function apiGetBouquets(): Promise<{ connected: boolean; bouquets: 
   } catch { return { connected: false, bouquets: [] }; }
 }
 
+export interface ProductReview {
+  id?: string;
+  productId: string;
+  productTitle?: string;
+  rating: number;
+  comment: string;
+  customerName: string;
+  createdAt: string;
+  verifiedPurchase: true;
+}
+export interface ReviewSummary {
+  average: number;
+  count: number;
+}
+export interface ProductReviewsResponse {
+  success: boolean;
+  reviews: ProductReview[];
+  summary: ReviewSummary;
+  canReview: boolean;
+  isSignedIn: boolean;
+  hasReviewed: boolean;
+  hasDeliveredPurchase: boolean;
+}
+export async function apiGetReviewSummaries(): Promise<Record<string, ReviewSummary>> {
+  const response = await fetch(`${API_URL}/api/reviews/summary`);
+  const data = await parseResponse<{ success: boolean; summary: Record<string, ReviewSummary> }>(response);
+  return data.summary || {};
+}
+export async function apiGetReviewHighlights(): Promise<ProductReview[]> {
+  const response = await fetch(`${API_URL}/api/reviews/highlights`);
+  const data = await parseResponse<{ success: boolean; reviews: ProductReview[] }>(response);
+  return data.reviews || [];
+}
+export async function apiGetProductReviews(productId: string): Promise<ProductReviewsResponse> {
+  const response = await fetch(`${API_URL}/api/reviews/${encodeURIComponent(productId)}`, { credentials: 'include' });
+  return parseResponse<ProductReviewsResponse>(response);
+}
+export async function apiSubmitProductReview(productId: string, rating: number, comment: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/reviews/${encodeURIComponent(productId)}`, {
+    method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify({ rating, comment }),
+  });
+  await parseResponse<{ success: boolean }>(response);
+}
+
 export interface ProductMutationResponse {
   success: boolean;
   cleanupWarning?: string;

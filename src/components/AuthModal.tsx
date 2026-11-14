@@ -13,7 +13,6 @@ import {
   ShieldCheck, 
   Eye, 
   EyeOff,
-  Sparkles,
   Loader2
 } from 'lucide-react';
 import { UserAccount } from '../types';

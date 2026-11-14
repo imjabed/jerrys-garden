@@ -1,9 +1,9 @@
-import { ArrowUpRight, Gift, Heart, Sparkles } from 'lucide-react';
+import { ArrowUpRight, Gift, Heart, Flower2 } from 'lucide-react';
 
 const qualities = [
   { icon: Heart, title: 'Handmade', detail: 'Thoughtful details in every piece.' },
   { icon: Gift, title: 'Gift-ready', detail: 'Personal touches for your moments.' },
-  { icon: Sparkles, title: 'Made to keep', detail: 'Little reminders that last.' },
+  { icon: Flower2, title: 'Made to keep', detail: 'Little reminders that last.' },
 ];
 
 export default function RibbonStory() {

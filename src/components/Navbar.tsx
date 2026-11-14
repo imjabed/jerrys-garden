@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ShoppingBag, Search, Compass, ShieldCheck, User as UserIcon, Menu, X, Sparkles, LogOut, Package } from 'lucide-react';
+import { ShoppingBag, Search, Compass, ShieldCheck, User as UserIcon, Menu, X, Instagram, Mail, LogOut, Package } from 'lucide-react';
 import Logo from './Logo';
+import WhatsAppIcon from './WhatsAppIcon';
 import { UserAccount, StoreSettings } from '../types';
 
 interface NavbarProps {
@@ -44,14 +45,6 @@ export default function Navbar({
 
   return (
     <header className="sticky top-0 z-40 bg-[#FAF8F5]/95 backdrop-blur-md border-b border-stone-200/80 transition-all">
-      {/* Top micro-announcement banner */}
-      <div className="bg-[#F1ECE5] text-stone-700 text-xs py-1.5 px-4 text-center border-b border-rose-100/60 font-medium flex items-center justify-center gap-2">
-        <Sparkles className="w-3.5 h-3.5 text-[#A77B84]" />
-        <span>{storeSettings.storeName || "Jame Bouquets"} • Handmade flowers, keepsakes & gifts</span>
-        <span className="hidden md:inline text-rose-400">•</span>
-        <span className="hidden md:inline text-stone-600">Personal order confirmation by our team</span>
-      </div>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Brand Logo */}
@@ -272,6 +265,21 @@ export default function Navbar({
           >
             Our Craft
           </button>
+
+          <div className="flex items-center gap-3 border-t border-stone-100 pt-4" aria-label="Jame Bouquets social media">
+            <a href="https://www.instagram.com/jamebouquets" target="_blank" rel="noopener noreferrer"
+              aria-label="Instagram: Jame Bouquets" className="inline-flex h-11 w-11 items-center justify-center border border-stone-200 text-stone-800 hover:border-stone-400">
+              <Instagram className="h-5 w-5" strokeWidth={1.8}/>
+            </a>
+            <a href="https://whatsapp.com/channel/0029Vb8zmzh5kg70106NvN1i" target="_blank" rel="noopener noreferrer"
+              aria-label="Jame Bouquets WhatsApp channel" className="inline-flex h-11 w-11 items-center justify-center border border-stone-200 text-stone-800 hover:border-stone-400">
+              <WhatsAppIcon className="h-5 w-5"/>
+            </a>
+            <a href="mailto:jamebouquets@gmail.com" aria-label="Email Jame Bouquets"
+              className="inline-flex h-11 w-11 items-center justify-center border border-stone-200 text-stone-800 hover:border-stone-400">
+              <Mail className="h-5 w-5" strokeWidth={1.8}/>
+            </a>
+          </div>
 
           {!activeUser && (
             <button

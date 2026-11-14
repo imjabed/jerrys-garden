@@ -1,5 +1,6 @@
-import { Heart, MapPin, Phone, MessageCircle, ShieldCheck, Sparkles, QrCode } from 'lucide-react';
+import { Instagram, Mail, MapPin, Phone, MessageCircle, ShieldCheck } from 'lucide-react';
 import Logo from './Logo';
+import WhatsAppIcon from './WhatsAppIcon';
 import { StoreSettings } from '../types';
 
 interface FooterProps {
@@ -35,6 +36,22 @@ export default function Footer({
             </p>
 
             <p className="text-[11px] tracking-wide text-stone-400">Order online · We confirm by phone</p>
+            <nav aria-label="Connect with Jame Bouquets" className="flex items-center gap-3 pt-3">
+              <a href="https://www.instagram.com/jamebouquets" target="_blank" rel="noopener noreferrer"
+                aria-label="Follow Jame Bouquets on Instagram" title="Instagram"
+                className="inline-flex h-11 w-11 items-center justify-center border border-stone-600 text-stone-200 transition-colors hover:border-stone-300 hover:bg-stone-800">
+                <Instagram className="h-5 w-5" strokeWidth={1.7}/>
+              </a>
+              <a href="https://whatsapp.com/channel/0029Vb8zmzh5kg70106NvN1i" target="_blank" rel="noopener noreferrer"
+                aria-label="Join Jame Bouquets WhatsApp channel" title="WhatsApp Channel"
+                className="inline-flex h-11 w-11 items-center justify-center border border-stone-600 text-stone-200 transition-colors hover:border-stone-300 hover:bg-stone-800">
+                <WhatsAppIcon className="h-5 w-5"/>
+              </a>
+              <a href="mailto:jamebouquets@gmail.com" aria-label="Email Jame Bouquets" title="Email"
+                className="inline-flex h-11 w-11 items-center justify-center border border-stone-600 text-stone-200 transition-colors hover:border-stone-300 hover:bg-stone-800">
+                <Mail className="h-5 w-5" strokeWidth={1.7}/>
+              </a>
+            </nav>
           </div>
 
           {/* Quick Nav (2 cols) */}

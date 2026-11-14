@@ -1,4 +1,4 @@
-import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck } from 'lucide-react';
 import { CartItem } from '../types';
 
 interface CartDrawerProps {

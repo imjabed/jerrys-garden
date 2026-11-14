@@ -1,5 +1,5 @@
 import { useState, useEffect, type ChangeEvent } from 'react';
-import { X, ArrowRight, Check, Camera, Loader2, Cloud, Sparkles, ShoppingBag } from 'lucide-react';
+import { X, ArrowRight, Check, Camera, Loader2, Cloud, ShoppingBag } from 'lucide-react';
 import { RibbonBouquet } from '../types';
 import { uploadImageToCloudinary, isCloudinaryUrl } from '../services/cloudinary';
 
@@ -70,7 +70,7 @@ export default function BouquetDetailModal({
 
   return (
     <div role="dialog" aria-modal="true" aria-label={`Details for ${bouquet.title}`} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden my-8 max-h-[90vh] flex flex-col md:flex-row">
+      <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden my-8 max-h-[94dvh] flex flex-col overflow-y-auto md:overflow-hidden md:flex-row">
         
         {/* Close Button */}
         <button
@@ -82,7 +82,7 @@ export default function BouquetDetailModal({
         </button>
 
         {/* Left: Product Image & Handmade with care Badges */}
-        <div className="w-full md:w-1/2 bg-stone-100 relative min-h-[320px] md:min-h-full flex flex-col justify-end">
+        <div className="w-full md:w-1/2 bg-stone-100 relative h-56 sm:h-72 md:h-auto md:min-h-full shrink-0 md:shrink flex flex-col justify-end">
           <img
             src={currentImage}
             alt={bouquet.title}
@@ -95,7 +95,7 @@ export default function BouquetDetailModal({
           <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5 items-start">
             {uploadMessage && (
               <span className="px-2.5 py-1 text-[10px] font-medium bg-emerald-600 text-white rounded-full shadow-xs flex items-center gap-1 animate-in fade-in">
-                <Sparkles className="w-3 h-3" />
+
                 {uploadMessage}
               </span>
             )}
@@ -138,7 +138,7 @@ export default function BouquetDetailModal({
         </div>
 
         {/* Right: Product Details & Direct Purchase */}
-        <div className="w-full md:w-1/2 p-6 md:p-8 overflow-y-auto flex flex-col justify-between space-y-6">
+        <div className="w-full md:w-1/2 p-5 sm:p-6 md:p-8 min-h-0 md:overflow-y-auto flex flex-col justify-between space-y-6">
           <div className="space-y-4">
             <div>
               <div className="flex items-center gap-2 mb-1">

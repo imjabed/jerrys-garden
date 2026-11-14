@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { ArrowRight, CheckCircle2, Flower2, Gift, Minus, Plus, Sparkles } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Flower2, Gift, Minus, Plus } from 'lucide-react';
 import {
   estimateCustomBouquet, indiaDate, leadDays, minimumWrappers,
   type WrapperType,
@@ -129,7 +129,7 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
                     ₹{quote.minimum.toLocaleString('en-IN')} – ₹{quote.maximum.toLocaleString('en-IN')}
                   </p>
                 </div>
-                <Sparkles className="h-5 w-5 text-[#9E777C]" strokeWidth={1.5}/>
+
               </div>
               <div className="mt-5 h-1.5 bg-stone-100">
                 <div className="h-full bg-[#B79499] transition-all duration-300" style={{ width: `${((flowers - 25) / 75) * 80 + 20}%` }}/>

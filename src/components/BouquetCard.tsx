@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent } from 'react';
-import { ShoppingBag, Eye, Camera, Loader2, Cloud } from 'lucide-react';
+import { ShoppingBag, Eye, Camera, Loader2, Cloud, Star } from 'lucide-react';
+import type { ReviewSummary } from '../services/api';
 import { RibbonBouquet } from '../types';
 import { uploadImageToCloudinary, isCloudinaryUrl } from '../services/cloudinary';
 
@@ -11,6 +12,7 @@ interface BouquetCardProps {
   onAddToCart: (bouquet: RibbonBouquet) => void;
   onQuickBuy: (bouquet: RibbonBouquet) => void;
   onUpdatePhoto?: (bouquetId: string, newImageUrl: string) => void;
+  reviewSummary?: ReviewSummary;
 }
 
 export default function BouquetCard({
@@ -20,6 +22,7 @@ export default function BouquetCard({
   onAddToCart,
   onQuickBuy,
   onUpdatePhoto,
+  reviewSummary,
 }: BouquetCardProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [justUploaded, setJustUploaded] = useState(false);
@@ -152,6 +155,14 @@ export default function BouquetCard({
             {bouquet.title}
           </h3>
 
+          {reviewSummary && reviewSummary.count > 0 && (
+            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-stone-700"
+              aria-label={`${reviewSummary.average} out of 5 stars from ${reviewSummary.count} verified reviews`}>
+              <Star aria-hidden="true" className="h-3.5 w-3.5 text-[#AC7D55]" fill="currentColor" strokeWidth={1.5}/>
+              <span className="font-medium">{reviewSummary.average.toFixed(1)}</span>
+              <span className="text-stone-500">({reviewSummary.count})</span>
+            </div>
+          )}
           <p className="hidden">
             {bouquet.description}
           </p>
