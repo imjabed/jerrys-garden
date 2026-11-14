@@ -449,6 +449,8 @@ export default function App() {
           {/* Hero Section */}
           <Hero
             onExploreClick={() => scrollToSection('shop-section')}
+            featuredProduct={bouquets.find(product => product.featured && product.inStock && product.imageUrl) || null}
+            onFeaturedClick={product => setDetailModalBouquet(product)}
           />
 
           {/* Shop by type: navigation shows every collection, even before its first product. */}
