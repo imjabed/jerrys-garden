@@ -21,14 +21,14 @@ export default function Hero({ onExploreClick, onFeaturedClick, featuredProduct,
           <p className="mb-7 text-[10px] uppercase tracking-[0.32em] text-stone-500">
             {content.eyebrow}
           </p>
-          <h1 className="font-serif font-normal leading-[1.06] tracking-tight text-stone-900" style={{ fontSize: `clamp(${3.15 * headingScale}rem, ${6.5 * headingScale}vw, ${6 * headingScale}rem)` }}>
+          <h1 className="site-editable-heading font-serif font-normal leading-[1.06] tracking-tight text-stone-900" style={{ fontSize: `clamp(${3.15 * headingScale}rem, ${6.5 * headingScale}vw, ${6 * headingScale}rem)` }}>
             {content.heading}<br />
             <span className="italic" style={{ color: 'var(--site-accent, #9D777C)' }}>{content.accentLine}</span>
           </h1>
-          <p className="mt-7 max-w-sm text-sm leading-relaxed text-stone-600 sm:text-base">
+          <p className="site-body-copy mt-7 max-w-sm leading-relaxed text-stone-600">
             {content.description}
           </p>
-          <button onClick={onExploreClick} className="mt-9 inline-flex items-center gap-3 border-b border-stone-900 pb-2 text-xs font-medium uppercase tracking-[0.19em] text-stone-900 transition-all hover:gap-5">
+          <button onClick={onExploreClick} className="site-outline-button mt-9 inline-flex items-center gap-3 border-b pb-2 text-xs font-medium uppercase tracking-[0.19em] transition-all hover:gap-5">
             {content.button} <ArrowRight className="h-4 w-4" />
           </button>
         </div>

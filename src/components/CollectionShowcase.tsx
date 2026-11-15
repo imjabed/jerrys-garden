@@ -8,8 +8,9 @@ interface Props {
   products: RibbonBouquet[];
   onCategoryClick: (category: string) => void;
   compact?: boolean;
+  headingScale?: number;
 }
-export default function CollectionShowcase({ content, products, onCategoryClick, compact = false }: Props) {
+export default function CollectionShowcase({ content, products, onCategoryClick, compact = false, headingScale = 1 }: Props) {
   const cards = content.cards.filter(card => card.visible);
   if (!cards.length) return null;
   const sizes = compact ? 'min-h-36 sm:min-h-44' : 'min-h-[190px] sm:min-h-[250px] lg:min-h-[290px]';
@@ -20,7 +21,7 @@ export default function CollectionShowcase({ content, products, onCategoryClick,
         <div className="mb-8 flex items-end justify-between gap-5">
           <div>
             <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.28em] opacity-70">{content.eyebrow}</p>
-            <h2 className="font-serif text-3xl font-normal leading-tight sm:text-4xl lg:text-5xl">{content.heading}</h2>
+            <h2 className="font-serif font-normal leading-tight" style={{ fontSize: `clamp(${1.9 * headingScale}rem, ${3.5 * headingScale}vw, ${3.1 * headingScale}rem)` }}>{content.heading}</h2>
           </div>
           <p className="hidden pb-2 text-xs opacity-70 sm:block">{content.sideLabel}</p>
         </div>

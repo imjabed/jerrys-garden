@@ -37,6 +37,16 @@
 .site-shell .site-primary-button:hover {
   filter: brightness(1.12);
 }
-.site-shell .site-body-copy {
+ .site-shell .site-body-copy {
   font-size: calc(0.95rem * var(--site-body-scale, 1));
+  color: var(--site-text, #292524);
+  opacity: 0.8;
 }
+.site-shell .site-editable-heading {
+  color: var(--site-text, #292524);
+}
+.site-shell .site-outline-button {
+  color: var(--site-button, #292524);
+  border-color: var(--site-button, #292524);
+}
+

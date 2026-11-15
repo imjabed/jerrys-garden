@@ -432,6 +432,7 @@ export default function App() {
     '--site-button-text': siteContent.appearance.buttonText,
     '--site-text': siteContent.appearance.text,
     '--site-body-scale': String(siteContent.appearance.bodyScale),
+    '--site-heading-scale': String(siteContent.appearance.headingScale),
     backgroundColor: siteContent.appearance.background,
     color: siteContent.appearance.text,
   } as CSSProperties;
@@ -538,7 +539,7 @@ export default function App() {
               />
             );
             if (id === 'collections') return (
-              <CollectionShowcase key={id} content={siteContent.collections} products={bouquets}
+              <CollectionShowcase key={id} content={siteContent.collections} products={bouquets} headingScale={siteContent.appearance.headingScale}
                 onCategoryClick={cat => { setSelectedCategory(cat); scrollToSection('shop-section'); }}/>
             );
             if (id === 'shop') return (
@@ -548,10 +549,10 @@ export default function App() {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-3">{siteContent.shop.eyebrow}</p>
-                <h2 className="font-serif text-4xl sm:text-5xl font-normal text-stone-900">
+                <h2 className="site-editable-heading font-serif font-normal text-stone-900" style={{ fontSize: `clamp(${2.2 * siteContent.appearance.headingScale}rem, ${4 * siteContent.appearance.headingScale}vw, ${3.2 * siteContent.appearance.headingScale}rem)` }}>
                   {siteContent.shop.heading}
                 </h2>
-                <p className="text-stone-600 text-xs sm:text-sm mt-1 max-w-xl">
+                <p className="site-body-copy mt-1 max-w-xl">
                   {siteContent.shop.description}
                 </p>
               </div>
@@ -640,14 +641,14 @@ export default function App() {
               }}/>
             );
             if (id === 'custom') return (
-              <CustomOrderSection key={id} content={siteContent.custom}
+              <CustomOrderSection key={id} content={siteContent.custom} headingScale={siteContent.appearance.headingScale}
                 mobileOpen={customMobileOpen} onMobileToggle={() => setCustomMobileOpen(current => !current)}
                 onSubmit={async payload => {
                   const result = await apiSendCustomEnquiry(payload);
                   return { orderNumber: result.orderNumber };
                 }}/>
             );
-            return <RibbonStory key={id} content={siteContent.story}/>;
+            return <RibbonStory key={id} content={siteContent.story} headingScale={siteContent.appearance.headingScale}/>;
           })}
 
           {/* Boutique Footer */}

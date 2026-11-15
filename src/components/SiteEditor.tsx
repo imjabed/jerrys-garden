@@ -194,6 +194,7 @@ export default function SiteEditor({
     '--site-button': draft.appearance.button,
     '--site-button-text': draft.appearance.buttonText,
     '--site-body-scale': String(draft.appearance.bodyScale),
+    '--site-heading-scale': String(draft.appearance.headingScale),
     backgroundColor: draft.appearance.background,
     color: draft.appearance.text,
   } as CSSProperties;
@@ -542,7 +543,7 @@ export default function SiteEditor({
               {draft.sections.order.filter(id => draft.sections.visible[id]).map(id => {
                 if (id === 'hero') return <Hero key={id} content={draft.hero} headingScale={draft.appearance.headingScale}
                   onExploreClick={() => setPanel('text')} onFeaturedClick={() => {}} featuredProduct={products.find(p => p.featured) || products[0] || null}/>;
-                if (id === 'collections') return <CollectionShowcase key={id} content={draft.collections}
+                if (id === 'collections') return <CollectionShowcase key={id} content={draft.collections} headingScale={draft.appearance.headingScale}
                   products={products} onCategoryClick={key => { setSelectedCategory(key); setPanel('collections'); }}/>;
                 if (id === 'shop') return <section key={id} className="px-5 py-10">
                   <p className="text-[10px] uppercase tracking-widest text-stone-500">{draft.shop.eyebrow}</p>

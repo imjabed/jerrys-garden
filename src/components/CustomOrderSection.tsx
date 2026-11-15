@@ -13,6 +13,7 @@ interface CustomOrderSectionProps {
   mobileOpen: boolean;
   onMobileToggle: () => void;
   content?: SiteContent['custom'];
+  headingScale?: number;
 }
 export interface CustomEnquiryPayload {
   occasion: string;
@@ -34,7 +35,7 @@ export interface CustomEnquiryPayload {
 
 const occasions = ['Wedding', 'Anniversary', 'Birthday', 'Event', 'Other'];
 
-export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggle, content = DEFAULT_SITE_CONTENT.custom }: CustomOrderSectionProps) {
+export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggle, content = DEFAULT_SITE_CONTENT.custom, headingScale = 1 }: CustomOrderSectionProps) {
   const [occasion, setOccasion] = useState('Wedding');
   const [flowers, setFlowers] = useState(25);
   const [flowerColors, setFlowerColors] = useState('');
@@ -110,14 +111,14 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <div className="mb-0 lg:hidden">
           <p className="text-[10px] uppercase tracking-[0.3em] text-stone-500">{content.eyebrow}</p>
-          <h2 className="mt-3 font-serif text-3xl text-stone-900">{content.heading} <span className="italic" style={{ color: 'var(--site-accent, #9E777C)' }}>{content.accentLine}</span></h2>
-          <p className="mt-3 text-sm leading-6 text-stone-600">{content.description}</p>
+          <h2 className="site-editable-heading mt-3 font-serif text-stone-900" style={{ fontSize: `${1.85 * headingScale}rem` }}>{content.heading} <span className="italic" style={{ color: 'var(--site-accent, #9E777C)' }}>{content.accentLine}</span></h2>
+          <p className="site-body-copy mt-3 leading-6 text-stone-600">{content.description}</p>
           <button
             type="button"
             onClick={onMobileToggle}
             aria-expanded={mobileOpen}
             aria-controls="custom-order-content"
-            className="mt-6 flex w-full items-center justify-center gap-3 bg-stone-900 px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-white"
+            className="site-primary-button mt-6 flex w-full items-center justify-center gap-3 px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em]"
           >
             {mobileOpen ? 'Close Custom Order' : content.button} <ArrowRight className={`h-4 w-4 transition-transform ${mobileOpen ? '-rotate-90' : ''}`}/>
           </button>
@@ -125,10 +126,10 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
         <div id="custom-order-content" className={`${mobileOpen ? 'grid mt-8' : 'hidden'} items-start gap-12 lg:mt-0 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] lg:gap-20`}>
           <div className="hidden lg:block lg:sticky lg:top-28">
             <p className="text-[10px] uppercase tracking-[0.32em] text-stone-500">Your celebration, your bouquet</p>
-            <h2 className="mt-5 font-serif text-5xl leading-[1.1] tracking-tight text-stone-900 sm:text-6xl">
+            <h2 className="site-editable-heading mt-5 font-serif leading-[1.1] tracking-tight text-stone-900" style={{ fontSize: `clamp(${2.8 * headingScale}rem, ${4.6 * headingScale}vw, ${3.8 * headingScale}rem)` }}>
               Made for <span className="italic text-[#9E777C]">your moment.</span>
             </h2>
-            <p className="mt-6 max-w-sm text-sm leading-7 text-stone-600">
+            <p className="site-body-copy mt-6 max-w-sm leading-7 text-stone-600">
               {content.description}
             </p>
             <div className="mt-10 border border-stone-300/80 bg-[#FCFAF7] p-7 sm:p-9">
