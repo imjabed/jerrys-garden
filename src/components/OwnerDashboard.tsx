@@ -56,6 +56,7 @@ interface OwnerDashboardProps {
   onUpdateSettings: (settings: StoreSettings) => Promise<boolean>;
   onLogoutOwner: () => void;
   onCloseDashboard: () => void;
+  onOpenSiteEditor: () => void;
 }
 
 export default function OwnerDashboard({
@@ -69,6 +70,7 @@ export default function OwnerDashboard({
   onUpdateSettings,
   onLogoutOwner,
   onCloseDashboard,
+  onOpenSiteEditor,
 }: OwnerDashboardProps) {
   const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'customers' | 'coupons' | 'reviews' | 'settings'>('orders');
   const [statusFilter, setStatusFilter] = useState<'ALL' | OrderStatus>('ALL');
@@ -201,6 +203,10 @@ export default function OwnerDashboard({
               <span className={`h-2 w-2 rounded-full ${mongoStatus?.connected ? 'bg-emerald-600' : 'bg-amber-500'}`}/>
               {mongoStatus?.connected ? 'Database connected' : 'Database unavailable'}
             </span>
+            <button type="button" onClick={onOpenSiteEditor}
+              className="flex items-center gap-2 bg-stone-900 px-3 py-2.5 text-xs font-semibold text-white hover:bg-stone-700">
+              <Edit size={15}/> <span className="hidden sm:inline">Website Editor</span><span className="sm:hidden">Editor</span>
+            </button>
             <button onClick={onLogoutOwner} className="flex items-center gap-2 border border-stone-300 px-3 py-2.5 text-xs text-stone-700 transition hover:bg-stone-100">
               <LogOut size={15}/> Sign out
             </button>
@@ -593,7 +599,7 @@ export default function OwnerDashboard({
                   Brand & store settings
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Manage the boutique identity and contact information.
+                  Manage the boutique identity and contact information. To edit homepage text, category covers, fonts, colours and layout, use Website Editor.
                 </p>
               </div>
 

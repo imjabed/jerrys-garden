@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { Filter, Check, ShoppingBag, ArrowRight } from 'lucide-react';
 import {
   RibbonBouquet,
@@ -40,6 +40,7 @@ import {
   apiGetReviewHighlights,
   type ProductReview,
   type ReviewSummary,
+  apiGetPublishedSiteContent,
 } from './services/api';
 
 // Components
@@ -60,11 +61,18 @@ import CustomOrderSection from './components/CustomOrderSection';
 import Footer from './components/Footer';
 import CustomerReviewsSection from './components/CustomerReviewsSection';
 import StorePolicies, { type PolicyType } from './components/StorePolicies';
+import CollectionShowcase from './components/CollectionShowcase';
+import SiteEditor from './components/SiteEditor';
+import { DEFAULT_SITE_CONTENT, FONT_STACKS } from '../shared/siteEditor';
+import type { SiteContent } from '../shared/siteEditor';
 
 export default function App() {
   // Core App State
   const [bouquets, setBouquets] = useState<RibbonBouquet[]>([]);
   const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'offline'>('loading');
+  const [siteContent, setSiteContent] = useState<SiteContent>(DEFAULT_SITE_CONTENT);
+  const [ownerChecked, setOwnerChecked] = useState(false);
+  const editorRoute = window.location.pathname.startsWith('/admin/editor');
   const [reviewSummaries, setReviewSummaries] = useState<Record<string, ReviewSummary>>({});
   const [reviewHighlights, setReviewHighlights] = useState<ProductReview[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -125,6 +133,7 @@ export default function App() {
         const owner = await ownerSession();
         if (owner.authenticated) {
           setIsOwner(true);
+          if (window.location.search.includes('owner=dashboard')) setIsOwnerView(true);
           const oRes = await apiGetOrders();
           if (oRes.connected) setOrders(oRes.orders);
         } else {
@@ -138,10 +147,13 @@ export default function App() {
       } catch (e) {
         setCatalogStatus('offline');
         setIsOwner(false);
+      } finally {
+        setOwnerChecked(true);
       }
     };
     initRemoteData();
     refreshReviewDisplays();
+    void apiGetPublishedSiteContent().then(setSiteContent).catch(() => {});
 
     const refreshCatalog = async () => { const response = await apiGetBouquets(); if (response.connected) { setBouquets(response.bouquets); setCatalogStatus('ready'); } else setCatalogStatus('offline'); }
     const onVisible = () => { if (document.visibilityState === 'visible') void refreshCatalog(); };
@@ -153,6 +165,23 @@ export default function App() {
       window.clearInterval(poll);
     };
   }, []);
+
+  useEffect(() => {
+    const sync = () => {
+      if (document.visibilityState !== 'visible') return;
+      void apiGetPublishedSiteContent().then(setSiteContent).catch(() => {});
+    };
+    document.addEventListener('visibilitychange', sync);
+    const timer = window.setInterval(sync, 120000);
+    return () => { document.removeEventListener('visibilitychange', sync); window.clearInterval(timer); };
+  }, []);
+
+  useEffect(() => {
+    if (editorRoute) return;
+    document.title = siteContent.seo.title;
+    const description = document.querySelector('meta[name="description"]');
+    if (description) description.setAttribute('content', siteContent.seo.description);
+  }, [siteContent.seo, editorRoute]);
 
   // Keep the order queue current while the admin is viewing the dashboard.
   useEffect(() => {
@@ -282,7 +311,8 @@ export default function App() {
   // Owner Auth
   const handleOwnerLoginSuccess = async () => {
     setIsOwner(true);
-    setIsOwnerView(true);
+    setOwnerChecked(true);
+    setIsOwnerView(!editorRoute);
     const oRes = await apiGetOrders();
     if (oRes.connected) setOrders(oRes.orders);
     showToast('Owner mode verified! Welcome to the owner dashboard.');
@@ -394,8 +424,20 @@ export default function App() {
     }, 50);
   };
 
+  const storefrontStyle = {
+    '--font-serif': FONT_STACKS[siteContent.appearance.headingFont],
+    '--font-sans': FONT_STACKS[siteContent.appearance.bodyFont],
+    '--site-accent': siteContent.appearance.accent,
+    '--site-button': siteContent.appearance.button,
+    '--site-button-text': siteContent.appearance.buttonText,
+    '--site-text': siteContent.appearance.text,
+    '--site-body-scale': String(siteContent.appearance.bodyScale),
+    backgroundColor: siteContent.appearance.background,
+    color: siteContent.appearance.text,
+  } as CSSProperties;
+
   return (
-    <div className="min-h-screen flex flex-col selection:bg-rose-100 selection:text-rose-900">
+    <div className="site-shell min-h-screen flex flex-col selection:bg-rose-100 selection:text-rose-900" style={storefrontStyle}>
       
       {/* Toast Notification */}
       {toastMessage && (
@@ -404,8 +446,26 @@ export default function App() {
         </div>
       )}
 
-      {/* RENDER OWNER VIEW IF SWITCHED TO OWNER HQ */}
-      {isOwner && isOwnerView ? (
+      {/* Separate, admin-only no-code editing workspace. */}
+      {editorRoute ? (
+        isOwner ? (
+          <SiteEditor products={bouquets} onPublished={setSiteContent}
+            onExit={() => window.location.assign('/?owner=dashboard')}/>
+        ) : (
+          <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#F4F0EB] px-6 text-center">
+            <h1 className="font-serif text-3xl text-stone-900">Jame Bouquets Studio</h1>
+            <p className="max-w-md text-sm text-stone-600">
+              {ownerChecked ? 'This editor is available to the authenticated store owner only.' : 'Checking owner session…'}
+            </p>
+            {ownerChecked && <div className="flex gap-3">
+              <button onClick={() => setOwnerLoginModalOpen(true)}
+                className="bg-stone-900 px-5 py-3 text-xs font-medium text-white">Owner sign in</button>
+              <button onClick={() => window.location.assign('/')}
+                className="border border-stone-300 px-5 py-3 text-xs">Return to store</button>
+            </div>}
+          </div>
+        )
+      ) : isOwner && isOwnerView ? (
         <OwnerDashboard
           orders={orders}
           bouquets={bouquets}
@@ -427,6 +487,7 @@ export default function App() {
           }}
           onLogoutOwner={handleLogoutOwner}
           onCloseDashboard={() => setIsOwnerView(false)}
+          onOpenSiteEditor={() => window.location.assign('/admin/editor')}
         />
       ) : (
         /* CUSTOMER SHOP VIEW */
@@ -466,49 +527,32 @@ export default function App() {
             setSearchQuery={setSearchQuery}
           />
 
-          {/* Hero Section */}
-          <Hero
-            onExploreClick={() => scrollToSection('shop-section')}
-            featuredProduct={bouquets.find(product => product.featured && product.inStock && product.imageUrl) || bouquets.find(product => product.inStock && product.imageUrl) || null}
-            onFeaturedClick={product => setDetailModalBouquet(product)}
-          />
-
-          {/* Shop by type: navigation shows every collection, even before its first product. */}
-          <section className="bg-[#F5F1EC] border-b border-stone-200/70">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
-              <div className="flex items-end justify-between gap-4 mb-8">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-3">Find your perfect gift</p>
-                  <h2 className="font-serif text-3xl sm:text-4xl font-normal text-stone-900">Explore our atelier</h2>
-                </div>
-                <span className="text-xs text-stone-500 hidden sm:block">Choose a collection</span>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                {productCategories.map((cat, index) => (
-                  <button key={cat} onClick={() => { setSelectedCategory(cat); scrollToSection('shop-section'); }}
-                    className="group relative min-h-36 sm:min-h-44 bg-[#FCFBF8] border border-stone-200/80 hover:border-stone-500 hover:-translate-y-1 transition-all duration-300 p-5 sm:p-6 text-left flex flex-col justify-between">
-                    <span className="text-[10px] tracking-widest text-stone-400">0{index + 1}</span>
-                    <span>
-                      <span className="block font-serif text-xl sm:text-2xl text-stone-900 leading-tight">{cat}</span>
-                      <span className="block mt-2 text-[11px] text-stone-500">{bouquets.filter(b => b.category === cat).length} pieces <ArrowRight className="inline h-3 w-3 ml-1 group-hover:translate-x-1 transition-transform" /></span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
-          {/* Main Shop Catalog Section */}
-          <main id="shop-section" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+          {/* Shared published homepage layout; the editor controls section order. */}
+          {siteContent.sections.order.filter(id => siteContent.sections.visible[id]).map(id => {
+            if (id === 'hero') return (
+              <Hero key={id}
+                content={siteContent.hero} headingScale={siteContent.appearance.headingScale}
+                onExploreClick={() => scrollToSection('shop-section')}
+                featuredProduct={bouquets.find(product => product.featured && product.inStock && product.imageUrl) || bouquets.find(product => product.inStock && product.imageUrl) || null}
+                onFeaturedClick={product => setDetailModalBouquet(product)}
+              />
+            );
+            if (id === 'collections') return (
+              <CollectionShowcase key={id} content={siteContent.collections} products={bouquets}
+                onCategoryClick={cat => { setSelectedCategory(cat); scrollToSection('shop-section'); }}/>
+            );
+            if (id === 'shop') return (
+<main key="shop" id="shop-section" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
             
             {/* Catalog Section Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-3">Shop by Collection</p>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-3">{siteContent.shop.eyebrow}</p>
                 <h2 className="font-serif text-4xl sm:text-5xl font-normal text-stone-900">
-                  The Collection
+                  {siteContent.shop.heading}
                 </h2>
                 <p className="text-stone-600 text-xs sm:text-sm mt-1 max-w-xl">
-                  Bouquets, keychains & gifts — beautifully made by hand.
+                  {siteContent.shop.description}
                 </p>
               </div>
 
@@ -588,18 +632,23 @@ export default function App() {
             )}
 
           </main>
-
-          <CustomerReviewsSection reviews={reviewHighlights} onSelect={productId => {
-            const product = bouquets.find(item => item.id === productId);
-            if (product) setDetailModalBouquet(product);
-          }}/>
-
-          <CustomOrderSection mobileOpen={customMobileOpen} onMobileToggle={() => setCustomMobileOpen(current => !current)} onSubmit={async payload => {
-            const result = await apiSendCustomEnquiry(payload);
-            return { orderNumber: result.orderNumber };
-          }} />
-          {/* The Ribbon Craft Story Section */}
-          <RibbonStory />
+            );
+            if (id === 'reviews') return (
+              <CustomerReviewsSection key={id} reviews={reviewHighlights} onSelect={productId => {
+                const product = bouquets.find(item => item.id === productId);
+                if (product) setDetailModalBouquet(product);
+              }}/>
+            );
+            if (id === 'custom') return (
+              <CustomOrderSection key={id} content={siteContent.custom}
+                mobileOpen={customMobileOpen} onMobileToggle={() => setCustomMobileOpen(current => !current)}
+                onSubmit={async payload => {
+                  const result = await apiSendCustomEnquiry(payload);
+                  return { orderNumber: result.orderNumber };
+                }}/>
+            );
+            return <RibbonStory key={id} content={siteContent.story}/>;
+          })}
 
           {/* Boutique Footer */}
           <Footer

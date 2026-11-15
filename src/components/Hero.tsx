@@ -1,30 +1,34 @@
 import { ArrowRight } from 'lucide-react';
 import type { RibbonBouquet } from '../types';
+import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
+import type { SiteContent } from '../../shared/siteEditor';
 
 interface HeroProps {
   onExploreClick: () => void;
   onFeaturedClick: (product: RibbonBouquet) => void;
   featuredProduct?: RibbonBouquet | null;
+  content?: SiteContent['hero'];
+  headingScale?: number;
 }
 
-export default function Hero({ onExploreClick, onFeaturedClick, featuredProduct }: HeroProps) {
+export default function Hero({ onExploreClick, onFeaturedClick, featuredProduct, content = DEFAULT_SITE_CONTENT.hero, headingScale = 1 }: HeroProps) {
   return (
     <section className="relative overflow-hidden border-b border-stone-200 bg-[#F4F0EA]">
       <div className="pointer-events-none absolute -right-32 -top-48 h-[32rem] w-[32rem] rounded-full bg-rose-100/40 blur-3xl" />
       <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-6 py-16 sm:px-8 lg:min-h-[620px] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-16 lg:px-12 lg:py-24">
         <div className="min-w-0">
           <p className="mb-7 text-[10px] uppercase tracking-[0.32em] text-stone-500">
-            Jame Bouquets · Handmade Gifts
+            {content.eyebrow}
           </p>
-          <h1 className="font-serif text-[clamp(3.5rem,6.5vw,6rem)] font-normal leading-[1.06] tracking-tight text-stone-900">
-            Beautifully made.<br />
-            <span className="italic text-[#9D777C]">Forever kept.</span>
+          <h1 className="font-serif font-normal leading-[1.06] tracking-tight text-stone-900" style={{ fontSize: `clamp(${3.15 * headingScale}rem, ${6.5 * headingScale}vw, ${6 * headingScale}rem)` }}>
+            {content.heading}<br />
+            <span className="italic" style={{ color: 'var(--site-accent, #9D777C)' }}>{content.accentLine}</span>
           </h1>
           <p className="mt-7 max-w-sm text-sm leading-relaxed text-stone-600 sm:text-base">
-            Thoughtful bouquets and little keepsakes, handcrafted for the moments that matter.
+            {content.description}
           </p>
           <button onClick={onExploreClick} className="mt-9 inline-flex items-center gap-3 border-b border-stone-900 pb-2 text-xs font-medium uppercase tracking-[0.19em] text-stone-900 transition-all hover:gap-5">
-            Explore the collection <ArrowRight className="h-4 w-4" />
+            {content.button} <ArrowRight className="h-4 w-4" />
           </button>
         </div>
 

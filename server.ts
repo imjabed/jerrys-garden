@@ -8,6 +8,8 @@ import { estimateCustomBouquet, indiaDate, minimumWrappers } from './shared/cust
 import { isValidCustomDeliveryDate, isValidCustomPhone, isValidCustomEmail } from './shared/customOrderValidation.js';
 import { isServiceableCity, isValidOptionalDeliveryDate, SERVICE_CITY } from './shared/orderRules.js';
 import { customerReviewId, reviewerDisplayName, reviewInputError } from './shared/reviewRules.js';
+import { DEFAULT_SITE_CONTENT, sanitizeSiteContent } from './shared/siteEditor.js';
+import type { SiteContent } from './shared/siteEditor.js';
 import {
   getMongoStatus,
   seedMongoCollections,
@@ -397,7 +399,9 @@ async function startServer() {
 
       const uploadResponse = await cloudinary.uploader.upload(image, {
         // Only allow predefined storage folders; never trust arbitrary folder paths.
-        folder: folder === 'jame_bouquets_branding' ? 'jame_bouquets_branding' : 'jerrys_garden_bouquets',
+        folder: folder === 'jame_bouquets_branding' ? 'jame_bouquets_branding'
+          : folder === 'jame_bouquets_collections' ? 'jame_bouquets_collections'
+          : 'jerrys_garden_bouquets',
         resource_type: 'image',
       });
 
@@ -422,7 +426,7 @@ async function startServer() {
 
   // Only delete assets uploaded into this project's two managed Cloudinary folders.
   // External URLs, arbitrary Cloudinary IDs, and shared images are never destroyed.
-  function managedCloudinaryId(imageUrl: unknown, expectedFolder: 'jerrys_garden_bouquets' | 'jame_bouquets_branding'): string | null {
+  function managedCloudinaryId(imageUrl: unknown, expectedFolder: 'jerrys_garden_bouquets' | 'jame_bouquets_branding' | 'jame_bouquets_collections' | 'jame_bouquets_collections'): string | null {
     if (typeof imageUrl !== 'string' || !CLOUDINARY_CLOUD_NAME) return null;
     try {
       const url = new URL(imageUrl);
@@ -457,6 +461,14 @@ async function startServer() {
       if (imageRefs.some(doc => managedCloudinaryId(doc.imageUrl, folder) === publicId)) return { status: 'skipped' };
       const currentSettings = await database.collection('settings').findOne({ key: 'store_settings' });
       if (managedCloudinaryId(currentSettings?.data?.logoUrl, folder) === publicId) return { status: 'skipped' };
+      const siteContent = await database.collection('site_content').findOne({ key: 'homepage' });
+      const usesImage = (config: any) =>
+        Array.isArray(config?.collections?.cards) &&
+        config.collections.cards.some((card: any) => managedCloudinaryId(card.imageUrl, folder) === publicId);
+      if (siteContent && (
+        usesImage(siteContent.draft) || usesImage(siteContent.published) ||
+        (Array.isArray(siteContent.history) && siteContent.history.some((version: any) => usesImage(version.content)))
+      )) return { status: 'skipped' };
 
       const result = await cloudinary.uploader.destroy(publicId, { resource_type: 'image', invalidate: true });
       if (result.result !== 'ok' && result.result !== 'not found') {
@@ -783,6 +795,109 @@ async function startServer() {
       return res.json({ success: true, connected: true, orders });
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+
+  // Public home content is always the last published version, never an owner's draft.
+  app.get('/api/site-content', async (_req, res) => {
+    try {
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, error: 'Homepage settings are temporarily unavailable.' });
+      const doc = await database.collection('site_content').findOne({ key: 'homepage' });
+      res.set('Cache-Control', 'no-store');
+      return res.json({ success: true, content: sanitizeSiteContent(doc?.published || DEFAULT_SITE_CONTENT) });
+    } catch (error) {
+      console.error('Site content fetch error:', error);
+      return res.status(500).json({ success: false, error: 'Unable to load homepage settings.' });
+    }
+  });
+
+  const ensureHomeContent = async (database: any) => {
+    await database.collection('site_content').updateOne(
+      { key: 'homepage' },
+      { $setOnInsert: {
+        key: 'homepage', draft: DEFAULT_SITE_CONTENT, published: DEFAULT_SITE_CONTENT,
+        revision: 0, publishedRevision: 0, history: [], publishedAt: null,
+      } }, { upsert: true }
+    );
+    return database.collection('site_content').findOne({ key: 'homepage' });
+  };
+
+  // All authoring endpoints are strictly owner-authenticated and CSRF-header protected.
+  app.get('/api/admin/site-content', requireOwner, async (_req, res) => {
+    try {
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, error: 'Database is unavailable.' });
+      const doc = await ensureHomeContent(database);
+      res.set('Cache-Control', 'no-store');
+      return res.json({
+        success: true,
+        draft: sanitizeSiteContent(doc?.draft || DEFAULT_SITE_CONTENT),
+        published: sanitizeSiteContent(doc?.published || DEFAULT_SITE_CONTENT),
+        revision: Number(doc?.revision || 0),
+        publishedRevision: Number(doc?.publishedRevision || 0),
+        publishedAt: doc?.publishedAt || null,
+        history: Array.isArray(doc?.history) ? doc.history.slice(-8).reverse().map((entry: any) => ({
+          revision: entry.revision, publishedAt: entry.publishedAt,
+          content: sanitizeSiteContent(entry.content),
+        })) : [],
+      });
+    } catch (error) {
+      console.error('Owner site content fetch error:', error);
+      return res.status(500).json({ success: false, error: 'Unable to open homepage editor.' });
+    }
+  });
+
+  app.put('/api/admin/site-content/draft', requireOwner, requireClientHeader, async (req, res) => {
+    try {
+      const revision = Number(req.body?.revision);
+      if (!Number.isInteger(revision) || revision < 0 || !req.body?.content) {
+        return res.status(400).json({ success: false, error: 'Invalid editor draft.' });
+      }
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, error: 'Database is unavailable.' });
+      await ensureHomeContent(database);
+      const content = sanitizeSiteContent(req.body.content);
+      const result = await database.collection('site_content').updateOne(
+        { key: 'homepage', revision },
+        { $set: { draft: content, draftSavedAt: new Date().toISOString() }, $inc: { revision: 1 } }
+      );
+      if (!result.matchedCount) return res.status(409).json({ success: false, error: 'A newer editor draft exists. Reload before saving to avoid overwriting changes.' });
+      return res.json({ success: true, draft: content, revision: revision + 1 });
+    } catch (error) {
+      console.error('Site draft error:', error);
+      return res.status(500).json({ success: false, error: 'Could not save the homepage draft.' });
+    }
+  });
+
+  app.post('/api/admin/site-content/publish', requireOwner, requireClientHeader, async (req, res) => {
+    try {
+      const revision = Number(req.body?.revision);
+      if (!Number.isInteger(revision) || revision < 0) return res.status(400).json({ success: false, error: 'Invalid revision.' });
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, error: 'Database is unavailable.' });
+      const doc = await ensureHomeContent(database);
+      if (Number(doc?.revision || 0) !== revision) {
+        return res.status(409).json({ success: false, error: 'This version is outdated. Reload the latest draft before publishing.' });
+      }
+      const content = sanitizeSiteContent(doc?.draft || DEFAULT_SITE_CONTENT);
+      const publishedAt = new Date().toISOString();
+      const entry = { revision: Number(doc?.publishedRevision || 0), publishedAt: doc?.publishedAt || null,
+        content: sanitizeSiteContent(doc?.published || DEFAULT_SITE_CONTENT) };
+      const result = await database.collection('site_content').updateOne(
+        { key: 'homepage', revision },
+        {
+          $set: { published: content, publishedAt, publishedRevision: revision + 1 },
+          $inc: { revision: 1 },
+          $push: { history: { $each: [entry], $slice: -8 } },
+        }
+      );
+      if (!result.matchedCount) return res.status(409).json({ success: false, error: 'The draft changed before it could be published. Reload and try again.' });
+      return res.json({ success: true, published: content, revision: revision + 1, publishedAt });
+    } catch (error) {
+      console.error('Site publish error:', error);
+      return res.status(500).json({ success: false, error: 'Could not publish the homepage.' });
     }
   });
 

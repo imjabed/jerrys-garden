@@ -16,6 +16,55 @@ async function parseResponse<T>(res: Response): Promise<T> {
   return data as T;
 }
 
+import { DEFAULT_SITE_CONTENT, sanitizeSiteContent } from '../../shared/siteEditor';
+import type { SiteContent } from '../../shared/siteEditor';
+
+export interface SiteEditorVersion {
+  revision: number;
+  publishedAt: string | null;
+  content: SiteContent;
+}
+export interface SiteEditorPayload {
+  draft: SiteContent;
+  published: SiteContent;
+  revision: number;
+  publishedRevision: number;
+  publishedAt: string | null;
+  history: SiteEditorVersion[];
+}
+
+export async function apiGetPublishedSiteContent(): Promise<SiteContent> {
+  const res = await fetch(`${API_URL}/api/site-content`, { cache: 'no-store' });
+  const data = await parseResponse<{ success: boolean; content: SiteContent }>(res);
+  return sanitizeSiteContent(data.content || DEFAULT_SITE_CONTENT);
+}
+export async function apiGetSiteEditor(): Promise<SiteEditorPayload> {
+  const res = await fetch(`${API_URL}/api/admin/site-content`, { credentials: 'include', cache: 'no-store' });
+  const data = await parseResponse<SiteEditorPayload & { success: boolean }>(res);
+  return {
+    draft: sanitizeSiteContent(data.draft),
+    published: sanitizeSiteContent(data.published),
+    revision: data.revision,
+    publishedRevision: data.publishedRevision,
+    publishedAt: data.publishedAt,
+    history: Array.isArray(data.history) ? data.history : [],
+  };
+}
+export async function apiSaveSiteEditorDraft(content: SiteContent, revision: number) {
+  const res = await fetch(`${API_URL}/api/admin/site-content/draft`, {
+    method: 'PUT', headers: jsonHeaders, credentials: 'include',
+    body: JSON.stringify({ content, revision }),
+  });
+  return parseResponse<{ success: boolean; revision: number; draft: SiteContent }>(res);
+}
+export async function apiPublishSiteEditor(revision: number) {
+  const res = await fetch(`${API_URL}/api/admin/site-content/publish`, {
+    method: 'POST', headers: jsonHeaders, credentials: 'include',
+    body: JSON.stringify({ revision }),
+  });
+  return parseResponse<{ success: boolean; revision: number; published: SiteContent; publishedAt: string }>(res);
+}
+
 export interface MongoStatusResponse {
   configured: boolean;
   connected: boolean;

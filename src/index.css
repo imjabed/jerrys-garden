@@ -2,8 +2,8 @@
 
 @layer base {
   :root {
-    --font-serif: 'Playfair Display', serif;
-    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --font-serif: 'Playfair Display', Georgia, serif;
+    --font-sans: 'Plus Jakarta Sans', Arial, sans-serif;
   }
 
   body {
@@ -18,9 +18,25 @@
 }
 
 .font-serif {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: var(--font-serif) !important;
 }
-
 .font-sans {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-sans) !important;
+}
+.site-shell {
+  font-family: var(--font-sans);
+  background: var(--site-background, #FAF8F5);
+}
+.site-shell .site-accent {
+  color: var(--site-accent, #9D777C);
+}
+.site-shell .site-primary-button {
+  background-color: var(--site-button, #292524);
+  color: var(--site-button-text, #FFFFFF);
+}
+.site-shell .site-primary-button:hover {
+  filter: brightness(1.12);
+}
+.site-shell .site-body-copy {
+  font-size: calc(0.95rem * var(--site-body-scale, 1));
 }
