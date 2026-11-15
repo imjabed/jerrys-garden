@@ -25,6 +25,7 @@ export interface CustomEnquiryPayload {
   name: string;
   email: string;
   phone: string;
+  withinBerhampore: boolean;
 }
 
 const occasions = ['Wedding', 'Anniversary', 'Birthday', 'Event', 'Other'];
@@ -41,6 +42,7 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
   const [extraNotes, setExtraNotes] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
   const [address, setAddress] = useState('');
+  const [withinBerhampore, setWithinBerhampore] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -76,6 +78,10 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
       setError('Please complete all required fields.');
       return;
     }
+    if (!withinBerhampore) {
+      setError('Custom delivery is currently available within Berhampore only. Please confirm your location.');
+      return;
+    }
     setSending(true);
     setError('');
     try {
@@ -83,7 +89,7 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
         occasion, flowers, flowerColors: flowerColors.trim(), wrapperColor: wrapperColor.trim(),
         wrapperType, wrappers, gypsy, glitter, extraNotes: extraNotes.trim(),
         deliveryDate, address: address.trim(), name: name.trim(),
-        email: email.trim(), phone: phone.trim(),
+        email: email.trim(), phone: phone.trim(), withinBerhampore,
       });
       setConfirmed(result.orderNumber);
     } catch (err: any) {
@@ -254,11 +260,16 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
                     <label className={labelClass}>Email · optional
                       <input type="email" maxLength={254} value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com" className={fieldClass}/>
                     </label>
-                    <label className={labelClass}>Delivery location *
+                    <label className={labelClass}>Delivery location · Berhampore only *
                       <input required maxLength={500} autoComplete="street-address" value={address} onChange={e=>setAddress(e.target.value)}
                         placeholder="Address, area and PIN code" className={fieldClass}/>
                     </label>
                   </div>
+                  <label className="mt-5 flex items-start gap-3 text-xs leading-5 text-stone-700">
+                    <input type="checkbox" required checked={withinBerhampore}
+                      onChange={event => setWithinBerhampore(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-stone-900"/>
+                    I confirm the delivery address is within Berhampore, Murshidabad. Other locations are not yet supported.
+                  </label>
                 </div>
                 {error && <p className="mt-5 text-sm text-red-700" role="alert">{error}</p>}
                 <button disabled={sending} type="submit" className="mt-8 flex w-full items-center justify-center gap-3 bg-stone-900 px-6 py-4 text-xs uppercase tracking-[0.18em] text-white transition hover:bg-stone-700 disabled:opacity-50">

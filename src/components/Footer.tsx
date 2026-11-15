@@ -2,6 +2,7 @@ import { Instagram, Mail, MapPin, Phone, MessageCircle, ShieldCheck } from 'luci
 import Logo from './Logo';
 import WhatsAppIcon from './WhatsAppIcon';
 import { StoreSettings } from '../types';
+import type { PolicyType } from './StorePolicies';
 
 interface FooterProps {
   storeSettings: StoreSettings;
@@ -10,6 +11,7 @@ interface FooterProps {
   onOpenTracking: () => void;
   onNavigateToBuilder?: () => void;
   onNavigateToShop: () => void;
+  onOpenPolicy: (policy: PolicyType) => void;
 }
 
 export default function Footer({
@@ -18,6 +20,7 @@ export default function Footer({
   onOpenOwnerLogin,
   onOpenTracking,
   onNavigateToShop,
+  onOpenPolicy,
 }: FooterProps) {
   return (
     <footer className="bg-stone-900 text-stone-300 border-t border-stone-800 pt-16 pb-12">
@@ -77,9 +80,23 @@ export default function Footer({
                 </button>
               </li>
               <li>
-                <span className="text-stone-500">Same-Day Local Delivery</span>
+                <span className="text-stone-400">Berhampore deliveries · by confirmation</span>
               </li>
             </ul>
+            <div className="border-t border-stone-700/70 pt-4">
+              <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-stone-300">Customer information</p>
+              <div className="flex flex-col items-start gap-3 text-xs text-stone-400">
+                {([
+                  ['delivery', 'Delivery & ordering'],
+                  ['returns', 'Cancellations & concerns'],
+                  ['privacy', 'Privacy notice'],
+                  ['terms', 'Ordering terms'],
+                ] as const).map(([policy, label]) => (
+                  <button key={policy} type="button" onClick={() => onOpenPolicy(policy)}
+                    className="text-left underline-offset-4 hover:text-white hover:underline">{label}</button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Care & Assurance (3 cols) */}
@@ -124,7 +141,7 @@ export default function Footer({
 
         {/* Bottom copyright & Owner Portal trigger (Invisible unless logged in as Owner) */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
-          <p>© 2026 Jame Bouquets. Berhampore, Murshidabad. Made by hand, in Berhampore.</p>
+          <p>© 2026 Jame Bouquets · Handmade in Berhampore</p>
 
           <div className="flex items-center gap-4">
             {isOwner && <button

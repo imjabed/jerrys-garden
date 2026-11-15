@@ -296,11 +296,12 @@ export default function OrderTrackingModal({
                       <div className="flex-1 min-w-0 text-xs">
                         <p className="font-bold text-stone-900 truncate">{item.bouquet.title}</p>
                         <p className="text-stone-500 text-[11px]">
-                          Quantity: {item.quantity} • {item.bouquet.flowerCount} Hand-rolled Ribbon Blooms
+                          {selectedOrder.orderType === 'Custom' ? `${item.bouquet.flowerCount} custom flowers · Enquiry` :
+                            `${item.quantity} piece(s) · ${item.bouquet.category.toLowerCase().includes('keychain') ? 'Handmade keepsake' : item.bouquet.flowerCount + ' handmade flowers'}`}
                         </p>
                       </div>
                       <span className="font-bold text-stone-900 text-xs shrink-0">
-                        ₹{item.bouquet.price * item.quantity}
+                        {selectedOrder.orderType === 'Custom' ? 'Quote pending' : `₹${(item.bouquet.price * item.quantity).toLocaleString('en-IN')}`}
                       </span>
                     </div>
                   ))}
@@ -322,7 +323,7 @@ export default function OrderTrackingModal({
                   </div>
                   <p className="text-stone-700">{selectedOrder.customer.deliveryAddress}</p>
                   <p className="text-stone-500 text-[11px]">
-                    {selectedOrder.customer.city} - {selectedOrder.customer.pincode}
+                    {[selectedOrder.customer.city, selectedOrder.customer.pincode].filter(Boolean).join(' · ')}
                   </p>
                 </div>
 
@@ -331,7 +332,7 @@ export default function OrderTrackingModal({
                     <Calendar className="w-3.5 h-3.5 text-rose-600" />
                     <span>Requested Delivery Date</span>
                   </div>
-                  <p className="text-stone-700 font-medium">{selectedOrder.customer.deliveryDate}</p>
+                  <p className="text-stone-700 font-medium">{selectedOrder.customer.deliveryDate || 'To be confirmed'}</p>
                   <p className="text-stone-500 text-[11px]">
                     {selectedOrder.customer.deliveryTimeSlot || 'Standard Delivery'}
                   </p>

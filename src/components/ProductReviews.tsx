@@ -32,6 +32,7 @@ export default function ProductReviews({
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState('');
+  const [submittedNotice, setSubmittedNotice] = useState('');
   const [reload, setReload] = useState(0);
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function ProductReviews({
     setSubmissionError('');
     try {
       await apiSubmitProductReview(productId, rating, comment.trim());
+      setSubmittedNotice('Thank you. Your verified review is awaiting moderation before it appears publicly.');
       setComment('');
       setRating(5);
       setReload(value => value + 1);
@@ -69,6 +71,7 @@ export default function ProductReviews({
 
   return (
     <section aria-label="Customer reviews" className="mt-6 border-t border-stone-200 pt-6">
+      {submittedNotice && <p role="status" className="mb-4 border border-stone-200 bg-stone-50 p-3 text-xs leading-5 text-stone-700">{submittedNotice}</p>}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[11px] uppercase tracking-[0.16em] text-stone-500">From our customers</p>
@@ -147,7 +150,7 @@ export default function ProductReviews({
               <p className="mt-5 border-t border-stone-100 pt-4 text-xs leading-5 text-stone-500">
                 {!data?.isSignedIn ? (
                   <>Already purchased this piece? <button type="button" onClick={onSignIn} className="font-medium text-stone-900 underline underline-offset-2">Sign in</button> to leave a review after delivery.</>
-                ) : data?.hasReviewed ? 'Thank you. You have already reviewed this product.' :
+                ) : data?.hasReviewed ? 'Thank you. Your review has already been submitted for this product.' :
                   'Reviews are available after your order containing this product has been delivered.'}
               </p>
             )}

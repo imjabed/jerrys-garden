@@ -120,7 +120,7 @@ export default function CartDrawer({
                       <div className="flex items-center border border-stone-200 rounded-lg bg-white overflow-hidden">
                         <button
                           onClick={() => onUpdateQuantity(idx, item.quantity - 1)}
-                          className="px-2 py-0.5 text-xs text-stone-600 hover:bg-stone-100"
+                          className="px-2 py-0.5 text-xs text-stone-600 hover:bg-stone-100 disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                           -
                         </button>
@@ -129,6 +129,8 @@ export default function CartDrawer({
                         </span>
                         <button
                           onClick={() => onUpdateQuantity(idx, item.quantity + 1)}
+                          disabled={item.quantity >= 20}
+                          aria-label="Increase quantity, maximum 20"
                           className="px-2 py-0.5 text-xs text-stone-600 hover:bg-stone-100"
                         >
                           +
@@ -155,7 +157,7 @@ export default function CartDrawer({
               <button
                 id="cart-checkout-btn"
                 onClick={onCheckout}
-              disabled={cartItems.some(item => item.bouquet.inStock === false)}
+              disabled={cartItems.some(item => item.bouquet.inStock === false || item.quantity > 20)}
                 className="w-full py-3.5 rounded-xl bg-stone-900 hover:bg-rose-700 text-white font-semibold text-xs tracking-wider uppercase transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>Buy · Continue</span>
@@ -164,7 +166,9 @@ export default function CartDrawer({
 
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-stone-500">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>{cartItems.some(item => item.bouquet.inStock === false) ? "Remove unavailable items to continue" : "Order now, confirm with our team"}</span>
+                <span>{cartItems.some(item => item.bouquet.inStock === false) ? 'Remove unavailable items to continue' :
+                  cartItems.some(item => item.quantity > 20) ? 'Reduce product quantities to 20 or fewer' :
+                  'Order now, confirm with our team'}</span>
               </div>
             </div>
           )}

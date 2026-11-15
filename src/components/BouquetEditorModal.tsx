@@ -7,19 +7,8 @@ interface BouquetEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
   bouquetToEdit?: RibbonBouquet | null;
-  onSave: (bouquet: RibbonBouquet) => void;
+  onSave: (bouquet: RibbonBouquet) => Promise<boolean>;
 }
-
-const SAMPLE_RIBBON_IMAGES = [
-  { label: 'Blush Satin Melody', url: 'https://images.unsplash.com/photo-1561181286-d3fee7d55364?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Midnight Royal Blue', url: 'https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Lavender Dream', url: 'https://images.unsplash.com/photo-1527061011665-3652c757a4d4?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Crimson Velvet Symphony', url: 'https://images.unsplash.com/photo-1582794543139-8ac9cb0f7b11?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Peach Apricot Sunshine', url: 'https://images.unsplash.com/photo-1508610048659-a06b669e3321?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Sage Meadow Whisper', url: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Petite Pink Charm', url: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Golden Sunset Grand Luxe', url: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80' },
-];
 
 export default function BouquetEditorModal({
   isOpen,
@@ -28,6 +17,8 @@ export default function BouquetEditorModal({
   onSave,
 }: BouquetEditorModalProps) {
   const isEditing = Boolean(bouquetToEdit);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const [title, setTitle] = useState(bouquetToEdit?.title || '');
   const [price, setPrice] = useState(bouquetToEdit?.price?.toString() || '');
@@ -81,13 +72,16 @@ export default function BouquetEditorModal({
     }
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
+    setSaveError('');
     if (!title || !price || !imageUrl) {
-      alert('Please enter a product name, price, and image.');
+      setSaveError('Please enter a product name, price, and a real product photo.');
       return;
     }
 
+    if (description.trim().length < 12) { setSaveError('Add a product description of at least 12 characters.'); return; }
     const colors = ribbonColorsText
       .split(',')
       .map((c) => c.trim())
@@ -99,7 +93,7 @@ export default function BouquetEditorModal({
       price: Number(price),
       originalPrice: originalPrice ? Number(originalPrice) : undefined,
       imageUrl: imageUrl.trim(),
-      description: description.trim() || 'Handcrafted gift, made with care.',
+      description: description.trim(),
       ribbonColors: colors.length > 0 ? colors : ['Custom Ribbon Colors'],
       ribbonMaterial: bouquetToEdit?.ribbonMaterial || 'Handcrafted',
       flowerCount: Number(flowerCount) || 1,
@@ -110,8 +104,16 @@ export default function BouquetEditorModal({
       createdAt: bouquetToEdit?.createdAt || new Date().toISOString(),
     };
 
-    onSave(saved);
-    onClose();
+    setIsSaving(true);
+    try {
+      const ok = await onSave(saved);
+      if (ok) onClose();
+      else setSaveError('The product could not be saved. Your changes are still here. Please try again.');
+    } catch (error: any) {
+      setSaveError(error?.message || 'Could not save the product. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -252,28 +254,7 @@ export default function BouquetEditorModal({
               </div>
             )}
 
-            {/* Quick Ribbon Photo Presets */}
-            <div>
-              <span className="text-[10px] text-stone-500 block mb-1">Optional sample images (use your own product photo for accuracy):</span>
-              <div className="flex gap-1.5 overflow-x-auto pb-1">
-                {SAMPLE_RIBBON_IMAGES.map((sample) => (
-                  <button
-                    key={sample.label}
-                    type="button"
-                    onClick={() => setImageUrl(sample.url)}
-                    className="shrink-0 p-1 rounded-lg border border-stone-200 hover:border-rose-500 bg-white"
-                    title={sample.label}
-                  >
-                    <img
-                      src={sample.url}
-                      alt={sample.label}
-                      referrerPolicy="no-referrer"
-                      className="w-10 h-10 rounded object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
+            <p className="text-xs leading-5 text-stone-500">Use photographs of your actual handmade products. Stock images can misrepresent the finished item.</p>
 
             {/* Live Image Preview */}
             {imageUrl && (
@@ -402,20 +383,23 @@ export default function BouquetEditorModal({
             </div>
           </div>
 
+          {saveError && <p role="alert" className="text-sm text-red-700">{saveError}</p>}
           {/* Action buttons */}
           <div className="pt-4 border-t border-stone-200 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
+              disabled={isSaving}
               className="px-4 py-2.5 rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-700 font-medium text-xs cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
+              disabled={isSaving || isUploading}
               className="px-6 py-2.5 rounded-xl bg-stone-900 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-md cursor-pointer"
             >
-              {isEditing ? 'Save Changes' : 'Publish Product'}
+              {isSaving ? 'Saving…' : isEditing ? 'Save Changes' : 'Publish Product'}
             </button>
           </div>
 

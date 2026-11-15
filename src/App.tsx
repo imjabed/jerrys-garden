@@ -59,10 +59,12 @@ import RibbonStory from './components/RibbonStory';
 import CustomOrderSection from './components/CustomOrderSection';
 import Footer from './components/Footer';
 import CustomerReviewsSection from './components/CustomerReviewsSection';
+import StorePolicies, { type PolicyType } from './components/StorePolicies';
 
 export default function App() {
   // Core App State
   const [bouquets, setBouquets] = useState<RibbonBouquet[]>([]);
+  const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'offline'>('loading');
   const [reviewSummaries, setReviewSummaries] = useState<Record<string, ReviewSummary>>({});
   const [reviewHighlights, setReviewHighlights] = useState<ProductReview[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -89,6 +91,7 @@ export default function App() {
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<Order | null>(null);
   const [bouquetEditorOpen, setBouquetEditorOpen] = useState(false);
   const [bouquetToEdit, setBouquetToEdit] = useState<RibbonBouquet | null>(null);
+  const [policyOpen, setPolicyOpen] = useState<PolicyType | null>(null);
 
   // Toast feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -116,7 +119,8 @@ export default function App() {
     const initRemoteData = async () => {
       try {
         const [bRes, sRes] = await Promise.all([apiGetBouquets(), apiGetSettings()]);
-        setBouquets(bRes.bouquets);
+        if (bRes.connected) { setBouquets(bRes.bouquets); setCatalogStatus('ready'); }
+        else setCatalogStatus('offline');
         if (sRes.connected && sRes.settings) { setSettings(sRes.settings); updateStoreSettings(sRes.settings); }
         const owner = await ownerSession();
         if (owner.authenticated) {
@@ -132,13 +136,14 @@ export default function App() {
           }
         }
       } catch (e) {
+        setCatalogStatus('offline');
         setIsOwner(false);
       }
     };
     initRemoteData();
     refreshReviewDisplays();
 
-    const refreshCatalog = async () => { const response = await apiGetBouquets(); if (response.connected) setBouquets(response.bouquets); }
+    const refreshCatalog = async () => { const response = await apiGetBouquets(); if (response.connected) { setBouquets(response.bouquets); setCatalogStatus('ready'); } else setCatalogStatus('offline'); }
     const onVisible = () => { if (document.visibilityState === 'visible') void refreshCatalog(); };
     document.addEventListener('visibilitychange', onVisible);
     const poll = window.setInterval(onVisible, 30000);
@@ -177,6 +182,11 @@ export default function App() {
   const handleAddToCart = (bouquet: RibbonBouquet, quantity = 1) => {
     if (bouquet.inStock === false) { showToast('This piece is currently unavailable.'); return; }
     const existingIndex = cart.findIndex((item) => item.bouquet.id === bouquet.id);
+    const alreadyInBag = existingIndex >= 0 ? cart[existingIndex].quantity : 0;
+    if (!Number.isInteger(quantity) || quantity < 1 || alreadyInBag + quantity > 20) {
+      showToast('Maximum 20 pieces of each product per order.');
+      return;
+    }
 
     let updatedCart: CartItem[];
     if (existingIndex >= 0) {
@@ -200,8 +210,8 @@ export default function App() {
       handleRemoveCartItem(index);
       return;
     }
-    const updated = [...cart];
-    updated[index].quantity = newQty;
+    if (newQty > 20) { showToast('Maximum 20 pieces per product.'); return; }
+    const updated = cart.map((item, i) => i === index ? { ...item, quantity: newQty } : item);
     updateCart(updated);
   };
 
@@ -243,9 +253,10 @@ export default function App() {
   // Bouquet Editor
   const handleSaveBouquet = async (saved: RibbonBouquet) => {
     const outcome = await apiSaveBouquet(saved);
-    if (!outcome.success) { showToast(outcome.error || 'Could not save bouquet. Please try again.'); return; }
+    if (!outcome.success) { showToast(outcome.error || 'Could not save bouquet. Please try again.'); return false; }
     setBouquets((current) => { const i = current.findIndex(b => b.id === saved.id); if (i < 0) return [saved, ...current]; const next = [...current]; next[i] = saved; return next; });
     showToast(outcome.cleanupWarning || `Bouquet "${saved.title}" saved to catalog!`);
+    return true;
   };
 
   const handleDeleteBouquet = async (id: string) => {
@@ -521,8 +532,31 @@ export default function App() {
               </div>
             </div>
 
+            {catalogStatus === 'offline' && bouquets.length > 0 && (
+              <div className="mb-5 border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900" role="status">
+                We couldn't refresh the collection. Availability and prices will be checked when you place an order.
+              </div>
+            )}
             {/* Bouquets Grid */}
-            {filteredBouquets.length === 0 ? (
+            {catalogStatus === 'loading' && bouquets.length === 0 ? (
+              <div className="border border-stone-200 bg-[#FAF8F5] px-6 py-16 text-center" role="status">
+                <p className="font-serif text-xl text-stone-800">Preparing the collection…</p>
+                <p className="mt-2 text-sm text-stone-500">Loading our current pieces.</p>
+              </div>
+            ) : catalogStatus === 'offline' && bouquets.length === 0 ? (
+              <div className="border border-stone-200 bg-[#FAF8F5] px-6 py-14 text-center" role="alert">
+                <h3 className="font-serif text-2xl text-stone-900">Our collection is temporarily unavailable.</h3>
+                <p className="mt-2 text-sm text-stone-600">We're having trouble loading products. Please try again.</p>
+                <button type="button" onClick={async () => {
+                  setCatalogStatus('loading');
+                  const response = await apiGetBouquets();
+                  if (response.connected) { setBouquets(response.bouquets); setCatalogStatus('ready'); }
+                  else setCatalogStatus('offline');
+                }} className="mt-6 bg-stone-900 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-white hover:bg-stone-700">
+                  Retry loading
+                </button>
+              </div>
+            ) : filteredBouquets.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-3xl border border-stone-200">
                 <p className="text-stone-700 font-bold text-base">{bouquets.length === 0 ? 'Our collection is coming soon' : 'No pieces found'}</p>
                 <p className="text-stone-500 text-xs mt-1">{bouquets.length === 0 ? 'New handcrafted arrangements will appear here.' : 'Try another category or search.'}</p>
@@ -583,6 +617,7 @@ export default function App() {
               setTrackingModalOpen(true);
             }}
             onNavigateToShop={() => scrollToSection('shop-section')}
+            onOpenPolicy={setPolicyOpen}
           />
         </>
       )}
@@ -685,6 +720,7 @@ export default function App() {
         />
       )}
 
+      {policyOpen && <StorePolicies selected={policyOpen} onSelect={setPolicyOpen} onClose={() => setPolicyOpen(null)}/>}
       {/* Bouquet Editor Modal (Add/Edit) */}
       {bouquetEditorOpen && (
         <BouquetEditorModal

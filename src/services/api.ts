@@ -184,6 +184,30 @@ export async function apiSubmitProductReview(productId: string, rating: number, 
   await parseResponse<{ success: boolean }>(response);
 }
 
+export type ReviewModerationStatus = 'pending' | 'approved' | 'hidden';
+export interface OwnerReview {
+  id: string;
+  productId: string;
+  productTitle: string;
+  rating: number;
+  comment: string;
+  customerName: string;
+  createdAt: string;
+  status: ReviewModerationStatus;
+  verifiedPurchase: true;
+}
+export async function apiGetOwnerReviews(): Promise<OwnerReview[]> {
+  const res = await fetch(`${API_URL}/api/admin/reviews`, { credentials: 'include' });
+  const data = await parseResponse<{ success: boolean; reviews: OwnerReview[] }>(res);
+  return data.reviews || [];
+}
+export async function apiModerateReview(id: string, status: ReviewModerationStatus): Promise<void> {
+  const res = await fetch(`${API_URL}/api/admin/reviews/status`, {
+    method: 'PATCH', headers: jsonHeaders, credentials: 'include', body: JSON.stringify({ id, status }),
+  });
+  await parseResponse<{ success: boolean }>(res);
+}
+
 export interface ProductMutationResponse {
   success: boolean;
   cleanupWarning?: string;

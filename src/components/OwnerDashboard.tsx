@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { Order, OrderStatus, RibbonBouquet, StoreSettings, UserAccount, Coupon } from '../types';
 import CustomerInsights from './CustomerInsights';
+import ReviewModerationPanel from './ReviewModerationPanel';
 import { isCloudinaryUrl, uploadImageToCloudinary } from '../services/cloudinary';
 import {
   checkMongoStatus,
@@ -69,7 +70,7 @@ export default function OwnerDashboard({
   onLogoutOwner,
   onCloseDashboard,
 }: OwnerDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'customers' | 'coupons' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'customers' | 'coupons' | 'reviews' | 'settings'>('orders');
   const [statusFilter, setStatusFilter] = useState<'ALL' | OrderStatus>('ALL');
   const [orderSearch, setOrderSearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
@@ -301,6 +302,7 @@ export default function OwnerDashboard({
             ['customers', 'Customer insights', customers.length],
             ['catalog', 'Products', bouquets.length],
             ['coupons', 'Offers', coupons.length],
+            ['reviews', 'Reviews', null],
             ['settings', 'Settings', null],
           ] as const).map(([tab, label, count]) => (
             <button key={tab} type="button" onClick={() => setActiveTab(tab)}
@@ -580,6 +582,7 @@ export default function OwnerDashboard({
           </div>
         )}
 
+        {activeTab === 'reviews' && <ReviewModerationPanel/>}
         {activeTab === 'settings' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             

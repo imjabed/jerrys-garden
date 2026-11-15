@@ -6,6 +6,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import dotenv from 'dotenv';
 import { estimateCustomBouquet, indiaDate, minimumWrappers } from './shared/customPricing.js';
 import { isValidCustomDeliveryDate, isValidCustomPhone, isValidCustomEmail } from './shared/customOrderValidation.js';
+import { isServiceableCity, isValidOptionalDeliveryDate, SERVICE_CITY } from './shared/orderRules.js';
 import { customerReviewId, reviewerDisplayName, reviewInputError } from './shared/reviewRules.js';
 import {
   getMongoStatus,
@@ -827,12 +828,18 @@ async function startServer() {
   // Genuine, product-specific reviews: only verified account holders who have
   // received this exact product (a Delivered order) may post one review.
   // Clients cannot supply the customer identity, verified flag or product details.
+  // Previously published reviews without a status remain visible; new ones await review.
+  const publicReviewFilter = {
+    verifiedPurchase: true,
+    $or: [{ status: 'approved' }, { status: { $exists: false } }],
+  };
+
   app.get('/api/reviews/summary', async (_req, res) => {
     try {
       const database = await getMongoDb();
       if (!database) return res.status(503).json({ success: false, error: 'Reviews are temporarily unavailable.' });
       const rows = await database.collection('reviews').aggregate([
-        { $match: { verifiedPurchase: true } },
+        { $match: publicReviewFilter },
         { $group: { _id: '$productId', count: { $sum: 1 }, average: { $avg: '$rating' } } },
       ]).toArray();
       const summary = Object.fromEntries(rows.map(row => [
@@ -850,7 +857,7 @@ async function startServer() {
       const database = await getMongoDb();
       if (!database) return res.status(503).json({ success: false, error: 'Reviews are temporarily unavailable.' });
       const latest = await database.collection('reviews')
-        .find({ verifiedPurchase: true }).sort({ createdAt: -1 }).limit(12).toArray();
+        .find(publicReviewFilter).sort({ createdAt: -1 }).limit(12).toArray();
       const ids = [...new Set(latest.map(review => String(review.productId)))];
       const products = await database.collection('products').find({ id: { $in: ids } }, { projection: { id: 1, title: 1 } }).toArray();
       const titles = new Map(products.map(product => [String(product.id), String(product.title)]));
@@ -873,6 +880,49 @@ async function startServer() {
     $or: [{ customerEmail: email }, { 'customer.email': email }],
   });
 
+  app.get('/api/admin/reviews', requireOwner, async (_req, res) => {
+    try {
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, error: 'Database is unavailable.' });
+      const rows = await database.collection('reviews').find({ verifiedPurchase: true })
+        .sort({ createdAt: -1 }).limit(200).toArray();
+      const ids = [...new Set(rows.map(r => String(r.productId)))];
+      const products = await database.collection('products')
+        .find({ id: { $in: ids } }, { projection: { id: 1, title: 1 } }).toArray();
+      const names = new Map(products.map(p => [String(p.id), String(p.title)]));
+      return res.json({ success: true, reviews: rows.map(r => ({
+        id: String(r._id), productId: String(r.productId),
+        productTitle: names.get(String(r.productId)) || 'Discontinued product',
+        rating: r.rating, customerName: r.customerName, comment: r.comment,
+        createdAt: r.createdAt, verifiedPurchase: true, status: r.status || 'approved',
+      })) });
+    } catch (error) {
+      console.error('Owner review list error:', error);
+      return res.status(500).json({ success: false, error: 'Unable to load customer reviews.' });
+    }
+  });
+
+  app.patch('/api/admin/reviews/status', requireOwner, requireClientHeader, async (req, res) => {
+    try {
+      const id = String(req.body?.id || '');
+      const status = String(req.body?.status || '');
+      if (!id || id.length > 400 || !['pending', 'approved', 'hidden'].includes(status)) {
+        return res.status(400).json({ success: false, error: 'Invalid review or moderation action.' });
+      }
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, error: 'Database is unavailable.' });
+      const updated = await database.collection('reviews').updateOne(
+        { _id: id, verifiedPurchase: true } as any,
+        { $set: { status, moderatedAt: new Date().toISOString() } }
+      );
+      if (!updated.matchedCount) return res.status(404).json({ success: false, error: 'Review not found.' });
+      return res.json({ success: true, status });
+    } catch (error) {
+      console.error('Review moderation error:', error);
+      return res.status(500).json({ success: false, error: 'Could not update review status.' });
+    }
+  });
+
   app.get('/api/reviews/:productId', async (req, res) => {
     try {
       const productId = String(req.params.productId || '').trim();
@@ -880,9 +930,9 @@ async function startServer() {
       const database = await getMongoDb();
       if (!database) return res.status(503).json({ success: false, error: 'Reviews are temporarily unavailable.' });
       const rows = await database.collection('reviews')
-        .find({ productId, verifiedPurchase: true }).sort({ createdAt: -1 }).limit(60).toArray();
+        .find({ productId, ...publicReviewFilter }).sort({ createdAt: -1 }).limit(60).toArray();
       const stats = await database.collection('reviews').aggregate([
-        { $match: { productId, verifiedPurchase: true } },
+        { $match: { productId, ...publicReviewFilter } },
         { $group: { _id: null, count: { $sum: 1 }, average: { $avg: '$rating' } } },
       ]).toArray();
       const auth = getCustomerAuth(req);
@@ -949,6 +999,7 @@ async function startServer() {
         productId, rating: Number(rating), comment: String(comment).trim(),
         customerName: reviewerDisplayName(String(customer.name || 'Verified customer')),
         verifiedPurchase: true,
+        status: 'pending',
         createdAt: new Date().toISOString(),
       };
       try {
@@ -957,7 +1008,7 @@ async function startServer() {
         if (err?.code === 11000) return res.status(409).json({ success: false, error: 'You have already reviewed this product.' });
         throw err;
       }
-      return res.status(201).json({ success: true });
+      return res.status(201).json({ success: true, message: 'Your verified review was submitted for moderation.' });
     } catch (err) {
       console.error('Review submission error:', err);
       return res.status(500).json({ success: false, error: 'Could not submit your review. Please try again.' });
@@ -1076,6 +1127,7 @@ async function startServer() {
       const address = String(input.address || '').trim();
       const deliveryDate = String(input.deliveryDate || '').trim();
       const extraNotes = String(input.extraNotes || '').trim();
+      const withinBerhampore = input.withinBerhampore === true;
       const gypsy = input.gypsy === true;
       const glitter = input.glitter === true;
 
@@ -1101,6 +1153,7 @@ async function startServer() {
         return res.status(400).json({ success: false, error: 'Please review your name, phone, email and delivery location.' });
       }
 
+      if (!withinBerhampore) return res.status(400).json({ success: false, error: 'Custom bouquet delivery is currently available within Berhampore only.' });
       const estimate = estimateCustomBouquet({ flowers, wrappers, wrapperType, gypsy, glitter, deliveryDate });
       const database = await getMongoDb();
       if (!database) return res.status(503).json({ success: false, error: 'Enquiries are temporarily unavailable.' });
@@ -1111,7 +1164,7 @@ async function startServer() {
         wrapperType, wrapperCount: wrappers, gypsy, glitter,
         extraNotes, estimatedMin: estimate.minimum, estimatedMax: estimate.maximum,
       };
-      const middleEstimate = Math.round((estimate.minimum + estimate.maximum) / 2);
+      // Custom requests are not confirmed sales. Preserve the range, not a fictional amount.
       const order = {
         id: `ord-${crypto.randomUUID()}`, orderNumber,
         orderType: 'Custom', customDetails, status: 'Order Placed',
@@ -1119,14 +1172,14 @@ async function startServer() {
         items: [{
           bouquet: {
             id: `custom-enquiry-${orderNumber}`, title: `Custom ${occasion} Bouquet`,
-            price: middleEstimate, imageUrl: '', description: extraNotes,
+            price: 0, imageUrl: '', description: extraNotes,
             flowerCount: flowers, category: 'Custom', ribbonColors: [flowerColors],
             ribbonMaterial: 'Custom', inStock: true, createdAt: now,
           }, quantity: 1,
         }],
-        subtotal: middleEstimate, deliveryFee: 0, codHandlingCharge: 0,
-        totalAmount: middleEstimate, customer: {
-          fullName: name, email, phone, deliveryAddress: address, city: '',
+        subtotal: 0, deliveryFee: 0, codHandlingCharge: 0,
+        totalAmount: 0, customer: {
+          fullName: name, email, phone, deliveryAddress: address, city: SERVICE_CITY,
           pincode: '', deliveryDate, deliveryTimeSlot: '', specialInstructions: extraNotes,
           giftNote: '',
         }, customerEmail: email,
@@ -1155,6 +1208,8 @@ async function startServer() {
       for (const key of required) if (!String(c[key] || '').trim()) return res.status(400).json({ success: false, error: `Customer ${key} is required.` });
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(c.email).trim())) return res.status(400).json({ success: false, error: 'A valid customer email is required.' });
       if (!/^\d{6}$/.test(String(c.pincode).replace(/\s/g, ''))) return res.status(400).json({ success: false, error: 'A valid 6-digit pincode is required.' });
+      if (!isServiceableCity(c.city)) return res.status(400).json({ success: false, error: 'We currently deliver within Berhampore only. Please enter a local delivery address.' });
+      if (!isValidOptionalDeliveryDate(c.deliveryDate)) return res.status(400).json({ success: false, error: 'Choose a valid preferred date from today onwards, or leave it blank.' });
       // Requested date is optional; our team confirms availability by phone.
       const database = await getMongoDb();
       if (!database) return res.status(503).json({ success: false, error: 'Orders are temporarily unavailable. Please try again in a moment.' });
@@ -1190,7 +1245,7 @@ async function startServer() {
       const customerAuth = getCustomerAuth(req);
       const safeCustomer = {
         fullName: String(c.fullName).trim().slice(0, 120), email: String(c.email).trim().toLowerCase().slice(0, 254), phone: String(c.phone).trim().slice(0, 30),
-        deliveryAddress: String(c.deliveryAddress).trim().slice(0, 500), city: String(c.city).trim().slice(0, 100), pincode: String(c.pincode).replace(/\s/g, ''),
+        deliveryAddress: String(c.deliveryAddress).trim().slice(0, 500), city: SERVICE_CITY, pincode: String(c.pincode).replace(/\s/g, ''),
         deliveryDate: String(c.deliveryDate).trim(), deliveryTimeSlot: String(c.deliveryTimeSlot || '').slice(0, 100), specialInstructions: String(c.specialInstructions || '').slice(0, 500), giftNote: String(c.giftNote || '').slice(0, 500),
       };
       const paymentMethod = 'CONTACT_LATER';
