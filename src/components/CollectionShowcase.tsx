@@ -3,6 +3,7 @@ import type { RibbonBouquet } from '../types';
 import type { SiteContent } from '../../shared/siteEditor';
 
 interface Props {
+  key?: string;
   content: SiteContent['collections'];
   products: RibbonBouquet[];
   onCategoryClick: (category: string) => void;

@@ -8,7 +8,7 @@ const qualities = [
   { icon: Flower2, title: 'Made to keep', detail: 'Little reminders that last.' },
 ];
 
-export default function RibbonStory({ content = DEFAULT_SITE_CONTENT.story }: { content?: SiteContent['story'] }) {
+export default function RibbonStory({ content = DEFAULT_SITE_CONTENT.story }: { key?: string; content?: SiteContent['story'] }) {
   return (
     <section id="ribbon-story" className="bg-[#EDE7E0] border-t border-stone-200/80 py-20 sm:py-28">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">

@@ -4,6 +4,7 @@ import type { ProductReview } from '../services/api';
 export default function CustomerReviewsSection({
   reviews, onSelect,
 }: {
+  key?: string;
   reviews: ProductReview[];
   onSelect: (productId: string) => void;
 }) {

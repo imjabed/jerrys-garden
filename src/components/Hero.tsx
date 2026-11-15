@@ -4,6 +4,7 @@ import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
 import type { SiteContent } from '../../shared/siteEditor';
 
 interface HeroProps {
+  key?: string;
   onExploreClick: () => void;
   onFeaturedClick: (product: RibbonBouquet) => void;
   featuredProduct?: RibbonBouquet | null;

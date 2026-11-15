@@ -8,6 +8,7 @@ import {
 } from '../../shared/customPricing';
 
 interface CustomOrderSectionProps {
+  key?: string;
   onSubmit: (payload: CustomEnquiryPayload) => Promise<{ orderNumber: string }>;
   mobileOpen: boolean;
   onMobileToggle: () => void;

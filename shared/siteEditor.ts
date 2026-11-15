@@ -131,8 +131,8 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
       countLabel: fieldText(card, 'countLabel', 'Explore collection', 48),
     }];
   });
-  const rawOrder = Array.isArray(raw.sections?.order) ? raw.sections.order : d.sections.order;
-  const uniqueOrder = [...new Set(rawOrder.filter((id: unknown): id is SectionId => SECTION_IDS.includes(id as SectionId)))];
+  const rawOrder: unknown[] = Array.isArray(raw.sections?.order) ? raw.sections.order : d.sections.order;
+  const uniqueOrder: SectionId[] = [...new Set<SectionId>(rawOrder.filter((id: unknown): id is SectionId => SECTION_IDS.includes(id as SectionId)))];
   const order = [...uniqueOrder, ...SECTION_IDS.filter(id => !uniqueOrder.includes(id))];
   const visible = Object.fromEntries(SECTION_IDS.map(id => [id, raw.sections?.visible?.[id] !== false])) as Record<SectionId, boolean>;
   return {

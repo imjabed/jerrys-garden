@@ -891,7 +891,7 @@ async function startServer() {
           $set: { published: content, publishedAt, publishedRevision: revision + 1 },
           $inc: { revision: 1 },
           $push: { history: { $each: [entry], $slice: -8 } },
-        }
+        } as any
       );
       if (!result.matchedCount) return res.status(409).json({ success: false, error: 'The draft changed before it could be published. Reload and try again.' });
       return res.json({ success: true, published: content, revision: revision + 1, publishedAt });

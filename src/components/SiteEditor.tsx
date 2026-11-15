@@ -303,7 +303,7 @@ export default function SiteEditor({
                     <summary className="cursor-pointer text-sm font-medium">{title}</summary>
                     <div className="mt-4 space-y-4">
                       {Object.entries(draft[key]).map(([field, value]) =>
-                        input(field.replace(/([A-Z])/g, ' $1'), value,
+                        input(field.replace(/([A-Z])/g, ' $1'), String(value),
                           next => updateText(key, field, next), field === 'description')
                       )}
                     </div>
