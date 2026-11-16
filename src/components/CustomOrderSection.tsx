@@ -142,7 +142,7 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
             <p className="site-body-copy mt-6 max-w-sm leading-7 text-stone-600">
               {content.description}
             </p>
-            <div className="mt-10 border border-stone-300/80 bg-[#FCFAF7] p-7 sm:p-9">
+            <div className="jb-price-card mt-10 border border-stone-300/80 bg-[#FCFAF7] p-7 sm:p-9">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-stone-500">Approximate price</p>
@@ -166,7 +166,7 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
             <p className="mt-5 flex items-center gap-2 text-xs text-stone-500"><Gift className="h-4 w-4"/> No online payment required</p>
           </div>
 
-          <div className="border border-stone-200/80 bg-[#FCFAF7] p-6 shadow-sm sm:p-10">
+          <div className="jb-order-form-shell border border-stone-200/80 bg-[#FCFAF7] p-6 shadow-sm sm:p-10">
             <div className="mb-7 border-b border-stone-200 pb-6 lg:hidden" aria-live="polite">
               <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-stone-500">Live approximate price</p>
               <p className="mt-3 font-serif text-2xl text-stone-900">₹{quote.minimum.toLocaleString('en-IN')} – ₹{quote.maximum.toLocaleString('en-IN')}</p>
@@ -291,7 +291,7 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
                   </label>
                 </div>
                 {error && <p className="mt-5 text-sm text-red-700" role="alert">{error}</p>}
-                <button disabled={sending} type="submit" className="mt-8 flex w-full items-center justify-center gap-3 bg-stone-900 px-6 py-4 text-xs uppercase tracking-[0.18em] text-white transition hover:bg-stone-700 disabled:opacity-50">
+                <button disabled={sending} type="submit" className="jb-order-submit mt-8 flex w-full items-center justify-center gap-3 bg-stone-900 px-6 py-4 text-xs uppercase tracking-[0.18em] text-white transition hover:bg-stone-700 disabled:opacity-50">
                   {sending ? 'Sending enquiry…' : 'Send Enquiry'} <ArrowRight size={17}/>
                 </button>
                 <p className="mt-4 text-center text-[11px] text-stone-500">Our team will call to confirm the design, availability and final price.</p>

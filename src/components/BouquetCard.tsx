@@ -84,7 +84,7 @@ export default function BouquetCard({
         {/* Top badges */}
         <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-col gap-1.5 items-start z-10">
           {bouquet.featured && (
-            <span className="px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase bg-rose-600 text-white rounded-full shadow-xs">
+            <span className="jb-featured-badge px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase bg-rose-600 text-white rounded-full shadow-xs">
               Featured
             </span>
           )}
@@ -191,7 +191,7 @@ export default function BouquetCard({
 
           <a href={`/products/${encodeURIComponent(bouquet.id)}`}
             onClick={event => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return; event.preventDefault(); onSelect(bouquet); }}
-            className="inline-flex items-center justify-center border border-stone-900 bg-stone-900 px-3 py-2.5 text-[11px] font-medium text-white transition-colors hover:bg-stone-700">
+            className="jb-view-product inline-flex items-center justify-center border border-stone-900 bg-stone-900 px-3 py-2.5 text-[11px] font-medium text-white transition-colors hover:bg-stone-700">
             View details
           </a>
         </div>

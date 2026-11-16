@@ -11,7 +11,7 @@ import SeasonalEffects from './SeasonalEffects';
 import type { RibbonBouquet } from '../types';
 import {
   DEFAULT_SITE_CONTENT, DEFAULT_CATEGORIES, FONT_LABELS, FONT_STACKS,
-  SECTION_IDS, THEME_PRESETS, BLOCK_KINDS, defaultPageBlock, applyThemePreset, sanitizeSiteContent, safeEditorLink,
+  SECTION_IDS, THEME_PRESETS, THEME_ARTWORK, BLOCK_KINDS, defaultPageBlock, applyThemePreset, sanitizeSiteContent, safeEditorLink,
 } from '../../shared/siteEditor';
 import type { CategoryCardConfig, FontId, SectionId, SiteContent, PageBlock, BlockKind, ThemeId, EffectShape } from '../../shared/siteEditor';
 import { apiGetSiteEditor, apiSaveSiteEditorDraft, apiPublishSiteEditor } from '../services/api';
@@ -357,33 +357,45 @@ export default function SiteEditor({
               <>
                 <div>
                   <h2 className="font-serif text-2xl">Seasonal theme gallery</h2>
-                  <p className="mt-2 text-xs leading-6 text-stone-500">Choose a complete colour, font and ambient-effects preset. The product catalog, photos, written content, section order and customer data are preserved.</p>
+                  <p className="mt-2 text-xs leading-6 text-stone-500">Redesigned to match your four festive UI boards. Choose a ready-made visual identity; all real products, pricing, written content and editor sections stay unchanged.</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {THEME_PRESETS.map(preset => (
                     <button key={preset.id} type="button" aria-pressed={draft.theme === preset.id}
                       onClick={() => update(prev => applyThemePreset(prev, preset.id))}
-                      className={`overflow-hidden border-2 text-left transition-colors ${draft.theme === preset.id ? 'border-stone-900' : 'border-stone-200 hover:border-stone-500'}`}>
-                      <div className="relative flex h-24 flex-col justify-between overflow-hidden p-3" style={{ background: preset.appearance.heroBackground }}>
-                        <span className="font-serif text-base" style={{ color: preset.appearance.text }}>Jame</span>
-                        {preset.id !== 'default' && (
-                          <img src={`/seasonal/${({
-                            valentines: 'valentines-couple.svg',
-                            'new-year': 'new-year-fireworks.svg',
-                            puja: 'puja-diya.svg', eid: 'eid-lanterns.svg', winter: 'winter-landscape.svg',
-                          } as Record<string, string>)[preset.id]}`}
-                            loading="lazy" alt="" className="pointer-events-none absolute right-0 top-0 h-24 w-28 object-contain opacity-75"/>
+                      className={`group overflow-hidden rounded-md border-2 text-left shadow-sm transition ${draft.theme === preset.id
+                        ? 'border-stone-900 ring-2 ring-stone-900/10' : 'border-stone-200 hover:border-stone-500'}`}>
+                      <div className="relative h-40 overflow-hidden" style={{ background: preset.appearance.heroBackground }}>
+                        {THEME_ARTWORK[preset.id] && (
+                          <img src={THEME_ARTWORK[preset.id] || ''} loading="lazy" alt=""
+                            className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-85"/>
                         )}
-                        <div className="relative flex h-6 w-full items-center gap-2">
-                          <span className="h-4 w-4 rounded-full" style={{ background: preset.appearance.accent }}/>
-                          <span className="h-3 flex-1" style={{ background: preset.appearance.button }}/>
-                          <span className="h-3 w-7" style={{ background: preset.collectionBg }}/>
+                        <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between border-b border-white/50 bg-white/65 px-2 py-1.5">
+                          <span className="font-serif text-[9px] font-semibold" style={{ color: preset.appearance.text }}>JAME BOUQUETS</span>
+                          <span className="h-1.5 w-6 rounded-full" style={{ background: preset.appearance.button }}/>
+                        </div>
+                        <div className="absolute inset-x-0 top-8 z-10 px-3">
+                          <p className="font-serif text-[19px] leading-tight" style={{ color: preset.appearance.text }}>
+                            Handmade.<span className="block italic" style={{ color: preset.appearance.accent }}>Gifts to keep.</span>
+                          </p>
+                          <span className="mt-2 inline-block rounded-sm px-2.5 py-1 text-[8px] text-white" style={{
+                            background: preset.appearance.button,
+                          }}>EXPLORE COLLECTION</span>
+                        </div>
+                        <div className="absolute inset-x-0 bottom-0 z-10 flex h-[38px] items-center justify-between px-3"
+                          style={{ background: preset.collectionBg, color: preset.collectionText }}>
+                          <span className="font-serif text-[10px]">Explore our atelier</span>
+                          <div className="flex items-center gap-1">
+                            <span className="h-5 w-5 border border-current/50"/>
+                            <span className="h-5 w-5 border border-current/50"/>
+                            <span className="h-5 w-5 border border-current/50"/>
+                          </div>
                         </div>
                       </div>
                       <div className="bg-white p-3">
-                        <p className="flex items-center justify-between text-xs font-semibold">
+                        <p className="flex items-center justify-between gap-1 text-xs font-semibold">
                           {preset.label}
-                          {draft.theme === preset.id && <Check className="h-4 w-4"/>}
+                          {draft.theme === preset.id && <Check className="h-4 w-4 shrink-0"/>}
                         </p>
                         <p className="mt-1 text-[11px] leading-4 text-stone-500">{preset.description}</p>
                       </div>
@@ -951,7 +963,7 @@ export default function SiteEditor({
           <div className="mx-auto overflow-hidden border border-stone-300 bg-white shadow-xl transition-[max-width] duration-300"
             style={{ maxWidth: previewWidths[device] }}>
             <div className="max-h-[calc(100vh-175px)] min-h-[420px] overflow-y-auto site-shell"
-              style={previewStyle} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'}>
+              style={previewStyle} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'} data-festive-decor={draft.effects.enabled && draft.effects.illustrationEnabled ? 'on' : 'off'} data-illustration-placement={draft.effects.illustrationPlacement}>
               {draft.announcement.enabled && (
                 <div className="px-3 py-2 text-center text-[11px]" style={{
                   backgroundColor: draft.announcement.background, color: draft.announcement.textColor,
@@ -967,12 +979,12 @@ export default function SiteEditor({
                   onExploreClick={() => setPanel('text')} onFeaturedClick={() => {}} featuredProduct={products.find(p => p.featured) || products[0] || null}/>;
                 if (id === 'collections') return <CollectionShowcase key={id} content={draft.collections} headingScale={draft.appearance.headingScale}
                   products={products} onCategoryClick={key => { setSelectedCategory(key); setPanel('collections'); }}/>;
-                if (id === 'shop') return <section key={id} className="px-5 py-10">
+                if (id === 'shop') return <section key={id} className="jb-shop-section relative isolate px-5 py-10">
                   <p className="text-[10px] uppercase tracking-widest text-stone-500">{draft.shop.eyebrow}</p>
                   <h2 className="mt-2 font-serif text-3xl">{draft.shop.heading}</h2>
                   <p className="mt-2 text-sm text-stone-600">{draft.shop.description}</p>
                   <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">{products.slice(0, 4).map(p => (
-                    <div key={p.id} className="border border-stone-200 bg-white">
+                    <div key={p.id} className="jb-product-card border border-stone-200 bg-white">
                       {p.imageUrl && <img src={p.imageUrl} alt="" className="aspect-square w-full object-cover"/>}
                       <p className="p-2 text-xs">{p.title}</p>
                     </div>

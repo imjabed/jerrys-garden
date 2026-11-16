@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DEFAULT_CATEGORIES, DEFAULT_SITE_CONTENT, FONT_STACKS,
-  SECTION_IDS, sanitizeSiteContent, THEME_PRESETS, applyThemePreset, defaultPageBlock, safeEditorLink,
+  SECTION_IDS, sanitizeSiteContent, THEME_PRESETS, THEME_ARTWORK, applyThemePreset, defaultPageBlock, safeEditorLink,
 } from '../shared/siteEditor.js';
 
 test('homepage defaults provide five stable editable categories', () => {
@@ -57,7 +57,7 @@ test('six seasonal theme presets are complete and preserve content when selected
   assert.equal(valentines.collections.cards.length, 5);
   assert.equal(valentines.theme, 'valentines');
   assert.equal(valentines.effects.shape, 'petals');
-  assert.equal(valentines.appearance.button, '#7A2744');
+  assert.equal(valentines.appearance.button, '#A80F3C');
 });
 
 test('repeatable editor sections retain their order, safe images, colours and visibility', () => {
@@ -105,13 +105,13 @@ test('theme presets provide artwork without neon-glow particles', () => {
     assert.equal(configured.effects.glow, false);
     assert.equal(configured.effects.floating, false);
     assert.equal(configured.effects.illustrationEnabled, theme.id !== 'default');
-    assert.equal(configured.effects.snowEnabled, theme.id === 'winter');
+    assert.equal(configured.effects.snowEnabled, theme.id === 'winter' || theme.id === 'new-year');
     assert.equal(configured.effects.fireworksEnabled, theme.id === 'new-year');
   }
   const winter = applyThemePreset(DEFAULT_SITE_CONTENT, 'winter');
-  assert.equal(winter.effects.snowDensity, 90);
+  assert.equal(winter.effects.snowDensity, 92);
   const newYear = applyThemePreset(DEFAULT_SITE_CONTENT, 'new-year');
-  assert.equal(newYear.effects.fireworksIntensity, 85);
+  assert.equal(newYear.effects.fireworksIntensity, 87);
 });
 test('seasonal editor settings clamp values and preserve theme-aligned scenes', () => {
   const config = sanitizeSiteContent({
@@ -134,4 +134,35 @@ test('seasonal editor settings clamp values and preserve theme-aligned scenes', 
   assert.equal(previous.effects.illustrationEnabled, true);
   assert.equal(previous.effects.illustrationPlacement, 'hero');
   assert.equal(previous.effects.glow, false);
+});
+
+test('reference-board redesign maps four visual directions to unique illustration assets', () => {
+  assert.equal(THEME_ARTWORK.default, null);
+  assert.equal(THEME_ARTWORK.puja, '/seasonal/puja-festival-panorama.svg');
+  assert.equal(THEME_ARTWORK.eid, '/seasonal/eid-elegance-panorama.svg');
+  assert.equal(THEME_ARTWORK.valentines, '/seasonal/valentines-romance-panorama.svg');
+  assert.equal(THEME_ARTWORK.winter, '/seasonal/winter-holiday-panorama.svg');
+  assert.equal(THEME_ARTWORK['new-year'], THEME_ARTWORK.winter);
+  const palettes = Object.fromEntries(THEME_PRESETS.map(p => [p.id, p]));
+  assert.equal(palettes.puja.collectionBg, '#8B0000');
+  assert.equal(palettes.eid.collectionBg, '#0E3B2D');
+  assert.equal(palettes.winter.collectionBg, '#0E223A');
+  assert.equal(palettes.valentines.collectionBg, '#6D0A26');
+});
+test('seasonal presets affect atmosphere and appearance without replacing product categories or copy', () => {
+  const original = sanitizeSiteContent({
+    hero: { heading: 'Our own words', accentLine: 'Original forever.' },
+    collections: { cards: [{ categoryKey: 'Ribbon Bouquets', title: 'Ribbon creations', imageUrl: 'https://res.cloudinary.com/demo/image/upload/v1/product.jpg' }] },
+    sections: { order: ['collections', 'hero', 'shop', 'custom', 'story', 'reviews'] },
+  });
+  for (const theme of THEME_PRESETS) {
+    const next = applyThemePreset(original, theme.id);
+    assert.equal(next.hero.heading, 'Our own words');
+    assert.equal(next.hero.accentLine, 'Original forever.');
+    assert.equal(next.collections.cards[0].title, 'Ribbon creations');
+    assert.equal(next.collections.cards[0].imageUrl, original.collections.cards[0].imageUrl);
+    assert.deepEqual(next.sections.order, original.sections.order);
+    assert.equal(next.effects.glowingParticles, false);
+    assert.equal(next.effects.illustrationPlacement, theme.id === 'default' ? 'hero' : 'homepage');
+  }
 });

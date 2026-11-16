@@ -132,3 +132,311 @@
   }
   .site-shell .jb-product-card, .site-shell .jb-collection-card { transform: none !important; }
 }
+
+/* -----------------------------------------------------------------------
+   JAME BOUQUETS — reference-board seasonal design system.
+   The Default preset is intentionally untouched. Seasonal art is decorative,
+   behind the real product photography and always pointer-events:none.
+   ----------------------------------------------------------------------- */
+.site-shell[data-site-theme="puja"] {
+  --jb-panorama: url("/seasonal/puja-festival-panorama.svg");
+  --jb-trim: #F5C46A; --jb-trim-soft: #DDA05E;
+  --jb-card-dark: #6C090B; --jb-card-light: #A21B12;
+  --jb-festive-ink: #4B2E1C; --jb-festive-panel: #FFF8E9;
+  --jb-festival-shadow: rgba(114, 19, 14, .18);
+}
+.site-shell[data-site-theme="eid"] {
+  --jb-panorama: url("/seasonal/eid-elegance-panorama.svg");
+  --jb-trim: #D8C28A; --jb-trim-soft: #BDA361;
+  --jb-card-dark: #0B3027; --jb-card-light: #14543D;
+  --jb-festive-ink: #1E4738; --jb-festive-panel: #FFFAED;
+  --jb-festival-shadow: rgba(4, 52, 33, .17);
+}
+.site-shell[data-site-theme="winter"] {
+  --jb-panorama: url("/seasonal/winter-holiday-panorama.svg");
+  --jb-trim: #D4A257; --jb-trim-soft: #B7C4D1;
+  --jb-card-dark: #14283F; --jb-card-light: #213D55;
+  --jb-festive-ink: #30283A; --jb-festive-panel: #FFFAF1;
+  --jb-festival-shadow: rgba(24, 46, 70, .16);
+}
+.site-shell[data-site-theme="new-year"] {
+  --jb-panorama: url("/seasonal/winter-holiday-panorama.svg");
+  --jb-trim: #E1BA75; --jb-trim-soft: #D4A257;
+  --jb-card-dark: #10223A; --jb-card-light: #283A55;
+  --jb-festive-ink: #30283A; --jb-festive-panel: #FFFAF1;
+  --jb-festival-shadow: rgba(27, 37, 68, .17);
+}
+.site-shell[data-site-theme="valentines"] {
+  --jb-panorama: url("/seasonal/valentines-romance-panorama.svg");
+  --jb-trim: #F7B7C1; --jb-trim-soft: #D8809A;
+  --jb-card-dark: #590C25; --jb-card-light: #88203D;
+  --jb-festive-ink: #451927; --jb-festive-panel: #FFF6F8;
+  --jb-festival-shadow: rgba(134, 21, 62, .14);
+}
+
+/* Shared festive typography and quietly luxurious framing. */
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-nav-surface {
+  background: color-mix(in srgb, var(--site-background) 64%, white 36%);
+  border-bottom: 1px solid color-mix(in srgb, var(--jb-trim) 52%, transparent);
+  box-shadow: 0 3px 20px var(--jb-festival-shadow);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-nav-surface button:hover {
+  color: var(--site-accent);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-surface {
+  border-bottom: 3px solid color-mix(in srgb, var(--jb-trim) 65%, transparent);
+  background-image:
+    radial-gradient(ellipse at 94% 5%, color-mix(in srgb,var(--jb-trim) 13%,transparent),transparent 50%),
+    linear-gradient(115deg, color-mix(in srgb, white 45%, transparent), transparent 65%);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"])[data-festive-decor="on"] .jb-hero-surface::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: var(--jb-panorama) center bottom / cover no-repeat;
+  opacity: .82;
+  -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,.35),rgba(0,0,0,.74) 34%,#000 76%);
+  mask-image: linear-gradient(90deg, rgba(0,0,0,.35),rgba(0,0,0,.74) 34%,#000 76%);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-layout {
+  min-height: 630px;
+  gap: clamp(2rem,5vw,5rem);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-copy {
+  position: relative;
+  padding: 2.5rem 1.8rem 2.8rem;
+  border-left: 2px solid color-mix(in srgb, var(--jb-trim) 56%, transparent);
+  background: linear-gradient(90deg,
+    color-mix(in srgb,var(--site-hero-bg) 84%,white 16%) 0%,
+    color-mix(in srgb,var(--site-hero-bg) 76%,transparent) 70%,
+    transparent 100%);
+  backdrop-filter: blur(1.5px);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-copy::before {
+  content: "";
+  position: absolute; top: 0; left: 0; width: 6.2rem; height: 2px;
+  background: linear-gradient(90deg,var(--site-accent),transparent);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-copy h1 {
+  text-shadow: 0 3px 24px rgba(255,255,255,.28);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-copy .site-outline-button {
+  color: var(--site-button);
+  border-color: transparent;
+  background: var(--site-button);
+  border-radius: 5px;
+  padding: .98rem 1.35rem;
+  box-shadow: 0 6px 16px var(--jb-festival-shadow);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-copy .site-outline-button,
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-copy .site-outline-button svg {
+  color: var(--site-button-text);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-copy .site-outline-button:hover {
+  filter: brightness(1.08);
+  gap: 1.5rem;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-featured-panel {
+  padding: 7px;
+  background: color-mix(in srgb,white 91%,var(--jb-trim) 9%);
+  border: 1px solid color-mix(in srgb,var(--jb-trim) 72%,white 28%);
+  border-radius: 9px;
+  box-shadow: 0 18px 45px var(--jb-festival-shadow);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-featured-photo { border-radius: 5px; }
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-featured-photo > span {
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb,var(--jb-trim) 45%,transparent);
+}
+
+/* The ornate, dark atelier showcase is intentionally separate from products. */
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-atelier-section {
+  border-top: 3px solid var(--jb-trim);
+  border-bottom: 3px solid var(--jb-trim);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"])[data-festive-decor="on"][data-illustration-placement="homepage"] .jb-atelier-section::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 0; pointer-events:none;
+  background: var(--jb-panorama) center 43% / cover no-repeat;
+  opacity: .45;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-atelier-content {
+  margin-block: 1.15rem;
+  border: 1px solid color-mix(in srgb,var(--jb-trim) 58%,transparent);
+  box-shadow: inset 0 0 0 5px color-mix(in srgb,var(--jb-trim) 6%,transparent);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-atelier-heading {
+  position: relative;
+  padding-top: 5px;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid color-mix(in srgb,var(--jb-trim) 35%,transparent);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-atelier-heading::after {
+  content: "✧  ✧  ✧";
+  position: absolute; left: 0; bottom: -.64rem;
+  padding-inline: .7rem;
+  background: var(--jb-card-dark);
+  color: var(--jb-trim);
+  font-size: .8rem;
+  letter-spacing: .65rem;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-collection-card {
+  border-color: color-mix(in srgb,var(--jb-trim) 64%,transparent);
+  border-radius: 5px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-collection-card:hover {
+  border-color: var(--jb-trim);
+  box-shadow: 0 12px 30px rgba(0,0,0,.23);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-collection-card .jb-collection-count {
+  color: color-mix(in srgb,var(--jb-trim) 62%,white 38%);
+}
+
+/* Shop reference: clean parchment frame, festive accents, true product images. */
+.site-shell[data-site-theme]:not([data-site-theme="default"])[data-festive-decor="on"][data-illustration-placement="homepage"] .jb-shop-section::before {
+  content:"";
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  background-image: var(--jb-panorama);
+  background-position: center top; background-repeat: no-repeat;
+  background-size: 100% auto;
+  opacity: .055;
+  -webkit-mask-image: linear-gradient(#000 0%,transparent 62%);
+  mask-image: linear-gradient(#000 0%,transparent 62%);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-shop-section > * {
+  position:relative;z-index:1;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-shop-section::after {
+  content:"";position:absolute;inset:13px 0;z-index:0;pointer-events:none;
+  border-top: 1px solid color-mix(in srgb,var(--jb-trim) 47%,transparent);
+  border-bottom: 1px solid color-mix(in srgb,var(--jb-trim) 35%,transparent);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-shop-filter-strip {
+  background: color-mix(in srgb,var(--jb-festive-panel) 93%,var(--jb-trim) 7%);
+  border: 1px solid color-mix(in srgb,var(--jb-trim) 45%,transparent);
+  border-radius: 9px;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-shop-filter {
+  border-radius: 5px;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-shop-filter.jb-filter-selected {
+  background:var(--site-button);
+  color:var(--site-button-text);
+  box-shadow: 0 2px 7px var(--jb-festival-shadow);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-product-card {
+  border-color:color-mix(in srgb,var(--jb-trim) 38%,white 62%);
+  border-radius: 7px;
+  box-shadow: 0 5px 17px var(--jb-festival-shadow);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-product-card:hover {
+  border-color:var(--jb-trim);
+  box-shadow:0 11px 25px var(--jb-festival-shadow);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-featured-badge,
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-view-product {
+  background:var(--site-button);
+  color:var(--site-button-text);
+  border-color:var(--site-button);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-view-product:hover {
+  filter:brightness(1.12);
+}
+
+/* Custom-order reference: parchment card with carefully framed form. */
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-custom-surface {
+  border-top: 1px solid color-mix(in srgb,var(--jb-trim) 52%,transparent);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"])[data-festive-decor="on"][data-illustration-placement="homepage"] .jb-custom-surface::before {
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:var(--jb-panorama) center bottom / cover no-repeat;
+  opacity:.18;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-order-form-shell,
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-price-card {
+  background:var(--jb-festive-panel);
+  border-color:color-mix(in srgb,var(--jb-trim) 47%,transparent);
+  box-shadow: 0 8px 30px var(--jb-festival-shadow);
+  border-radius: 10px;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-order-form-shell :is(input,select,textarea):focus-visible {
+  outline:1px solid var(--site-button);
+  border-color: var(--site-button);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-order-form-shell button[aria-pressed="true"] {
+  background:var(--site-button);color:var(--site-button-text);border-color:var(--site-button);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-order-submit {
+  background:var(--site-button);
+  color:var(--site-button-text);
+  border-radius:5px;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-order-submit:hover {
+  filter:brightness(1.08);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-story-surface {
+  border-top:2px solid color-mix(in srgb,var(--jb-trim) 38%,transparent);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"])[data-festive-decor="on"][data-illustration-placement="homepage"] .jb-story-surface::before {
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background: var(--jb-panorama) center bottom / cover no-repeat;
+  opacity:.16;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-footer-surface {
+  border-top: 3px solid var(--jb-trim);
+}
+
+/* Theme-specific editorial details, matched to the four reference boards. */
+.site-shell[data-site-theme="puja"] .jb-hero-surface::after {
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(circle at 87% 18%,rgba(249,185,73,.2),transparent 20%);
+}
+.site-shell[data-site-theme="eid"] .jb-hero-surface::after {
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:linear-gradient(90deg,transparent 45%,rgba(206,180,117,.08));
+}
+.site-shell[data-site-theme="winter"] .jb-hero-surface::after,
+.site-shell[data-site-theme="new-year"] .jb-hero-surface::after {
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:linear-gradient(to top,rgba(240,247,251,.52),transparent 28%);
+}
+.site-shell[data-site-theme="valentines"] .jb-hero-surface::after {
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 93% 67%,rgba(250,173,202,.23),transparent 58%);
+}
+.site-shell[data-site-theme="valentines"] .jb-hero-copy { border-left-color:#D8809A; }
+.site-shell[data-site-theme="eid"] .jb-hero-copy { border-left-color:#C79A3B; }
+
+/* Small screens must keep the products and controls legible. */
+@media (max-width: 768px) {
+  .site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-layout { min-height:0; }
+  .site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-copy {
+    padding:1.65rem 1rem;
+    background:color-mix(in srgb,var(--site-hero-bg) 91%,white 9%);
+    backdrop-filter:none;
+  }
+  .site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-atelier-content {
+    margin-block:.5rem;
+    box-shadow:none;
+  }
+  .site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-atelier-heading { padding-bottom:1rem; }
+  .site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-shop-section::before { background-size:auto 360px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-shell[data-site-theme]:not([data-site-theme="default"]) :is(.jb-product-card,.jb-collection-card,.jb-featured-panel) {
+    transition:none !important;
+    animation:none !important;
+    transform:none !important;
+  }
+}
+
+/* Keep the panoramic reference-inspired scenes in front visually, while the
+   pre-existing small hero illustrations remain as subtle background accents. */
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-seasonal-art {
+  opacity: calc(var(--seasonal-art-opacity, .68) * .42);
+}
+@media (max-width: 640px) {
+  .site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-seasonal-art {
+    opacity: calc(var(--seasonal-art-opacity, .68) * .20);
+  }
+}

@@ -19,8 +19,8 @@ export default function Hero({ onExploreClick, onFeaturedClick, featuredProduct,
   return (
     <section className="jb-hero-surface relative isolate overflow-hidden border-b border-stone-200">
       <SeasonalEffects settings={effects} theme={theme}/>
-      <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-6 py-16 sm:px-8 lg:min-h-[620px] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-16 lg:px-12 lg:py-24">
-        <div className="min-w-0">
+      <div className="jb-hero-layout relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-6 py-16 sm:px-8 lg:min-h-[620px] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-16 lg:px-12 lg:py-24">
+        <div className="jb-hero-copy min-w-0">
           <p className="mb-7 text-[10px] uppercase tracking-[0.32em] text-stone-500">
             {content.eyebrow}
           </p>
@@ -40,10 +40,10 @@ export default function Hero({ onExploreClick, onFeaturedClick, featuredProduct,
           <button
             type="button"
             onClick={() => onFeaturedClick(featuredProduct)}
-            className="group relative block w-full max-w-md justify-self-center text-left lg:justify-self-end"
+            className="jb-featured-panel group relative block w-full max-w-md justify-self-center text-left lg:justify-self-end"
             aria-label={`View featured product: ${featuredProduct.title}`}
           >
-            <div className="relative aspect-[4/5] overflow-hidden bg-[#E9E0D9] shadow-[0_18px_56px_rgba(64,45,41,0.10)]">
+            <div className="jb-featured-photo relative aspect-[4/5] overflow-hidden bg-[#E9E0D9] shadow-[0_18px_56px_rgba(64,45,41,0.10)]">
               <img
                 src={featuredProduct.imageUrl}
                 alt={featuredProduct.title}

@@ -511,7 +511,7 @@ export default function App() {
   } as CSSProperties;
 
   return (
-    <div className="site-shell min-h-screen flex flex-col selection:bg-rose-100 selection:text-rose-900" style={storefrontStyle} data-site-theme={siteContent.theme} data-hover-lift={siteContent.effects.hoverLift ? "on" : "off"}>
+    <div className="site-shell min-h-screen flex flex-col selection:bg-rose-100 selection:text-rose-900" style={storefrontStyle} data-site-theme={siteContent.theme} data-hover-lift={siteContent.effects.hoverLift ? "on" : "off"} data-festive-decor={siteContent.effects.enabled && siteContent.effects.illustrationEnabled ? "on" : "off"} data-illustration-placement={siteContent.effects.illustrationPlacement}>
       
       {/* Toast Notification */}
       {toastMessage && (
@@ -648,7 +648,7 @@ export default function App() {
                 onCategoryClick={cat => { setSelectedCategory(cat); scrollToSection('shop-section'); }}/>
             );
             if (id === 'shop') return (
-<main key="shop" id="shop-section" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+<main key="shop" id="shop-section" className="jb-shop-section relative isolate py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
             
             {/* Catalog Section Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -664,14 +664,14 @@ export default function App() {
 
               {/* Product category filters */}
               <div className="flex flex-wrap items-center gap-2">
-                <div className="flex flex-wrap items-center gap-1.5 bg-stone-100/80 p-1.5 rounded-2xl border border-stone-200">
+                <div className="jb-shop-filter-strip flex flex-wrap items-center gap-1.5 bg-stone-100/80 p-1.5 rounded-2xl border border-stone-200">
                   {['ALL', ...productCategories].map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                      className={`jb-shop-filter px-3 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                         selectedCategory === cat
-                          ? 'bg-stone-900 text-white shadow-xs'
+                          ? 'jb-filter-selected bg-stone-900 text-white shadow-xs'
                           : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
                       }`}
                     >

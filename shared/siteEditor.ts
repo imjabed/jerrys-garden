@@ -51,31 +51,40 @@ export interface ThemePreset {
   collectionText: string;
   effect: EffectShape;
 }
+export const THEME_ARTWORK: Record<ThemeId, string | null> = {
+  default: null,
+  valentines: '/seasonal/valentines-romance-panorama.svg',
+  'new-year': '/seasonal/winter-holiday-panorama.svg',
+  puja: '/seasonal/puja-festival-panorama.svg',
+  eid: '/seasonal/eid-elegance-panorama.svg',
+  winter: '/seasonal/winter-holiday-panorama.svg',
+};
+
 export const THEME_PRESETS: ThemePreset[] = [
-  { id: 'default', label: 'Default', description: 'Timeless warm ivory & stone', appearance: {
+  { id: 'default', label: 'Default', description: 'Minimal ivory, warm stone and refined typography', appearance: {
     background: '#FAF8F5', text: '#292524', accent: '#9D777C', button: '#292524', buttonText: '#FFFFFF',
     headingFont: 'playfair', bodyFont: 'plus-jakarta', heroBackground: '#F4F0EA', storyBackground: '#EDE7E0', customBackground: '#F1ECE5', footerBackground: '#292524',
   }, collectionBg: '#2E241B', collectionText: '#F8F2E9', effect: 'none' },
-  { id: 'valentines', label: 'Valentines Week', description: 'Blush rose, burgundy & romance', appearance: {
-    background: '#FFF7F7', text: '#3A1E27', accent: '#B64F70', button: '#7A2744', buttonText: '#FFFFFF',
-    headingFont: 'cormorant', bodyFont: 'plus-jakarta', heroBackground: '#FFE8EA', storyBackground: '#FDE3E7', customBackground: '#FFF0F1', footerBackground: '#491D2D',
-  }, collectionBg: '#522531', collectionText: '#FFF2F4', effect: 'petals' },
-  { id: 'new-year', label: 'New Year Celebration', description: 'Midnight blue & champagne gold', appearance: {
-    background: '#F7F5EE', text: '#19253A', accent: '#A88343', button: '#1C2C47', buttonText: '#FFFFFF',
-    headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#E8EDF5', storyBackground: '#E3EAF2', customBackground: '#EEF2F7', footerBackground: '#142238',
-  }, collectionBg: '#19263A', collectionText: '#F9EFD7', effect: 'confetti' },
-  { id: 'puja', label: 'Puja Celebration', description: 'Marigold, vermilion & warm ivory', appearance: {
-    background: '#FFF9EC', text: '#46291B', accent: '#BA5A28', button: '#893D23', buttonText: '#FFFFFF',
-    headingFont: 'lora', bodyFont: 'plus-jakarta', heroBackground: '#FFF0D0', storyBackground: '#FBE8CD', customBackground: '#FFF3DF', footerBackground: '#4A261E',
-  }, collectionBg: '#60331E', collectionText: '#FFF3DB', effect: 'petals' },
-  { id: 'eid', label: 'Eid Celebration', description: 'Emerald green & soft gold', appearance: {
-    background: '#F5FAF6', text: '#1C3831', accent: '#A48A49', button: '#165143', buttonText: '#FFFFFF',
-    headingFont: 'cormorant', bodyFont: 'dm-sans', heroBackground: '#E5F1E9', storyBackground: '#E3EFE7', customBackground: '#EFF7F0', footerBackground: '#173D32',
-  }, collectionBg: '#174B3B', collectionText: '#F6F0DE', effect: 'lanterns' },
-  { id: 'winter', label: 'Winter Session', description: 'Frosted blue, silver & cashmere', appearance: {
-    background: '#F7FAFC', text: '#243849', accent: '#6C91AE', button: '#2D4E67', buttonText: '#FFFFFF',
-    headingFont: 'lora', bodyFont: 'inter', heroBackground: '#E8F1F7', storyBackground: '#E2EDF5', customBackground: '#F0F6FA', footerBackground: '#233B50',
-  }, collectionBg: '#29485D', collectionText: '#F3F9FD', effect: 'snow' },
+  { id: 'valentines', label: 'Valentines Week', description: 'Blush garden · roses · romantic silhouettes', appearance: {
+    background: '#FFF0F4', text: '#451927', accent: '#C9184A', button: '#A80F3C', buttonText: '#FFFFFF',
+    headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#FFF0F4', storyBackground: '#FCE5EB', customBackground: '#FFF4F5', footerBackground: '#6D0A26',
+  }, collectionBg: '#6D0A26', collectionText: '#FFF1F5', effect: 'petals' },
+  { id: 'new-year', label: 'New Year Celebration', description: 'Snowy midnight · champagne fireworks · festive lights', appearance: {
+    background: '#FFF7E9', text: '#262434', accent: '#B32834', button: '#B32834', buttonText: '#FFFFFF',
+    headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#F3F1F3', storyBackground: '#F4EFF0', customBackground: '#FFF8EF', footerBackground: '#10223A',
+  }, collectionBg: '#10223A', collectionText: '#FFF5E7', effect: 'confetti' },
+  { id: 'puja', label: 'Puja Celebration', description: 'Durga Puja pandal · marigolds · diya light', appearance: {
+    background: '#FFF5E1', text: '#4B2E1C', accent: '#B61A12', button: '#A6080A', buttonText: '#FFFFFF',
+    headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#FFF3DF', storyBackground: '#FFF0DA', customBackground: '#FFF6E7', footerBackground: '#620A12',
+  }, collectionBg: '#8B0000', collectionText: '#FFF6DC', effect: 'petals' },
+  { id: 'eid', label: 'Eid Celebration', description: 'Emerald arches · golden lanterns · crescent moon', appearance: {
+    background: '#F8F4E6', text: '#1E4738', accent: '#C79A3B', button: '#0E5136', buttonText: '#FFFFFF',
+    headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#FAF5E7', storyBackground: '#F2F1E6', customBackground: '#FBF6EB', footerBackground: '#082E26',
+  }, collectionBg: '#0E3B2D', collectionText: '#F8F4E6', effect: 'lanterns' },
+  { id: 'winter', label: 'Winter Session', description: 'Christmas greenery · deep snow · warm gifting', appearance: {
+    background: '#FFF7E9', text: '#30283A', accent: '#B32834', button: '#B32834', buttonText: '#FFFFFF',
+    headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#F1EEF3', storyBackground: '#F3EFF1', customBackground: '#FFF8EF', footerBackground: '#14283F',
+  }, collectionBg: '#0E223A', collectionText: '#FFF7E9', effect: 'snow' },
 ];
 export function applyThemePreset(current: SiteContent, id: ThemeId): SiteContent {
   const preset = THEME_PRESETS.find(x => x.id === id) || THEME_PRESETS[0];
@@ -87,12 +96,12 @@ export function applyThemePreset(current: SiteContent, id: ThemeId): SiteContent
       enabled: preset.id !== 'default',
       glow: false, glowingParticles: false, floating: false,
       illustrationEnabled: preset.id !== 'default',
-      illustrationPlacement: 'hero',
-      snowEnabled: preset.id === 'winter',
-      snowDensity: preset.id === 'winter' ? 90 : 45,
+      illustrationPlacement: preset.id === 'default' ? 'hero' : 'homepage',
+      snowEnabled: preset.id === 'winter' || preset.id === 'new-year',
+      snowDensity: preset.id === 'winter' ? 92 : preset.id === 'new-year' ? 67 : 45,
       fireworksEnabled: preset.id === 'new-year',
-      fireworksIntensity: preset.id === 'new-year' ? 85 : 55,
-      artworkOpacity: 0.68,
+      fireworksIntensity: preset.id === 'new-year' ? 87 : 55,
+      artworkOpacity: preset.id === 'default' ? 0.68 : 0.9,
       artworkMotion: true,
       parallax: false,
     },
