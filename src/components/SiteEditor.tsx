@@ -204,7 +204,7 @@ export default function SiteEditor({
       setDirty(false);
       setNotice('Published and verified. Open the storefront to see your changes.');
       // Reference-safe cleanup is best effort and cannot undo a successful publish.
-      const oldPhotos = [...new Set(deferredCleanup.current)];
+      const oldPhotos: string[] = Array.from(new Set<string>(deferredCleanup.current));
       deferredCleanup.current = [];
       void Promise.allSettled(oldPhotos.map(url => apiCleanupUnusedImage(url)));
 
