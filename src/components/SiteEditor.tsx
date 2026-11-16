@@ -374,6 +374,11 @@ export default function SiteEditor({
     '--site-story-bg': draft.appearance.storyBackground,
     '--site-custom-bg': draft.appearance.customBackground,
     '--site-footer-bg': draft.appearance.footerBackground,
+    '--jb-nav-bg': draft.themeExtras[draft.theme].navBackground,
+    '--jb-nav-text': draft.themeExtras[draft.theme].navText,
+    '--jb-nav-accent': draft.themeExtras[draft.theme].navAccent,
+    '--jb-hero-ink': draft.themeExtras[draft.theme].heroText,
+    '--jb-hero-accent': draft.themeExtras[draft.theme].heroAccent,
     '--val-nav-bg': draft.valentines.colors.navBackground,
     '--val-nav-text': draft.valentines.colors.navText,
     '--val-nav-accent': draft.valentines.colors.navAccent,
@@ -588,6 +593,10 @@ export default function SiteEditor({
                         v => updateThemeExtra({ navText: v }))}
                       {colour('Navbar accent', draft.themeExtras[draft.theme].navAccent,
                         v => updateThemeExtra({ navAccent: v }))}
+                      {colour('Hero heading colour', draft.themeExtras[draft.theme].heroText,
+                        v => updateThemeExtra({ heroText: v }))}
+                      {colour('Hero italic accent', draft.themeExtras[draft.theme].heroAccent,
+                        v => updateThemeExtra({ heroAccent: v }))}
                     </div>
                     <div className="space-y-4 rounded-xl border border-stone-200 p-4">
                       <h3 className="font-serif text-xl">Custom-order backdrop</h3>
