@@ -8,6 +8,7 @@ export const ALL_THEME_IDS: ThemeId[] = ['default', ...SEASONAL_THEME_IDS];
 export interface ValentinesDesign {
   hero: { eyebrow: string; heading: string; accentLine: string; description: string; button: string };
   custom: { eyebrow: string; heading: string; accentLine: string; description: string; button: string };
+  heroMobileImageUrl: string;
   customImageUrl: string;
   customImagePosition: number;
   customOverlay: number;
@@ -41,6 +42,7 @@ export const DEFAULT_VALENTINES_DESIGN: ValentinesDesign = {
     description: 'Choose the colours, the wrapping and the finishing touches. We will make a gift as personal as your love.',
     button: 'Create your gift',
   },
+  heroMobileImageUrl: '',
   customImageUrl: '',
   customImagePosition: 65,
   customOverlay: .75,
@@ -429,6 +431,7 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
       description: fieldText(val.custom, 'description', vd.custom.description, 300),
       button: fieldText(val.custom, 'button', vd.custom.button, 70),
     },
+    heroMobileImageUrl: safeEditorImage(val.heroMobileImageUrl),
     customImageUrl: safeEditorImage(val.customImageUrl),
     customImagePosition: numberRange(val.customImagePosition, vd.customImagePosition, 0, 100),
     customOverlay: numberRange(val.customOverlay, vd.customOverlay, 0.15, 0.95),
