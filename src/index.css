@@ -500,3 +500,190 @@
 @media (prefers-reduced-motion: reduce) {
   .jb-seasonal-panorama-breathe,.jb-seasonal-fireworks-active { animation: none !important; }
 }
+
+
+/* 2026 mobile-first photographic seasonal storefront. Previous SVG illustrations
+   are deliberately disabled: the photo URL is an editor-owned Cloudinary asset. */
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-surface::before,
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-surface::after {
+  display: none !important;
+}
+.site-shell .jb-hero-seasonal {
+  isolation: isolate;
+  background: var(--site-hero-bg);
+  border-bottom-color: color-mix(in srgb, var(--jb-trim, #d8b98d) 50%, transparent);
+}
+.site-shell .jb-hero-seasonal .jb-hero-seasonal-layout {
+  min-height: 570px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding-top: 5.2rem;
+  padding-bottom: 5.2rem;
+}
+.site-shell .jb-hero-seasonal .jb-hero-seasonal-copy {
+  width: min(100%, 590px);
+  padding: 1rem 0;
+  border: 0;
+  background: none;
+  backdrop-filter: none;
+  text-shadow: 0 1px 6px rgba(255,255,255,.1);
+}
+.site-shell .jb-hero-seasonal .jb-hero-seasonal-copy::before { display: none; }
+.site-shell .jb-hero-seasonal .site-body-copy {
+  max-width: 335px;
+  opacity: 1;
+  font-weight: 500;
+  color: var(--site-text);
+}
+.jb-photo-atmosphere { isolation: isolate; contain: paint; }
+.jb-hero-photo {
+  z-index: -1;
+  object-position: center 64%;
+}
+.jb-photo-readable {
+  z-index: 0;
+  background: linear-gradient(90deg, var(--site-hero-bg) 0%,
+    color-mix(in srgb, var(--site-hero-bg) 91%, transparent) 28%,
+    color-mix(in srgb, var(--site-hero-bg) 52%, transparent) 49%,
+    transparent 88%);
+}
+.site-shell .jb-hero-seasonal .jb-hero-copy { position: relative; z-index: 5; }
+.jb-seasonal-offer {
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--site-accent) 55%, white);
+  border-radius: 12px;
+  color: var(--site-text);
+  background: color-mix(in srgb, var(--site-hero-bg) 82%, white);
+  box-shadow: 0 9px 25px rgba(29,19,13,.07);
+}
+.jb-offer-percent { color: var(--site-accent); white-space: nowrap; }
+
+/* Navbar uses real CSS depth/shadow and minimal seasonal ornaments. */
+.site-shell[data-site-theme="valentines"] .jb-nav-surface { background: rgba(255,241,245,.96) !important; border-color: #f0bbcb; }
+.site-shell[data-site-theme="puja"] .jb-nav-surface { background: rgba(255,246,224,.97) !important; border-color: #e3b56e; }
+.site-shell[data-site-theme="eid"] .jb-nav-surface { background: rgba(245,249,240,.97) !important; border-color: #c5ad74; }
+.site-shell[data-site-theme="winter"] .jb-nav-surface { background: rgba(248,250,255,.97) !important; border-color: #d4dce7; }
+.site-shell .jb-nav-surface { box-shadow: 0 6px 24px rgba(20,20,20,.05); }
+.jb-nav-ornament {
+  position: absolute;
+  top: -9px;
+  font-size: 21px;
+  filter: drop-shadow(0 3px 3px rgba(41,24,22,.22));
+  transform-origin: top center;
+  animation: jb-nav-sway 6s ease-in-out infinite alternate;
+  opacity: .92;
+  text-shadow: 0 1px 1px rgba(255,255,255,.5);
+}
+.jb-nav-ornament::before {
+  content: "";
+  position: absolute;
+  top: -14px; left: 50%; height: 16px;
+  border-left: 1px solid rgba(131,94,50,.4);
+}
+.jb-nav-ornament-a { left: 19%; }
+.jb-nav-ornament-b { right: 18%; animation-delay: -2.2s; }
+.site-shell[data-site-theme="eid"] .jb-nav-ornament-a {
+  color: #cda551; font-size: 27px; text-shadow: 0 0 8px rgba(212,176,96,.4);
+}
+.site-shell[data-site-theme="valentines"] .jb-nav-ornament-b { color: #c21850; }
+.site-shell[data-site-theme="winter"] .jb-nav-ornament-a { color: #6688b8; }
+.site-shell .jb-mobile-menu { background: var(--site-hero-bg, white); }
+.jb-nav-brand { position: relative; z-index: 2; }
+.jb-nav-actions { position: relative; z-index: 2; }
+@keyframes jb-nav-sway {
+  from { transform: rotate(-10deg) rotateY(-8deg); }
+  to { transform: rotate(9deg) rotateY(8deg); }
+}
+
+/* Subtle physical-looking festival details on top of photography. */
+.jb-floating-love {
+  color: #b71f53;
+  text-shadow: 0 3px 12px rgba(117,13,50,.2);
+  filter: drop-shadow(0 3px 4px rgba(147,26,63,.12));
+}
+.jb-love-drift { animation: jb-love-float 9s ease-in-out infinite alternate; }
+@keyframes jb-love-float {
+  from { transform: translate3d(0,18px,0) rotate(-12deg); }
+  to { transform: translate3d(13px,-24px,0) rotate(16deg); }
+}
+.jb-eid-moon { position: absolute; right: 10%; top: 7%; color: #eed99d; }
+.jb-eid-crescent {
+  font-family: Georgia, serif;
+  font-size: clamp(45px,8vw,108px);
+  line-height: 1;
+  text-shadow: 0 0 20px rgba(255,213,120,.55), 0 0 45px rgba(255,206,118,.25);
+}
+.jb-moon-breathe { animation: jb-moon-flicker 6s ease-in-out infinite alternate; }
+@keyframes jb-moon-flicker { 0%,100% {opacity:.76; filter:brightness(.87)} 48% {opacity:1; filter:brightness(1.18)} }
+.jb-ornament-lantern { font-size: 25px; filter: drop-shadow(0 4px 6px rgba(145,100,40,.25)); }
+.jb-lantern-sway { transform-origin: top center; animation: jb-nav-sway 5s ease-in-out infinite alternate; }
+.jb-puja-incense { display: flex; justify-content: center; width: 90px; height: 130px; }
+.jb-puja-diya { position:absolute; bottom:0; font-size: 32px; filter: drop-shadow(0 0 12px rgba(255,185,77,.35)); }
+.jb-incense-smoke {
+  position:absolute; bottom: 32px;
+  width:14px; height:36px; border-left: 2px solid rgba(210,201,176,.6); border-radius:50%;
+  filter: blur(3px); animation: jb-incense-rise 4.7s ease-out infinite;
+}
+@keyframes jb-incense-rise {
+  from { transform:translate(0,0) scale(.7); opacity:0; }
+  22% {opacity:.7} to {transform:translate(18px,-90px) scale(2); opacity:0}
+}
+.jb-santa-sleigh {
+  position:absolute; top: 13%; left: 60%; display:flex; gap:3px; font-size:clamp(17px,2vw,29px);
+  filter: drop-shadow(0 4px 4px rgba(23,22,47,.45)); white-space:nowrap;
+  transform:rotate(-8deg);
+}
+.jb-sleigh-flight { animation:jb-sleigh-cross 20s ease-in-out infinite alternate; }
+@keyframes jb-sleigh-cross {
+  from {transform:translateX(-80px) translateY(12px) rotate(-8deg);}
+  to {transform:translateX(90px) translateY(-14px) rotate(6deg);}
+}
+.jb-photo-snowflake {
+  position:absolute; border-radius:50%;
+  background: radial-gradient(circle,white 10%,rgba(255,255,255,.6) 55%,transparent 90%);
+  box-shadow: 0 0 3px rgba(255,255,255,.5);
+}
+.jb-photo-snowfall {animation:jb-real-snow linear infinite;}
+@keyframes jb-real-snow {from {transform:translateY(-80vh)}to{transform:translateY(85vh) translateX(18px)}}
+
+@media(max-width:640px) {
+  .site-shell .jb-hero-seasonal .jb-hero-seasonal-layout {
+    min-height: min(83svh, 760px);
+    min-height: clamp(580px, 83svh, 760px);
+    padding: 2.5rem 20px 1.5rem;
+    align-items: flex-start;
+  }
+  .jb-hero-photo { object-position: center bottom; }
+  .jb-photo-readable {
+    background: linear-gradient(180deg,
+      var(--site-hero-bg) 0%,
+      color-mix(in srgb, var(--site-hero-bg) 93%, transparent) 28%,
+      color-mix(in srgb, var(--site-hero-bg) 75%, transparent) 48%,
+      color-mix(in srgb, var(--site-hero-bg) 10%, transparent) 70%, transparent 95%);
+  }
+  .site-shell .jb-hero-seasonal .jb-hero-seasonal-copy { width:100%; max-width: 340px; padding:0; }
+  .site-shell .jb-hero-seasonal .site-body-copy { max-width: 288px; font-size: .87rem; line-height:1.6; }
+  .site-shell .jb-hero-seasonal .site-editable-heading { font-size: clamp(2.15rem,8vw,3rem) !important; }
+  .jb-seasonal-offer { max-width: 310px; margin-top: 16px; padding: 10px 11px; }
+  .jb-seasonal-offer .jb-offer-percent { font-size: 17px; }
+  .jb-seasonal-offer .jb-offer-percent svg { width:14px;height:14px; }
+  .jb-seasonal-offer strong { font-size: 12px; }
+  .jb-seasonal-offer .flex { gap: 6px; }
+  .jb-eid-moon { right: 6%; top: 53%; }
+  .jb-ornament-lantern { top: 65%; }
+  .jb-santa-sleigh {top: 56%; left: 54%; font-size:20px;}
+  .jb-puja-incense { bottom: 2%; right: 0; transform:scale(.75); }
+  .jb-nav-ornament { font-size:16px; top:-8px; }
+  .jb-nav-ornament-a {left: 40%;}
+  .jb-nav-ornament-b {right: 10%;}
+  .site-shell .jb-nav-inner { height: 64px; }
+  .site-shell .jb-nav-brand { max-width: 54%; overflow: hidden; }
+  .site-shell .jb-nav-actions { gap: 0; }
+  .site-shell .jb-nav-actions button { flex-shrink:0; }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .jb-nav-ornament, .jb-love-drift, .jb-moon-breathe, .jb-lantern-sway,
+  .jb-incense-smoke, .jb-sleigh-flight, .jb-photo-snowfall { animation:none !important; }
+}
