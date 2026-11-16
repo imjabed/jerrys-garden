@@ -303,7 +303,7 @@ async function resolveCouponItems(items: any[], database: any) {
     if (product) {
       const size = item?.selectedSize || item?.bouquet?.selectedSize || 'M';
       const variant = isBouquetCategory(String(product.category || ''))
-        ? productSizeFor(product, size) : null;
+        ? productSizeFor(product as any, size) : null;
       if (isBouquetCategory(String(product.category || '')) && !variant) continue;
       pricedItems.push({
         productId: String(product.id || productId), quantity,
@@ -1367,7 +1367,7 @@ async function startServer() {
         if (product.inStock === false) return res.status(409).json({ success: false, error: `${product.title || 'A selected product'} is currently out of stock.` });
         const bouquetProduct = isBouquetCategory(String(product.category || ''));
         const selectedSize = raw.selectedSize || 'M';
-        const variant = bouquetProduct ? productSizeFor(product, selectedSize) : null;
+        const variant = bouquetProduct ? productSizeFor(product as any, selectedSize) : null;
         if (bouquetProduct && !variant) {
           return res.status(409).json({ success: false, error: `${product.title} is not available in the selected size. Please update your bag.` });
         }
