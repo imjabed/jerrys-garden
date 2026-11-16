@@ -1262,33 +1262,32 @@
   color:var(--jb-nav-text, #292524) !important;
 }
 .site-shell[data-site-theme="winter"] .jb-hero-surface {
-  --site-hero-bg: #10243D;
-  background-color:var(--site-hero-bg);
+  background-color:var(--site-hero-bg, #10243D);
 }
 .site-shell[data-site-theme="winter"] .jb-hero-surface h1,
 .site-shell[data-site-theme="winter"] .jb-hero-surface .jb-hero-copy > p {
-  color:#FFF7EA !important;
+  color:var(--jb-hero-ink, #FFF7EA) !important;
 }
 .site-shell[data-site-theme="winter"] .jb-hero-surface h1 span {
-  color:#D8B270 !important;
+  color:var(--jb-hero-accent, #D8B270) !important;
 }
 .site-shell[data-site-theme="winter"] .jb-hero-surface .site-outline-button {
-  background:#D8B270 !important; border-color:#D8B270 !important;
-  color:#142339 !important;
+  background:var(--site-button, #D8B270) !important; border-color:var(--site-button, #D8B270) !important;
+  color:var(--site-button-text, #FFF9EE) !important;
 }
 .site-shell[data-site-theme="winter"] .jb-hero-surface .jb-photo-readable {
-  background:linear-gradient(90deg, #10243D 0%, rgba(16,36,61,.87) 24%,
-    rgba(16,36,61,.53) 47%, rgba(16,36,61,.08) 90%);
+  background:linear-gradient(90deg, var(--site-hero-bg) 0%,
+    color-mix(in srgb,var(--site-hero-bg) 86%,transparent) 24%,
+    color-mix(in srgb,var(--site-hero-bg) 53%,transparent) 47%,
+    transparent 90%);
 }
 /* Custom-order photo is always decorative. The form has its own solid card. */
 .site-shell .jb-themed-custom .jb-val-custom-photo-layer {
   z-index:0;
 }
-.site-shell .jb-themed-custom .jb-val-custom-photo-shade {
-  background:linear-gradient(90deg,
-    color-mix(in srgb,var(--site-custom-bg) 97%,transparent),
-    color-mix(in srgb,var(--site-custom-bg) calc(var(--jb-custom-overlay, .72) * 100%), transparent)
-  );
+.site-shell .jb-themed-custom:not(.jb-valentine-custom) .jb-val-custom-photo-shade {
+  background:var(--site-custom-bg);
+  opacity:var(--jb-custom-overlay, .72);
 }
 .site-shell .jb-themed-custom .jb-order-form-shell,
 .site-shell .jb-themed-custom .jb-price-card {
@@ -1335,12 +1334,11 @@
 .jb-festival-footer-tagline {
   color:var(--site-footer-text, #F5EDE6);
 }
-.site-shell[data-site-theme="winter"] .jb-footer-surface {
-  --site-footer-bg:#071729;
-  background:#071729 !important;
+.site-shell[data-site-theme="winter"] .jb-footer-surface,
+.site-shell[data-site-theme="eid"] .jb-footer-surface,
+.site-shell[data-site-theme="puja"] .jb-footer-surface {
+  background:var(--site-footer-bg) !important;
 }
-.site-shell[data-site-theme="eid"] .jb-footer-surface {background:#072E27 !important;}
-.site-shell[data-site-theme="puja"] .jb-footer-surface {background:#691318 !important;}
 .jb-festival-scene .jb-festival-silhouette {
   transition:background-color .25s ease;
 }
@@ -1353,8 +1351,9 @@
     -webkit-mask-position:28% bottom;
   }
   .site-shell[data-site-theme="winter"] .jb-hero-surface .jb-photo-readable {
-    background:linear-gradient(180deg,#10243D 0%,rgba(16,36,61,.9) 29%,
-      rgba(16,36,61,.6) 58%, transparent 100%);
+    background:linear-gradient(180deg,var(--site-hero-bg) 0%,
+      color-mix(in srgb,var(--site-hero-bg) 90%,transparent) 29%,
+      color-mix(in srgb,var(--site-hero-bg) 60%,transparent) 58%, transparent 100%);
   }
   .jb-theme-banner .jb-banner-action { margin-top:2px; }
 }
