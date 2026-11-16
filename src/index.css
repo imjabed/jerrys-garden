@@ -1219,3 +1219,145 @@
 @media(prefers-reduced-motion:reduce){
   .site-shell[data-site-theme="valentines"] .jb-valentine-sunset { animation: none; }
 }
+
+
+/* ==========================================================================
+   STUDIO 2026 — unified editable campaigns, cinematic festival footer.
+   Scoped to the selected theme, with no floating emoji decorations.
+   ========================================================================== */
+.jb-theme-banner {
+  background: var(--site-accent);
+}
+.jb-theme-banner-shade {
+  background: linear-gradient(90deg, rgba(0,0,0,.14), transparent 50%, rgba(0,0,0,.08));
+}
+.jb-theme-banner .jb-banner-eyebrow { color: var(--jb-banner-accent, #F3CF9D); }
+.jb-theme-banner .jb-banner-action { color: var(--jb-banner-accent, #F3CF9D); }
+.jb-theme-banner a:focus-visible { outline:2px solid var(--jb-banner-accent); outline-offset:5px; }
+@media (max-width:640px) {
+  .jb-theme-banner { min-height:72px; }
+  .jb-theme-banner p { overflow-wrap:anywhere; }
+}
+/* Non-Valentine colour choices are set by the current theme in the editor.
+   The Valentine Studio retains its purpose-built luxurious navbar styling. */
+.site-shell[data-site-theme]:not([data-site-theme="valentines"]) .jb-nav-surface {
+  background:var(--jb-nav-bg, var(--site-background)) !important;
+  border-bottom-color:var(--jb-nav-accent, #D3B77C) !important;
+}
+.site-shell[data-site-theme]:not([data-site-theme="valentines"]) .jb-nav-inner nav button,
+.site-shell[data-site-theme]:not([data-site-theme="valentines"]) .jb-nav-brand .font-serif,
+.site-shell[data-site-theme]:not([data-site-theme="valentines"]) .jb-nav-brand p,
+.site-shell[data-site-theme]:not([data-site-theme="valentines"]) .jb-nav-actions > div > button,
+.site-shell[data-site-theme]:not([data-site-theme="valentines"]) #cart-btn,
+.site-shell[data-site-theme]:not([data-site-theme="valentines"]) #quick-track-btn,
+.site-shell[data-site-theme]:not([data-site-theme="valentines"]) #search-toggle-btn,
+.site-shell[data-site-theme]:not([data-site-theme="valentines"]) #mobile-menu-toggle,
+.site-shell[data-site-theme]:not([data-site-theme="valentines"]) #sign-in-btn {
+  color:var(--jb-nav-text, #292524) !important;
+}
+.site-shell[data-site-theme]:not([data-site-theme="valentines"]) .jb-nav-surface .jb-mobile-menu {
+  background:var(--jb-nav-bg, var(--site-background)) !important;
+}
+.site-shell[data-site-theme]:not([data-site-theme="valentines"]) .jb-mobile-menu > button {
+  color:var(--jb-nav-text, #292524) !important;
+}
+.site-shell[data-site-theme="winter"] .jb-hero-surface {
+  --site-hero-bg: #10243D;
+  background-color:var(--site-hero-bg);
+}
+.site-shell[data-site-theme="winter"] .jb-hero-surface h1,
+.site-shell[data-site-theme="winter"] .jb-hero-surface .jb-hero-copy > p {
+  color:#FFF7EA !important;
+}
+.site-shell[data-site-theme="winter"] .jb-hero-surface h1 span {
+  color:#D8B270 !important;
+}
+.site-shell[data-site-theme="winter"] .jb-hero-surface .site-outline-button {
+  background:#D8B270 !important; border-color:#D8B270 !important;
+  color:#142339 !important;
+}
+.site-shell[data-site-theme="winter"] .jb-hero-surface .jb-photo-readable {
+  background:linear-gradient(90deg, #10243D 0%, rgba(16,36,61,.87) 24%,
+    rgba(16,36,61,.53) 47%, rgba(16,36,61,.08) 90%);
+}
+/* Custom-order photo is always decorative. The form has its own solid card. */
+.site-shell .jb-themed-custom .jb-val-custom-photo-layer {
+  z-index:0;
+}
+.site-shell .jb-themed-custom .jb-val-custom-photo-shade {
+  background:linear-gradient(90deg,
+    color-mix(in srgb,var(--site-custom-bg) 97%,transparent),
+    color-mix(in srgb,var(--site-custom-bg) calc(var(--jb-custom-overlay, .72) * 100%), transparent)
+  );
+}
+.site-shell .jb-themed-custom .jb-order-form-shell,
+.site-shell .jb-themed-custom .jb-price-card {
+  background:color-mix(in srgb,#FFFDF9 97%, var(--site-custom-bg) 3%);
+  backdrop-filter:blur(5px);
+  border-radius:12px;
+}
+.site-shell .jb-themed-custom .site-body-copy,
+.site-shell .jb-themed-custom .site-editable-heading { position:relative; z-index:2; }
+/* Original single-colour scenes sit on the footer's upper edge, no emojis. */
+.jb-festival-scene {
+  height:clamp(165px,21vw,286px);
+  width:100%;
+  isolation:isolate;
+}
+.jb-festival-sky {
+  background:linear-gradient(180deg,#F5D0B9 0%,#E8A7AA 64%,#BE7F83 100%);
+}
+.jb-festival-silhouette {
+  mask-image:none;
+  -webkit-mask-size:cover;
+  mask-size:cover;
+  -webkit-mask-repeat:no-repeat;
+  mask-repeat:no-repeat;
+  -webkit-mask-position:center bottom;
+  mask-position:center bottom;
+}
+.jb-footer-scene-winter .jb-festival-sky {
+  background:
+    radial-gradient(circle at 80% 32%,rgba(250,231,176,.5) 0 2px,transparent 3px),
+    radial-gradient(circle at 18% 40%,rgba(255,255,255,.75) 0 1px,transparent 2px),
+    radial-gradient(circle at 47% 12%,rgba(255,255,255,.68) 0 1px,transparent 2px),
+    linear-gradient(180deg,#071329,#16324D 70%,#26415A);
+}
+.jb-footer-scene-eid .jb-festival-sky {
+  background:linear-gradient(180deg,#042B2F 0%,#184B47 60%,#8BA57B 100%);
+}
+.jb-footer-scene-puja .jb-festival-sky {
+  background:linear-gradient(180deg,#651020 0%,#A13A38 55%,#E2A46C 100%);
+}
+.jb-footer-scene-valentines .jb-festival-sky {
+  background:linear-gradient(180deg,#F5BBC0 0%,#E99FA1 58%,#BF6578 100%);
+}
+.jb-festival-footer-tagline {
+  color:var(--site-footer-text, #F5EDE6);
+}
+.site-shell[data-site-theme="winter"] .jb-footer-surface {
+  --site-footer-bg:#071729;
+  background:#071729 !important;
+}
+.site-shell[data-site-theme="eid"] .jb-footer-surface {background:#072E27 !important;}
+.site-shell[data-site-theme="puja"] .jb-footer-surface {background:#691318 !important;}
+.jb-festival-scene .jb-festival-silhouette {
+  transition:background-color .25s ease;
+}
+@media (max-width:640px) {
+  .jb-festival-scene { height:155px; }
+  .jb-festival-silhouette {
+    mask-size:auto 100%;
+    -webkit-mask-size:auto 100%;
+    mask-position:28% bottom;
+    -webkit-mask-position:28% bottom;
+  }
+  .site-shell[data-site-theme="winter"] .jb-hero-surface .jb-photo-readable {
+    background:linear-gradient(180deg,#10243D 0%,rgba(16,36,61,.9) 29%,
+      rgba(16,36,61,.6) 58%, transparent 100%);
+  }
+  .jb-theme-banner .jb-banner-action { margin-top:2px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .jb-festival-scene *, .jb-theme-banner * { animation:none !important; }
+}
