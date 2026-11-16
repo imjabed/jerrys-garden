@@ -21,6 +21,7 @@ interface CustomOrderSectionProps {
   theme?: ThemeId;
   effects?: PageEffects;
   valentines?: ValentinesDesign;
+  fallbackPhotoUrl?: string;
 }
 export interface CustomEnquiryPayload {
   size: ProductSizeKey;
@@ -43,7 +44,7 @@ export interface CustomEnquiryPayload {
 
 const occasions = ['Wedding', 'Anniversary', 'Birthday', 'Event', 'Other'];
 
-export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggle, content = DEFAULT_SITE_CONTENT.custom, headingScale = 1, sizeChart, theme = 'default', effects = DEFAULT_SITE_CONTENT.effects, valentines }: CustomOrderSectionProps) {
+export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggle, content = DEFAULT_SITE_CONTENT.custom, headingScale = 1, sizeChart, theme = 'default', effects = DEFAULT_SITE_CONTENT.effects, valentines, fallbackPhotoUrl = '' }: CustomOrderSectionProps) {
   const [occasion, setOccasion] = useState('Wedding');
   const [size, setSize] = useState<ProductSizeKey>('S');
   const sizes = customSizeMap(sizeChart);
@@ -122,9 +123,9 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
       style={valentines ? { '--val-custom-overlay': String(valentines.customOverlay) } as CSSProperties : undefined}>
       {valentines && (
         <div className="jb-val-custom-photo-layer pointer-events-none absolute inset-0" aria-hidden="true">
-          {valentines.customImageUrl && (
+          {(valentines.customImageUrl || fallbackPhotoUrl) && (
             <img className="absolute inset-0 h-full w-full object-cover"
-              src={valentines.customImageUrl.replace('/image/upload/', '/image/upload/f_auto,q_auto,w_1600,c_limit/')}
+              src={(valentines.customImageUrl || fallbackPhotoUrl).replace('/image/upload/', '/image/upload/f_auto,q_auto,w_1600,c_limit/')}
               alt="" loading="lazy" decoding="async"
               style={{ objectPosition: `50% ${valentines.customImagePosition}%` }}/>
           )}
