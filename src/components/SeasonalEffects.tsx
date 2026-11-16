@@ -4,12 +4,13 @@ import type { PageEffects, ThemeId } from '../../shared/siteEditor';
 type Layer = 'hero' | 'support';
 
 export default function SeasonalEffects({
-  settings, theme, layer = 'hero', photoUrl = '', imagePosition = 76,
+  settings, theme, layer = 'hero', photoUrl = '', mobilePhotoUrl = '', imagePosition = 76,
 }: {
   settings: PageEffects;
   theme: ThemeId;
   layer?: Layer;
   photoUrl?: string;
+  mobilePhotoUrl?: string;
   imagePosition?: number;
 }) {
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -23,6 +24,7 @@ export default function SeasonalEffects({
   }, []);
 
   const support = layer === 'support';
+  const desktopPhoto = photoUrl || mobilePhotoUrl;
   // Scroll-linked image translation, without position:fixed or background-attachment:fixed.
   // The latter is unreliable on iOS and can cause slow painting on mobile.
   useEffect(() => {
@@ -35,7 +37,7 @@ export default function SeasonalEffects({
     const maxShift = mobile ? 16 : 36;
     let frame = 0;
     const clear = () => rootNode.style.setProperty('--jb-photo-parallax', '0px');
-    if (support || !photoUrl || !settings.parallax || reduceMotion) {
+    if (support || !desktopPhoto || !settings.parallax || reduceMotion) {
       clear();
       return;
     }
@@ -62,26 +64,34 @@ export default function SeasonalEffects({
       if (frame) window.cancelAnimationFrame(frame);
       clear();
     };
-  }, [settings.parallax, settings.parallaxStrength, photoUrl, reduceMotion, support]);
+  }, [settings.parallax, settings.parallaxStrength, desktopPhoto, reduceMotion, support]);
 
   if (support && (theme === 'default' || settings.illustrationPlacement !== 'homepage')) return null;
-  if (!support && theme === 'default' && !photoUrl) return null;
+  if (!support && theme === 'default' && !desktopPhoto) return null;
 
   const animated = settings.enabled && settings.artworkMotion && !reduceMotion;
   // Background images are always visible when selected; animation toggles affect
   // decorative effects only and never remove the published hero photo.
   const showDecoration = theme !== 'default' && settings.illustrationEnabled && settings.enabled;
-  const cdn = (width: number) => photoUrl.replace('/image/upload/', `/image/upload/f_auto,q_auto,w_${width},c_limit/`);
+  const cdn = (url: string, width: number) => url.replace('/image/upload/', `/image/upload/f_auto,q_auto,w_${width},c_limit/`);
   const showSnow = showDecoration && theme === 'winter' && settings.snowEnabled;
   const winterFlakes = showSnow ? Math.max(6, Math.min(32, Math.round(settings.snowDensity / 3))) : 0;
 
   return (
     <div ref={root} aria-hidden="true" className={`jb-photo-atmosphere pointer-events-none absolute inset-0 z-0 overflow-hidden jb-seasonal-${theme}`}>
-      {!support && Boolean(photoUrl) && (
-        <img src={cdn(960)} srcSet={`${cdn(640)} 640w, ${cdn(960)} 960w, ${cdn(1280)} 1280w`}
-          sizes="(max-width: 680px) 100vw, 100vw" alt="" draggable={false} fetchPriority="high"
-          style={{ objectPosition: `50% ${Math.max(0, Math.min(100, imagePosition))}%` }}
-          className={`jb-hero-photo absolute inset-0 h-full w-full object-cover ${settings.parallax && !reduceMotion ? "jb-hero-photo-parallax" : ""}`}/>
+      {!support && Boolean(desktopPhoto) && (
+        <picture className="absolute inset-0 h-full w-full">
+          {mobilePhotoUrl && (
+            <source media="(max-width: 700px)"
+              srcSet={`${cdn(mobilePhotoUrl, 640)} 640w, ${cdn(mobilePhotoUrl, 960)} 960w`}
+              sizes="100vw"/>
+          )}
+          <img src={cdn(desktopPhoto, 960)}
+            srcSet={`${cdn(desktopPhoto, 640)} 640w, ${cdn(desktopPhoto, 960)} 960w, ${cdn(desktopPhoto, 1280)} 1280w`}
+            sizes="(max-width: 680px) 100vw, 100vw" alt="" draggable={false} fetchPriority="high"
+            style={{ objectPosition: `50% ${Math.max(0, Math.min(100, imagePosition))}%` }}
+            className={`jb-hero-photo absolute inset-0 h-full w-full object-cover ${settings.parallax && !reduceMotion ? "jb-hero-photo-parallax" : ""}`}/>
+        </picture>
       )}
       {!support && <div className="jb-photo-readable absolute inset-0"/>}
 
