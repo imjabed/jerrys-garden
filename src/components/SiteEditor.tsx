@@ -1061,9 +1061,23 @@ export default function SiteEditor({
                   backgroundColor: draft.announcement.background, color: draft.announcement.textColor,
                 }}>{draft.announcement.text}</div>
               )}
-              <div className="jb-nav-surface relative flex items-center justify-between overflow-hidden border-b border-stone-200/30 px-5 py-4">
-                <span className="relative z-10 font-serif text-lg">Jame Bouquets</span>
-                <span className="text-xs text-stone-500">HOME · SHOP · ABOUT</span>
+              <div className="jb-nav-surface relative flex items-center justify-between overflow-hidden border-b border-stone-200/30 px-4 py-4">
+                {draft.theme !== 'default' && (
+                  <div className="jb-navbar-festive-details pointer-events-none absolute inset-0" aria-hidden="true">
+                    <span className="jb-nav-ornament jb-nav-ornament-a">
+                      {draft.theme === 'valentines' ? '🌹' : draft.theme === 'puja' ? '🌼'
+                        : draft.theme === 'winter' ? '❄' : '☾'}
+                    </span>
+                    <span className="jb-nav-ornament jb-nav-ornament-b">
+                      {draft.theme === 'valentines' ? '♥' : draft.theme === 'puja' ? '🪔'
+                        : draft.theme === 'winter' ? '🎄' : '🏮'}
+                    </span>
+                  </div>
+                )}
+                <span className="relative z-10 font-serif text-base sm:text-lg">Jame Bouquets</span>
+                {device === 'phone'
+                  ? <span className="relative z-10 text-base text-stone-700" aria-label="Cart and menu preview">♧ ☰</span>
+                  : <span className="relative z-10 text-xs text-stone-500">HOME · SHOP · ABOUT</span>}
               </div>
               {draft.sections.order.filter(id => draft.sections.visible[id]).map(id => {
                 if (id === 'hero') return <Hero key={id} content={draft.hero} headingScale={draft.appearance.headingScale}
