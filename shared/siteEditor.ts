@@ -84,6 +84,8 @@ export interface ThemeExtras {
   navBackground: string;
   navText: string;
   navAccent: string;
+  heroText: string;
+  heroAccent: string;
 }
 export type ThemeCopy = Pick<SiteContent, 'hero' | 'custom' | 'story' | 'footer'>;
 export interface SeasonalOffer {
@@ -162,8 +164,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#FFF3DF', storyBackground: '#FFF0DA', customBackground: '#FFF6E7', footerBackground: '#620A12',
   }, collectionBg: '#8B0000', collectionText: '#FFF6DC', effect: 'petals' },
   { id: 'winter', label: 'Winter / Christmas / New Year', description: 'Snowy holiday gifting · Christmas lights · New Year joy', appearance: {
-    background: '#FFF7E9', text: '#30283A', accent: '#B32834', button: '#B32834', buttonText: '#FFFFFF',
-    headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#F1EEF3', storyBackground: '#F3EFF1', customBackground: '#FFF8EF', footerBackground: '#14283F',
+    background: '#F3F5F8', text: '#22334A', accent: '#BD9455', button: '#102D46', buttonText: '#FFF9EE',
+    headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#10243D', storyBackground: '#E7EDF4', customBackground: '#EAF0F5', footerBackground: '#071729',
   }, collectionBg: '#0E223A', collectionText: '#FFF7E9', effect: 'snow' },
   { id: 'eid', label: 'Eid Celebration', description: 'Emerald arches · golden lanterns · crescent moon', appearance: {
     background: '#F8F4E6', text: '#1E4738', accent: '#C79A3B', button: '#0E5136', buttonText: '#FFFFFF',
@@ -345,6 +347,8 @@ const defaultThemeExtras = () => Object.fromEntries(THEME_PRESETS.map(p => [p.id
   navText: p.id === 'default' ? '#292524' : '#FFF8F0',
   navAccent: p.id === 'winter' ? '#DAB973' : p.id === 'eid' ? '#D8BD79'
     : p.id === 'puja' ? '#F3C079' : '#F2B7BD',
+  heroText: p.id === 'winter' ? '#FFF8E9' : p.appearance.text,
+  heroAccent: p.id === 'winter' ? '#D8B270' : p.appearance.accent,
 }])) as Record<ThemeId, ThemeExtras>;
 const defaultThemeBanners = () => Object.fromEntries(THEME_PRESETS.map(p => [p.id, {
   enabled: p.id !== 'default',
@@ -581,6 +585,8 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
       navBackground: hex(source?.navBackground, fallback.navBackground),
       navText: hex(source?.navText, fallback.navText),
       navAccent: hex(source?.navAccent, fallback.navAccent),
+      heroText: hex(source?.heroText, fallback.heroText),
+      heroAccent: hex(source?.heroAccent, fallback.heroAccent),
     }];
   })) as SiteContent['themeExtras'];
   const fx = raw.effects || {};
