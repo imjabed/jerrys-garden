@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
   ArrowLeft, ArrowDown, ArrowUp, Check, ChevronRight, CloudUpload, Download,
   Eye, Image as ImageIcon, LayoutGrid, Monitor, RotateCcw, Save, Settings2,
-  Smartphone, Tablet, Type, UploadCloud, X, Palette, Sparkles, Layers3, Plus, Copy, Trash2, Link2, SlidersHorizontal, BadgePercent,
+  Smartphone, Tablet, Type, UploadCloud, X, Palette, Sparkles, Layers3, Plus, Copy, Trash2, Link2, SlidersHorizontal, BadgePercent, ShoppingBag, Menu,
 } from 'lucide-react';
 import Hero from './Hero';
 import CollectionShowcase from './CollectionShowcase';
@@ -1076,7 +1076,7 @@ export default function SiteEditor({
                 )}
                 <span className="relative z-10 font-serif text-base sm:text-lg">Jame Bouquets</span>
                 {device === 'phone'
-                  ? <span className="relative z-10 text-base text-stone-700" aria-label="Cart and menu preview">♧ ☰</span>
+                  ? <span className="relative z-10 flex items-center gap-3 text-stone-700" aria-label="Cart and menu preview"><ShoppingBag className="h-4 w-4"/><Menu className="h-5 w-5"/></span>
                   : <span className="relative z-10 text-xs text-stone-500">HOME · SHOP · ABOUT</span>}
               </div>
               {draft.sections.order.filter(id => draft.sections.visible[id]).map(id => {
