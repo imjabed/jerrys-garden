@@ -409,6 +409,7 @@ async function startServer() {
         // Only allow predefined storage folders; never trust arbitrary folder paths.
         folder: folder === 'jame_bouquets_branding' ? 'jame_bouquets_branding'
           : folder === 'jame_bouquets_collections' ? 'jame_bouquets_collections'
+          : folder === 'jame_bouquets_themes' ? 'jame_bouquets_themes'
           : 'jerrys_garden_bouquets',
         resource_type: 'image',
       });
