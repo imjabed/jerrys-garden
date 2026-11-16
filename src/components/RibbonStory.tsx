@@ -1,6 +1,7 @@
 import { ArrowUpRight, Gift, Heart, Flower2 } from 'lucide-react';
 import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
-import type { SiteContent } from '../../shared/siteEditor';
+import type { SiteContent, ThemeId, PageEffects } from '../../shared/siteEditor';
+import SeasonalEffects from './SeasonalEffects';
 
 const qualities = [
   { icon: Heart, title: 'Handmade', detail: 'Thoughtful details in every piece.' },
@@ -8,10 +9,13 @@ const qualities = [
   { icon: Flower2, title: 'Made to keep', detail: 'Little reminders that last.' },
 ];
 
-export default function RibbonStory({ content = DEFAULT_SITE_CONTENT.story, headingScale = 1 }: { key?: string; content?: SiteContent['story']; headingScale?: number }) {
+export default function RibbonStory({ content = DEFAULT_SITE_CONTENT.story, headingScale = 1, theme = 'default', effects = DEFAULT_SITE_CONTENT.effects }: {
+  key?: string; content?: SiteContent['story']; headingScale?: number; theme?: ThemeId; effects?: PageEffects;
+}) {
   return (
-    <section id="ribbon-story" className="jb-story-surface border-t border-stone-200/80 py-20 sm:py-28">
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+    <section id="ribbon-story" className="jb-story-surface relative isolate overflow-hidden border-t border-stone-200/80 py-20 sm:py-28">
+      <SeasonalEffects settings={effects} theme={theme} layer="support"/>
+      <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-end">
           <div>
             <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-6">{content.eyebrow}</p>

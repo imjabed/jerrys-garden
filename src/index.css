@@ -64,41 +64,70 @@
   .site-shell[data-hover-lift="on"] .jb-product-card:hover,
   .site-shell[data-hover-lift="on"] .jb-collection-card:hover { transform: translateY(-4px); }
 }
-.jb-effect-glow {
-  transform: translate3d(0, var(--effect-parallax-offset, 0px), 0);
-  transition: opacity 200ms ease;
-  filter: blur(45px);
-}
-.jb-floating-object {
-  position: absolute;
-  display: block;
-  will-change: transform;
-  background: var(--site-accent, #9D777C);
-  animation-name: jb-gentle-drift;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-  opacity: .35;
-}
-.jb-shape-petals { border-radius: 85% 12% 80% 18%; transform: rotate(35deg); }
-.jb-shape-snow { border-radius: 50%; background: #fff; box-shadow: 0 0 3px 1px rgba(92,133,160,.3); }
-.jb-shape-confetti { width: 5px; border-radius: 1px; background: var(--site-accent, #aa8749); }
-.jb-shape-lanterns { border: 1px solid var(--site-accent, #988345); border-radius: 40% 40% 12% 12%; background: transparent; box-shadow: 0 0 9px 0 var(--site-accent, #988345); }
-.jb-shape-sparkles { background: transparent; border-radius: 0; }
-.jb-shape-sparkles::after, .jb-shape-sparkles::before {
-  position: absolute; content: ''; background: var(--site-accent, #9D777C);
-}
-.jb-shape-sparkles::before { left: 45%; width: 10%; height: 100%; }
-.jb-shape-sparkles::after { top: 45%; height: 10%; width: 100%; }
-@keyframes jb-gentle-drift {
-  0% { transform: translate3d(0, calc(var(--effect-parallax-offset, 0px) + 4px), 0) rotate(-12deg); }
-  50% { transform: translate3d(14px, calc(var(--effect-parallax-offset, 0px) - 23px), 0) rotate(26deg); }
-  100% { transform: translate3d(0, calc(var(--effect-parallax-offset, 0px) + 4px), 0) rotate(-12deg); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .jb-floating-object, .jb-effect-glow, .site-shell .jb-product-card, .site-shell .jb-collection-card { animation: none !important; transition: none !important; transform: none !important; }
-}
 
-.jb-glowing-dot { animation: jb-gentle-drift 18s ease-in-out infinite; }
+/* Seasonal scenes: bespoke illustrations, photographic-depth snow, and restrained motion.
+   No generic neon glows or floating circular 'AI particles'. */
+.jb-seasonal-scene { isolation: isolate; contain: paint; }
+.jb-seasonal-art {
+  pointer-events: none;
+  transform: translate3d(0,var(--seasonal-parallax,0px),0);
+  transform-origin: 75% 45%;
+  -webkit-mask-image: linear-gradient(to right,transparent 0%,rgba(0,0,0,.55) 26%,black 62%);
+  mask-image: linear-gradient(to right,transparent 0%,rgba(0,0,0,.55) 26%,black 62%);
+}
+.jb-seasonal-art-drift {
+  animation: jb-art-drift 22s ease-in-out infinite alternate;
+}
+.jb-seasonal-fireworks {
+  animation: jb-firework-light 7s ease-in-out infinite alternate;
+}
+.jb-seasonal-firework-shimmer {
+  filter: blur(28px);
+  animation: jb-firework-light 7s ease-in-out infinite alternate;
+}
+.jb-seasonal-winter .jb-seasonal-art {
+  right: -7%;
+  bottom: -12%;
+  top: auto;
+  height: 105%;
+  width: 85%;
+}
+.jb-seasonal-valentines .jb-seasonal-art {
+  right: -7%;
+  width: 63%;
+}
+.jb-seasonal-puja .jb-seasonal-art,
+.jb-seasonal-eid .jb-seasonal-art { right: -4%; width: 75%; }
+.jb-snowflake {
+  pointer-events: none;
+  background: radial-gradient(circle at 37% 30%,#fff 0%,rgba(255,255,255,.96) 38%,rgba(221,238,251,.72) 65%,transparent 88%);
+  box-shadow: 0 0 2px rgba(255,255,255,.7),0 0 3px rgba(92,141,167,.42);
+  animation: jb-snowfall linear infinite;
+  will-change: transform;
+}
+.jb-snow-still { animation: none !important; }
+@keyframes jb-snowfall {
+  from { transform: translate3d(0,-106vh,0); }
+  to { transform: translate3d(var(--snow-drift,12px),106vh,0); }
+}
+@keyframes jb-art-drift {
+  0% { transform: translate3d(0,var(--seasonal-parallax,0px),0) scale(1); }
+  100% { transform: translate3d(7px,calc(var(--seasonal-parallax,0px) - 10px),0) scale(1.016); }
+}
+@keyframes jb-firework-light {
+  0%, 100% { filter: brightness(.86) saturate(.92); }
+  45% { filter: brightness(1.3) saturate(1.07); }
+  76% { filter: brightness(1) saturate(1.1); }
+}
+@media (max-width: 640px) {
+  .jb-seasonal-art { right: -30%; top: -2%; width: 110%; opacity: .18 !important; }
+  .jb-seasonal-winter .jb-seasonal-art { right: -25%; width: 120%; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .jb-glowing-dot { animation: none !important; }
+  .jb-snowflake, .jb-seasonal-art, .jb-seasonal-firework-shimmer,
+  .site-shell .jb-product-card, .site-shell .jb-collection-card {
+    animation: none !important;
+    transition: none !important;
+  }
+  .site-shell .jb-product-card, .site-shell .jb-collection-card { transform: none !important; }
 }

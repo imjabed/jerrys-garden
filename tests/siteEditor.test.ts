@@ -86,7 +86,7 @@ test('unsafe block links and malformed effects fail safe', () => {
   assert.equal(config.effects.speed, 0.25);
   assert.equal(config.effects.opacity, 0.8);
   assert.equal(config.effects.parallaxStrength, 0.6);
-  assert.equal(config.effects.glowingParticles, true);
+  assert.equal(config.effects.glowingParticles, false); // Retired generic glow particles.
 });
 test('older homepage configurations upgrade without erasing existing shop sections', () => {
   const upgraded = sanitizeSiteContent({ hero: { heading: 'Original headline' }, sections: { order: ['shop', 'hero'] } });
@@ -95,4 +95,43 @@ test('older homepage configurations upgrade without erasing existing shop sectio
   assert.equal(upgraded.blocks.length, 0);
   assert.equal(upgraded.effects.enabled, false);
   assert.equal(upgraded.announcement.enabled, false);
+});
+
+test('theme presets provide artwork without neon-glow particles', () => {
+  for (const theme of THEME_PRESETS) {
+    const configured = applyThemePreset(DEFAULT_SITE_CONTENT, theme.id);
+    assert.equal(configured.theme, theme.id);
+    assert.equal(configured.effects.glowingParticles, false);
+    assert.equal(configured.effects.glow, false);
+    assert.equal(configured.effects.floating, false);
+    assert.equal(configured.effects.illustrationEnabled, theme.id !== 'default');
+    assert.equal(configured.effects.snowEnabled, theme.id === 'winter');
+    assert.equal(configured.effects.fireworksEnabled, theme.id === 'new-year');
+  }
+  const winter = applyThemePreset(DEFAULT_SITE_CONTENT, 'winter');
+  assert.equal(winter.effects.snowDensity, 90);
+  const newYear = applyThemePreset(DEFAULT_SITE_CONTENT, 'new-year');
+  assert.equal(newYear.effects.fireworksIntensity, 85);
+});
+test('seasonal editor settings clamp values and preserve theme-aligned scenes', () => {
+  const config = sanitizeSiteContent({
+    theme: 'winter',
+    effects: { enabled: true, illustrationEnabled: true,
+      illustrationPlacement: 'homepage', snowEnabled: true, snowDensity: 1000,
+      fireworksEnabled: false, fireworksIntensity: -10,
+      artworkOpacity: 25, artworkMotion: false,
+      glow: true, glowingParticles: true },
+  });
+  assert.equal(config.theme, 'winter');
+  assert.equal(config.effects.illustrationPlacement, 'homepage');
+  assert.equal(config.effects.snowDensity, 100);
+  assert.equal(config.effects.fireworksIntensity, 0);
+  assert.equal(config.effects.artworkOpacity, 1);
+  assert.equal(config.effects.artworkMotion, false);
+  assert.equal(config.effects.glow, false);
+  assert.equal(config.effects.glowingParticles, false);
+  const previous = sanitizeSiteContent({ theme: 'eid', effects: { enabled: true, shape: 'lanterns' } });
+  assert.equal(previous.effects.illustrationEnabled, true);
+  assert.equal(previous.effects.illustrationPlacement, 'hero');
+  assert.equal(previous.effects.glow, false);
 });

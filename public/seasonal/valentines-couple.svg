@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 780" role="img"><defs>
+<linearGradient id="rose" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#BC5972"/><stop offset=".48" stop-color="#79324D"/><stop offset="1" stop-color="#3F2338"/></linearGradient>
+<linearGradient id="silk" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F8D5C9"/><stop offset=".5" stop-color="#C78E89"/><stop offset="1" stop-color="#A76369"/></linearGradient>
+<linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#56334B"/><stop offset=".6" stop-color="#281E32"/><stop offset="1" stop-color="#211D2B"/></linearGradient>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F7E5B8"/><stop offset=".48" stop-color="#C4A16A"/><stop offset="1" stop-color="#977348"/></linearGradient>
+<radialGradient id="haze"><stop stop-color="#D9798E" stop-opacity=".32"/><stop offset="1" stop-color="#D9798E" stop-opacity="0"/></radialGradient>
+<filter id="mist"><feGaussianBlur stdDeviation="20"/></filter></defs>
+<ellipse cx="374" cy="440" rx="285" ry="340" fill="url(#haze)"/>
+<path d="M137 759V296C137 153 236 66 362 66c130 0 222 96 222 230v463" fill="none" stroke="url(#gold)" stroke-width="5" opacity=".45"/>
+<path d="M166 758V302C166 176 252 99 364 99c116 0 190 83 190 203v456" fill="none" stroke="#A98070" stroke-width="1.5" opacity=".3"/>
+<path d="M106 750Q351 717 621 755" fill="none" stroke="#BC8E85" stroke-width="5" opacity=".28"/>
+<!-- intertwined figures: fashion editorial ink-and-watercolour silhouettes -->
+<path d="M257 727Q225 641 225 554Q224 496 267 448L312 411 367 433 373 511 354 585 344 749Z" fill="url(#navy)"/>
+<path d="M250 505Q215 532 214 585Q220 662 259 720" fill="none" stroke="#947280" stroke-width="12" opacity=".45"/>
+<path d="M332 730Q320 628 335 557Q354 500 390 476L437 451Q492 473 516 539Q534 626 509 753Z" fill="url(#rose)"/>
+<path d="M468 494Q495 552 498 639" fill="none" stroke="#E6A6A1" stroke-width="10" opacity=".36"/>
+<!-- first face, angular sculptural profile -->
+<path d="M276 398Q248 376 253 337Q248 304 276 284Q312 266 331 299Q343 318 326 347L343 371 333 386Q315 385 306 410L306 439 268 446Z" fill="url(#silk)"/>
+<path d="M248 353Q234 298 266 271Q311 235 342 279Q351 296 337 323L324 301Q292 303 280 326L267 368Z" fill="#312536"/>
+<path d="M325 347Q337 353 342 352Q337 359 322 360" fill="none" stroke="#8E555E" stroke-width="2"/>
+<!-- second face with swept hair -->
+<path d="M421 404Q445 390 455 366Q467 332 446 306Q415 276 391 297Q370 323 385 358L369 372Q373 383 387 384L397 414Z" fill="url(#silk)"/>
+<path d="M384 366Q352 320 384 283Q421 252 458 281Q482 314 465 365Q461 387 439 400Q451 372 441 343L419 301Q401 335 384 366Z" fill="#402A39"/>
+<path d="M373 378Q365 416 399 443L414 461 433 437Q408 414 402 390" fill="url(#silk)"/>
+<!-- hands meeting with the bouquet -->
+<path d="M307 541Q335 529 363 521Q389 519 404 532" fill="none" stroke="#D39C90" stroke-width="19" stroke-linecap="round"/>
+<path d="M416 531Q401 523 388 527L370 541" fill="none" stroke="#F3C5B6" stroke-width="13" stroke-linecap="round"/>
+<path d="M362 536L356 480M362 536L382 468M363 537L333 478" stroke="#5D7462" stroke-width="4" stroke-linecap="round"/>
+<g fill="#AE5369" stroke="#F8D7C3" stroke-width="1.5">
+<path d="M357 478q-30-14-24-35 18-16 31 3 16-24 34-6 8 25-36 43Z"/>
+<path d="M336 473q-24-12-17-29 14-12 24 6 12-21 28-6 5 19-35 29Z"/>
+<path d="M388 462q-26-14-20-34 16-15 29 3 14-22 31-5 5 22-40 36Z"/>
+</g>
+<g opacity=".65" stroke="#B56B79" fill="none" stroke-width="2">
+<path d="M91 670Q150 543 143 420M607 667Q546 546 563 422"/>
+<path d="M116 600q-33-15-32-43 33 5 32 43ZM130 549q30-16 32-44-31 7-32 44ZM574 587q38-9 44-38-37 4-44 38Z" fill="#D9939D" opacity=".65"/>
+</g>
+<g fill="#DCA6A4" opacity=".72"><circle cx="169" cy="243" r="3"/><circle cx="546" cy="204" r="4"/><circle cx="126" cy="364" r="2"/><circle cx="601" cy="332" r="2.5"/></g>
+</svg>

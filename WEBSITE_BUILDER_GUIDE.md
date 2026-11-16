@@ -49,3 +49,27 @@ Publishing settings are stored in MongoDB and do not require a new GitHub commit
 
 ### Limits of the no-code editor
 This is an expanded **homepage editor and reusable section builder**, not a source-code editor. The checkout, authentication, customer account, payment logic and backend APIs remain code-managed for safety. Arbitrary custom JavaScript/HTML is intentionally unsupported. Themes do not add religious symbols or generic commercial stock images.
+
+
+## Upgraded theme illustrations (November 2026)
+
+The **Themes** gallery now uses hand-crafted, transparent SVG scenes:
+- **Default:** pure minimal ivory/stone layout (no seasonal illustration).
+- **Valentines Week:** a softly shaded couple beneath a decorative arch and ribbon-flower details.
+- **New Year Celebration:** layered champagne, silver and gold fireworks bursts.
+- **Puja Celebration:** a warm diya flame, marigold garlands and alpana-inspired ornament.
+- **Eid Celebration:** an ornamental arch, crescent and hanging brass-toned lanterns.
+- **Winter Session:** snowy pine landscape and layered snowfall with three depths.
+
+Go to **Website Editor → Motion** to:
+1. Switch the entire seasonal atmosphere on/off.
+2. Enable/disable the themed illustration.
+3. Select **Hero only** or **Hero + story + custom order** for background artwork.
+4. Change illustration visibility, gentle artwork movement and parallax intensity.
+5. For Winter, turn on **Layered snow** and set **Snow intensity** (80–100% for extra snowfall).
+6. For New Year, toggle fireworks and adjust their brightness.
+7. Set motion speed. Visitors with reduced-motion preferences see static/reduced effects.
+
+Generic glowing dots, neon-like glows and random geometric objects have been retired. All artwork remains decorative, behind the shop's content and controls; it does not appear over product detail/checkout content.
+
+**Important:** Changes made in the editor are drafts until **Publish**. Deploy the latest frontend and backend commit before using the new theme controls; older published settings are upgraded safely when read.

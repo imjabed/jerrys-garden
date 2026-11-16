@@ -637,7 +637,7 @@ export default function App() {
           {siteContent.sections.order.filter(id => siteContent.sections.visible[id]).map(id => {
             if (id === 'hero') return (
               <Hero key={id}
-                content={siteContent.hero} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects}
+                content={siteContent.hero} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects} theme={siteContent.theme}
                 onExploreClick={() => scrollToSection('shop-section')}
                 featuredProduct={bouquets.find(product => product.featured && product.inStock && product.imageUrl) || bouquets.find(product => product.inStock && product.imageUrl) || null}
                 onFeaturedClick={navigateToProduct}
@@ -746,14 +746,14 @@ export default function App() {
               }}/>
             );
             if (id === 'custom') return (
-              <CustomOrderSection key={id} content={siteContent.custom} headingScale={siteContent.appearance.headingScale} sizeChart={storeSettings.customSizeFlowers}
+              <CustomOrderSection key={id} content={siteContent.custom} headingScale={siteContent.appearance.headingScale} sizeChart={storeSettings.customSizeFlowers} effects={siteContent.effects} theme={siteContent.theme}
                 mobileOpen={customMobileOpen} onMobileToggle={() => setCustomMobileOpen(current => !current)}
                 onSubmit={async payload => {
                   const result = await apiSendCustomEnquiry(payload);
                   return { orderNumber: result.orderNumber };
                 }}/>
             );
-            if (id === 'story') return <RibbonStory key={id} content={siteContent.story} headingScale={siteContent.appearance.headingScale}/>;
+            if (id === 'story') return <RibbonStory key={id} content={siteContent.story} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects} theme={siteContent.theme}/>;
             const block = siteContent.blocks.find(item => item.id === id);
             return block ? <CustomPageBlock key={block.id} block={block}/> : null;
           })}

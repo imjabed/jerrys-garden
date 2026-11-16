@@ -33,6 +33,14 @@ export interface PageEffects {
   parallax: boolean;
   parallaxStrength: number;
   hoverLift: boolean;
+  illustrationEnabled: boolean;
+  illustrationPlacement: 'hero' | 'homepage';
+  snowEnabled: boolean;
+  snowDensity: number;
+  fireworksEnabled: boolean;
+  fireworksIntensity: number;
+  artworkOpacity: number;
+  artworkMotion: boolean;
 }
 export interface ThemePreset {
   id: ThemeId;
@@ -76,8 +84,18 @@ export function applyThemePreset(current: SiteContent, id: ThemeId): SiteContent
     appearance: { ...current.appearance, ...preset.appearance },
     collections: { ...current.collections, background: preset.collectionBg, text: preset.collectionText },
     effects: { ...current.effects, shape: preset.effect,
-      enabled: preset.effect !== 'none', floating: preset.effect !== 'none',
-      glow: preset.effect !== 'none', glowingParticles: preset.effect !== 'none', parallax: false },
+      enabled: preset.id !== 'default',
+      glow: false, glowingParticles: false, floating: false,
+      illustrationEnabled: preset.id !== 'default',
+      illustrationPlacement: 'hero',
+      snowEnabled: preset.id === 'winter',
+      snowDensity: preset.id === 'winter' ? 90 : 45,
+      fireworksEnabled: preset.id === 'new-year',
+      fireworksIntensity: preset.id === 'new-year' ? 85 : 55,
+      artworkOpacity: 0.68,
+      artworkMotion: true,
+      parallax: false,
+    },
   };
 }
 export const BLOCK_KINDS: { id: BlockKind; label: string; description: string }[] = [
@@ -175,7 +193,15 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
   blocks: [],
   announcement: { enabled: false, text: 'Handmade gifting, thoughtfully prepared in Berhampore', link: '#shop-section', background: '#292524', textColor: '#FFFFFF' },
   footer: { description: 'Handmade bouquets, keepsakes, keychains & gifts. Thoughtfully crafted in Berhampore.', orderNote: 'Order online · We confirm by phone' },
-  effects: { enabled: false, glow: false, glowingParticles: false, floating: false, shape: 'none', density: 10, speed: 1, opacity: 0.4, parallax: false, parallaxStrength: 0.2, hoverLift: true },
+  effects: {
+    enabled: false, glow: false, glowingParticles: false, floating: false,
+    shape: 'none', density: 10, speed: 1, opacity: 0.4,
+    illustrationEnabled: false, illustrationPlacement: 'hero',
+    snowEnabled: false, snowDensity: 65,
+    fireworksEnabled: false, fireworksIntensity: 70,
+    artworkOpacity: 0.68, artworkMotion: true,
+    parallax: false, parallaxStrength: 0.2, hoverLift: true,
+  },
   appearance: {
     headingFont: 'playfair', bodyFont: 'plus-jakarta', headingScale: 1,
     bodyScale: 1, background: '#FAF8F5', text: '#292524',
@@ -299,9 +325,9 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
     footer: { description: fieldText(raw.footer, 'description', d.footer.description, 350), orderNote: fieldText(raw.footer, 'orderNote', d.footer.orderNote, 130) },
     effects: {
       enabled: fx.enabled === true,
-      glow: fx.glow === true,
-      glowingParticles: fx.glowingParticles === true,
-      floating: fx.floating === true,
+      glow: false,
+      glowingParticles: false,
+      floating: false,
       shape: ['petals', 'snow', 'confetti', 'lanterns', 'sparkles', 'none'].includes(fx.shape) ? fx.shape : d.effects.shape,
       density: numberRange(fx.density, d.effects.density, 0, 28),
       speed: numberRange(fx.speed, d.effects.speed, 0.25, 3),
@@ -309,6 +335,15 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
       parallax: fx.parallax === true,
       parallaxStrength: numberRange(fx.parallaxStrength, d.effects.parallaxStrength, 0, 0.6),
       hoverLift: fx.hoverLift !== false,
+      illustrationEnabled: typeof fx.illustrationEnabled === 'boolean'
+        ? fx.illustrationEnabled : (fx.enabled === true && theme !== 'default'),
+      illustrationPlacement: fx.illustrationPlacement === 'homepage' ? 'homepage' : 'hero',
+      snowEnabled: typeof fx.snowEnabled === 'boolean' ? fx.snowEnabled : theme === 'winter',
+      snowDensity: numberRange(fx.snowDensity, d.effects.snowDensity, 0, 100),
+      fireworksEnabled: typeof fx.fireworksEnabled === 'boolean' ? fx.fireworksEnabled : theme === 'new-year',
+      fireworksIntensity: numberRange(fx.fireworksIntensity, d.effects.fireworksIntensity, 0, 100),
+      artworkOpacity: numberRange(fx.artworkOpacity, d.effects.artworkOpacity, 0.1, 1),
+      artworkMotion: fx.artworkMotion !== false,
     },
     appearance: {
       headingFont: font(raw.appearance?.headingFont, d.appearance.headingFont),

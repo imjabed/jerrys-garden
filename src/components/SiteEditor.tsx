@@ -7,6 +7,7 @@ import {
 import Hero from './Hero';
 import CollectionShowcase from './CollectionShowcase';
 import CustomPageBlock from './CustomPageBlock';
+import SeasonalEffects from './SeasonalEffects';
 import type { RibbonBouquet } from '../types';
 import {
   DEFAULT_SITE_CONTENT, DEFAULT_CATEGORIES, FONT_LABELS, FONT_STACKS,
@@ -363,9 +364,17 @@ export default function SiteEditor({
                     <button key={preset.id} type="button" aria-pressed={draft.theme === preset.id}
                       onClick={() => update(prev => applyThemePreset(prev, preset.id))}
                       className={`overflow-hidden border-2 text-left transition-colors ${draft.theme === preset.id ? 'border-stone-900' : 'border-stone-200 hover:border-stone-500'}`}>
-                      <div className="flex h-24 flex-col justify-between p-3" style={{ background: preset.appearance.heroBackground }}>
+                      <div className="relative flex h-24 flex-col justify-between overflow-hidden p-3" style={{ background: preset.appearance.heroBackground }}>
                         <span className="font-serif text-base" style={{ color: preset.appearance.text }}>Jame</span>
-                        <div className="flex h-6 w-full items-center gap-2">
+                        {preset.id !== 'default' && (
+                          <img src={`/seasonal/${({
+                            valentines: 'valentines-couple.svg',
+                            'new-year': 'new-year-fireworks.svg',
+                            puja: 'puja-diya.svg', eid: 'eid-lanterns.svg', winter: 'winter-landscape.svg',
+                          } as Record<string, string>)[preset.id]}`}
+                            loading="lazy" alt="" className="pointer-events-none absolute right-0 top-0 h-24 w-28 object-contain opacity-75"/>
+                        )}
+                        <div className="relative flex h-6 w-full items-center gap-2">
                           <span className="h-4 w-4 rounded-full" style={{ background: preset.appearance.accent }}/>
                           <span className="h-3 flex-1" style={{ background: preset.appearance.button }}/>
                           <span className="h-3 w-7" style={{ background: preset.collectionBg }}/>
@@ -394,46 +403,112 @@ export default function SiteEditor({
             )}
             {panel === 'effects' && (
               <>
-                <h2 className="font-serif text-2xl">Animations & ambience</h2>
-                <p className="text-xs leading-6 text-stone-500">Keep effects subtle for a luxury look. They appear behind hero content and never interfere with shopping or checkout.</p>
+                <div>
+                  <h2 className="font-serif text-2xl">Seasonal illustrations & atmosphere</h2>
+                  <p className="mt-2 text-xs leading-6 text-stone-500">
+                    Bespoke illustrated scenes instead of generic glowing dots: a romantic couple,
+                    champagne fireworks, marigold diya, Eid lanterns and deep winter snowfall.
+                    The artwork always follows the selected theme.
+                  </p>
+                </div>
+                <div className="rounded border border-stone-200 bg-[#FAF8F5] p-4">
+                  <p className="text-sm font-semibold">Current theme: {THEME_PRESETS.find(p => p.id === draft.theme)?.label}</p>
+                  <p className="mt-1 text-[11px] text-stone-500">
+                    {draft.theme === 'default' ? 'Default stays clean with no seasonal decorations.' :
+                      'Theme illustrations remain behind your headings and product photos.'}
+                  </p>
+                  <button type="button" className="mt-2 text-xs font-medium underline underline-offset-4"
+                    onClick={() => setPanel('themes')}>Change seasonal theme</button>
+                </div>
                 {([
-                  ['enabled', 'Enable ambient effects', 'Master switch for decorative motion'],
-                  ['glow', 'Soft glowing light', 'Accent-coloured ambient illumination'],
-                  ['glowingParticles', 'Glowing particles', 'Small soft glints drifting behind the hero'],
-                  ['floating', 'Floating objects', 'Gentle decorative motion'],
-                  ['parallax', 'Scroll parallax', 'Move the ambience subtly as visitors scroll'],
-                  ['hoverLift', 'Hover lift', 'Raise supported product and collection cards slightly'],
-                ] as const).map(([id, label, description]) => (
-                  <label key={id} className="flex cursor-pointer items-center justify-between gap-3 border-b border-stone-200 py-3">
-                    <span><span className="block text-xs font-medium">{label}</span>
-                      <span className="mt-1 block text-[11px] text-stone-500">{description}</span></span>
-                    <input type="checkbox" className="h-4 w-4 accent-stone-900" checked={draft.effects[id]}
-                      onChange={e => update(prev => ({ ...prev, effects: { ...prev.effects, [id]: e.target.checked } }))}/>
+                  ['enabled', 'Seasonal atmosphere', 'Master on/off for all seasonal graphics'],
+                  ['illustrationEnabled', 'Theme illustration', 'Show the unique artwork for the selected theme'],
+                  ['artworkMotion', 'Gentle artwork motion', 'Minimal movement instead of flashy effects'],
+                  ['parallax', 'Scroll parallax', 'A subtle depth shift as the page scrolls'],
+                  ['hoverLift', 'Product-card hover lift', 'Small lift on desktop when the pointer moves over a product'],
+                ] as const).map(([key, label, description]) => (
+                  <label key={key} className="flex items-center justify-between gap-3 border-b border-stone-200 py-3">
+                    <span>
+                      <span className="block text-xs font-medium">{label}</span>
+                      <span className="mt-1 block text-[11px] leading-5 text-stone-500">{description}</span>
+                    </span>
+                    <input type="checkbox" className="h-4 w-4 shrink-0 accent-stone-900" checked={draft.effects[key]}
+                      onChange={e => update(prev => ({
+                        ...prev, effects: { ...prev.effects, [key]: e.target.checked },
+                      }))}/>
                   </label>
                 ))}
-                {option('Floating object design', draft.effects.shape,
-                  [{ id: 'none', label: 'None' }, { id: 'petals', label: 'Drifting petals' },
-                    { id: 'snow', label: 'Soft snow' }, { id: 'confetti', label: 'Celebration confetti' },
-                    { id: 'lanterns', label: 'Glowing lanterns' }, { id: 'sparkles', label: 'Abstract glints' }],
-                  v => update(prev => ({ ...prev, effects: { ...prev.effects, shape: v as EffectShape } })))}
-                {([
-                  ['density', 'Object count', 0, 28, 1],
-                  ['speed', 'Animation speed', 0.25, 3, 0.25],
-                  ['opacity', 'Effect transparency', 0.05, 0.8, 0.05],
-                  ['parallaxStrength', 'Parallax intensity', 0, 0.6, 0.05],
-                ] as const).map(([key, label, min, max, step]) => (
-                  <label key={key} className="block space-y-2 text-xs text-stone-700">
-                    <span className="flex justify-between"><span>{label}</span><span className="font-mono">{draft.effects[key]}</span></span>
-                    <input type="range" className="w-full accent-stone-900" min={min} max={max} step={step}
-                      value={draft.effects[key]} onChange={e => update(prev => ({ ...prev, effects: {
-                        ...prev.effects, [key]: Number(e.target.value),
-                      } }))}/>
-                  </label>
-                ))}
+                {option('Illustration placement', draft.effects.illustrationPlacement, [
+                  { id: 'hero', label: 'Hero only — recommended' },
+                  { id: 'homepage', label: 'Hero + story + custom-order sections' },
+                ], value => update(prev => ({ ...prev, effects: {
+                  ...prev.effects, illustrationPlacement: value as 'hero' | 'homepage',
+                } })))}
+                <label className="block space-y-2 text-xs text-stone-700">
+                  <span className="flex justify-between"><span>Illustration visibility</span><span>{Math.round(draft.effects.artworkOpacity * 100)}%</span></span>
+                  <input type="range" min=".1" max="1" step=".05" className="w-full accent-stone-900"
+                    value={draft.effects.artworkOpacity} onChange={e => update(prev => ({
+                      ...prev, effects: { ...prev.effects, artworkOpacity: Number(e.target.value) },
+                    }))}/>
+                </label>
+                {draft.theme === 'winter' && (
+                  <div className="space-y-4 border-t border-stone-200 pt-4">
+                    <h3 className="font-serif text-lg">Winter: deep snowfall</h3>
+                    <label className="flex items-center gap-3 text-xs">
+                      <input type="checkbox" checked={draft.effects.snowEnabled}
+                        onChange={e => update(prev => ({ ...prev, effects: { ...prev.effects, snowEnabled: e.target.checked } }))}/>
+                      Show layered snow (distant, medium and foreground)
+                    </label>
+                    <label className="block space-y-2 text-xs">
+                      <span className="flex justify-between"><span>Snow intensity</span><span>{draft.effects.snowDensity}%</span></span>
+                      <input type="range" min="0" max="100" step="5" className="w-full accent-stone-900"
+                        value={draft.effects.snowDensity} onChange={e => update(prev => ({
+                          ...prev, effects: { ...prev.effects, snowDensity: Number(e.target.value) },
+                        }))}/>
+                    </label>
+                    <p className="text-[11px] text-stone-500">Set 80–100% for the extra-snowy winter atmosphere.</p>
+                  </div>
+                )}
+                {draft.theme === 'new-year' && (
+                  <div className="space-y-4 border-t border-stone-200 pt-4">
+                    <h3 className="font-serif text-lg">New Year: fireworks</h3>
+                    <label className="flex items-center gap-3 text-xs">
+                      <input type="checkbox" checked={draft.effects.fireworksEnabled}
+                        onChange={e => update(prev => ({ ...prev, effects: { ...prev.effects, fireworksEnabled: e.target.checked } }))}/>
+                      Show champagne firework artwork
+                    </label>
+                    <label className="block space-y-2 text-xs">
+                      <span className="flex justify-between"><span>Fireworks brightness</span><span>{draft.effects.fireworksIntensity}%</span></span>
+                      <input type="range" min="0" max="100" step="5" className="w-full accent-stone-900"
+                        value={draft.effects.fireworksIntensity} onChange={e => update(prev => ({
+                          ...prev, effects: { ...prev.effects, fireworksIntensity: Number(e.target.value) },
+                        }))}/>
+                    </label>
+                  </div>
+                )}
+                <label className="block space-y-2 border-t border-stone-200 pt-4 text-xs">
+                  <span className="flex justify-between"><span>Motion speed</span><span>{draft.effects.speed}×</span></span>
+                  <input type="range" min=".25" max="3" step=".25" className="w-full accent-stone-900"
+                    value={draft.effects.speed} onChange={e => update(prev => ({
+                      ...prev, effects: { ...prev.effects, speed: Number(e.target.value) },
+                    }))}/>
+                </label>
+                <label className="block space-y-2 text-xs">
+                  <span className="flex justify-between"><span>Parallax strength</span><span>{draft.effects.parallaxStrength}</span></span>
+                  <input type="range" min="0" max=".6" step=".05" className="w-full accent-stone-900"
+                    value={draft.effects.parallaxStrength} onChange={e => update(prev => ({
+                      ...prev, effects: { ...prev.effects, parallaxStrength: Number(e.target.value) },
+                    }))}/>
+                </label>
                 <button type="button" onClick={() => update(prev => ({
-                  ...prev, effects: { ...DEFAULT_SITE_CONTENT.effects, hoverLift: true },
-                }))} className="border border-stone-300 px-4 py-3 text-xs">Disable decorative effects</button>
-                <p className="text-[11px] leading-6 text-stone-500">Animations are automatically reduced or disabled when a visitor requests reduced motion. Parallax is limited to a subtle range to protect readability and performance.</p>
+                  ...prev, effects: { ...prev.effects, enabled: false, hoverLift: true },
+                }))} className="w-full border border-stone-300 px-4 py-3 text-xs font-medium">
+                  Turn off seasonal atmosphere
+                </button>
+                <p className="text-[11px] leading-6 text-stone-500">
+                  Customers who enable reduced motion see a calm, mostly static design.
+                  Decorative artwork never blocks buttons, products or checkout.
+                </p>
               </>
             )}
             {panel === 'branding' && (
@@ -888,7 +963,7 @@ export default function SiteEditor({
               </div>
               {draft.sections.order.filter(id => draft.sections.visible[id]).map(id => {
                 if (id === 'hero') return <Hero key={id} content={draft.hero} headingScale={draft.appearance.headingScale}
-                  effects={draft.effects}
+                  effects={draft.effects} theme={draft.theme}
                   onExploreClick={() => setPanel('text')} onFeaturedClick={() => {}} featuredProduct={products.find(p => p.featured) || products[0] || null}/>;
                 if (id === 'collections') return <CollectionShowcase key={id} content={draft.collections} headingScale={draft.appearance.headingScale}
                   products={products} onCategoryClick={key => { setSelectedCategory(key); setPanel('collections'); }}/>;
@@ -907,18 +982,24 @@ export default function SiteEditor({
                   <p className="font-serif text-2xl">Customer reviews</p>
                   <p className="mt-2 text-xs text-stone-500">Only verified, approved reviews appear on the live site.</p>
                 </section>;
-                if (id === 'custom') return <section key={id} className="jb-custom-surface px-5 py-12">
+                if (id === 'custom') return <section key={id} className="jb-custom-surface relative isolate overflow-hidden px-5 py-12">
+                  <SeasonalEffects settings={draft.effects} theme={draft.theme} layer="support"/>
+                  <div className="relative z-10">
                   <p className="text-xs uppercase tracking-widest text-stone-500">{draft.custom.eyebrow}</p>
                   <h2 className="mt-3 font-serif text-3xl">{draft.custom.heading} <em>{draft.custom.accentLine}</em></h2>
                   <p className="mt-3 max-w-lg text-sm text-stone-600">{draft.custom.description}</p>
                   <button type="button" className="mt-5 px-5 py-3 text-xs text-white" style={{ backgroundColor: draft.appearance.button }}>
                     {draft.custom.button}
                   </button>
+                  </div>
                 </section>;
-                if (id === 'story') return <section key={id} className="jb-story-surface px-5 py-12">
+                if (id === 'story') return <section key={id} className="jb-story-surface relative isolate overflow-hidden px-5 py-12">
+                  <SeasonalEffects settings={draft.effects} theme={draft.theme} layer="support"/>
+                  <div className="relative z-10">
                   <p className="text-xs uppercase tracking-widest text-stone-500">{draft.story.eyebrow}</p>
                   <h2 className="mt-3 font-serif text-3xl">{draft.story.heading} <em>{draft.story.accentLine}</em></h2>
                   <p className="mt-3 max-w-lg text-sm text-stone-600">{draft.story.description}</p>
+                  </div>
                 </section>;
                 const block = draft.blocks.find(item => item.id === id);
                 return block ? (

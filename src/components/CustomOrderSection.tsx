@@ -3,7 +3,8 @@ import { ArrowRight, CheckCircle2, Flower2, Gift, Minus, Plus } from 'lucide-rea
 import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
 import { customSizeMap, PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS } from '../../shared/productSizes';
 import type { ProductSizeKey } from '../../shared/productSizes';
-import type { SiteContent } from '../../shared/siteEditor';
+import type { SiteContent, ThemeId, PageEffects } from '../../shared/siteEditor';
+import SeasonalEffects from './SeasonalEffects';
 import {
   estimateCustomBouquet, indiaDate, leadDays, minimumWrappers,
   type WrapperType,
@@ -17,6 +18,8 @@ interface CustomOrderSectionProps {
   content?: SiteContent['custom'];
   headingScale?: number;
   sizeChart?: Record<ProductSizeKey, number>;
+  theme?: ThemeId;
+  effects?: PageEffects;
 }
 export interface CustomEnquiryPayload {
   size: ProductSizeKey;
@@ -39,7 +42,7 @@ export interface CustomEnquiryPayload {
 
 const occasions = ['Wedding', 'Anniversary', 'Birthday', 'Event', 'Other'];
 
-export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggle, content = DEFAULT_SITE_CONTENT.custom, headingScale = 1, sizeChart }: CustomOrderSectionProps) {
+export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggle, content = DEFAULT_SITE_CONTENT.custom, headingScale = 1, sizeChart, theme = 'default', effects = DEFAULT_SITE_CONTENT.effects }: CustomOrderSectionProps) {
   const [occasion, setOccasion] = useState('Wedding');
   const [size, setSize] = useState<ProductSizeKey>('S');
   const sizes = customSizeMap(sizeChart);
@@ -113,8 +116,9 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
   const fieldClass = 'mt-2 w-full border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-stone-700 focus:ring-0';
   const labelClass = 'block text-[11px] uppercase tracking-[0.14em] text-stone-600';
   return (
-    <section id="custom-builder" className="jb-custom-surface border-y border-stone-200/70 py-14 sm:py-20 lg:py-28">
-      <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
+    <section id="custom-builder" className="jb-custom-surface relative isolate overflow-hidden border-y border-stone-200/70 py-14 sm:py-20 lg:py-28">
+      <SeasonalEffects settings={effects} theme={theme} layer="support"/>
+      <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <div className="mb-0 lg:hidden">
           <p className="text-[10px] uppercase tracking-[0.3em] text-stone-500">{content.eyebrow}</p>
           <h2 className="site-editable-heading mt-3 font-serif text-stone-900" style={{ fontSize: `${1.85 * headingScale}rem` }}>{content.heading} <span className="italic" style={{ color: 'var(--site-accent, #9E777C)' }}>{content.accentLine}</span></h2>
