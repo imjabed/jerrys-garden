@@ -734,3 +734,16 @@
     min-height: clamp(580px,83svh,760px) !important;
   }
 }
+
+/* Honor editor motion switch and keep parallax GPU-only and bounded. */
+.jb-hero-photo {
+  transform: translate3d(0, var(--jb-photo-parallax, 0px), 0) scale(1.035);
+  will-change: auto;
+}
+.site-shell[data-festive-motion="off"] .jb-nav-ornament { animation:none !important; }
+@media(max-width:680px) {
+  .jb-hero-photo { transform: none; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .jb-hero-photo { transform:none !important; }
+}
