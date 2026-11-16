@@ -113,7 +113,7 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
   const fieldClass = 'mt-2 w-full border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-stone-700 focus:ring-0';
   const labelClass = 'block text-[11px] uppercase tracking-[0.14em] text-stone-600';
   return (
-    <section id="custom-builder" className="bg-[#F1ECE5] border-y border-stone-200/70 py-14 sm:py-20 lg:py-28">
+    <section id="custom-builder" className="jb-custom-surface border-y border-stone-200/70 py-14 sm:py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <div className="mb-0 lg:hidden">
           <p className="text-[10px] uppercase tracking-[0.3em] text-stone-500">{content.eyebrow}</p>
@@ -131,9 +131,9 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
         </div>
         <div id="custom-order-content" className={`${mobileOpen ? 'grid mt-8' : 'hidden'} items-start gap-12 lg:mt-0 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] lg:gap-20`}>
           <div className="hidden lg:block lg:sticky lg:top-28">
-            <p className="text-[10px] uppercase tracking-[0.32em] text-stone-500">Your celebration, your bouquet</p>
+            <p className="text-[10px] uppercase tracking-[0.32em] text-stone-500">{content.eyebrow}</p>
             <h2 className="site-editable-heading mt-5 font-serif leading-[1.1] tracking-tight text-stone-900" style={{ fontSize: `clamp(${2.8 * headingScale}rem, ${4.6 * headingScale}vw, ${3.8 * headingScale}rem)` }}>
-              Made for <span className="italic text-[#9E777C]">your moment.</span>
+              {content.heading} <span className="italic" style={{ color: "var(--site-accent, #9E777C)" }}>{content.accentLine}</span>
             </h2>
             <p className="site-body-copy mt-6 max-w-sm leading-7 text-stone-600">
               {content.description}

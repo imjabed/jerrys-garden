@@ -65,7 +65,8 @@ import CustomerReviewsSection from './components/CustomerReviewsSection';
 import StorePolicies, { type PolicyType } from './components/StorePolicies';
 import CollectionShowcase from './components/CollectionShowcase';
 import SiteEditor from './components/SiteEditor';
-import { DEFAULT_SITE_CONTENT, FONT_STACKS } from '../shared/siteEditor';
+import CustomPageBlock from './components/CustomPageBlock';
+import { DEFAULT_SITE_CONTENT, FONT_STACKS, safeEditorLink } from '../shared/siteEditor';
 import type { SiteContent } from '../shared/siteEditor';
 
 export default function App() {
@@ -501,12 +502,16 @@ export default function App() {
     '--site-text': siteContent.appearance.text,
     '--site-body-scale': String(siteContent.appearance.bodyScale),
     '--site-heading-scale': String(siteContent.appearance.headingScale),
+    '--site-hero-bg': siteContent.appearance.heroBackground,
+    '--site-story-bg': siteContent.appearance.storyBackground,
+    '--site-custom-bg': siteContent.appearance.customBackground,
+    '--site-footer-bg': siteContent.appearance.footerBackground,
     backgroundColor: siteContent.appearance.background,
     color: siteContent.appearance.text,
   } as CSSProperties;
 
   return (
-    <div className="site-shell min-h-screen flex flex-col selection:bg-rose-100 selection:text-rose-900" style={storefrontStyle}>
+    <div className="site-shell min-h-screen flex flex-col selection:bg-rose-100 selection:text-rose-900" style={storefrontStyle} data-site-theme={siteContent.theme} data-hover-lift={siteContent.effects.hoverLift ? "on" : "off"}>
       
       {/* Toast Notification */}
       {toastMessage && (
@@ -561,6 +566,19 @@ export default function App() {
       ) : (
         /* CUSTOMER SHOP VIEW */
         <>
+          {/* Storefront announcement is part of the published editor configuration. */}
+          {siteContent.announcement.enabled && (
+            <div className="px-5 py-2.5 text-center text-[11px] font-medium tracking-wider"
+              style={{ backgroundColor: siteContent.announcement.background, color: siteContent.announcement.textColor }}>
+              <a href={safeEditorLink(siteContent.announcement.link)}
+                onClick={event => {
+                  if (siteContent.announcement.link === '#shop-section' && productId) { event.preventDefault(); navigateHome(); }
+                }}
+                className="inline-block underline-offset-4 hover:underline">
+                {siteContent.announcement.text}
+              </a>
+            </div>
+          )}
           {/* Header & Navigation */}
           <Navbar
             cartCount={cart.reduce((sum, it) => sum + it.quantity, 0)}
@@ -619,7 +637,7 @@ export default function App() {
           {siteContent.sections.order.filter(id => siteContent.sections.visible[id]).map(id => {
             if (id === 'hero') return (
               <Hero key={id}
-                content={siteContent.hero} headingScale={siteContent.appearance.headingScale}
+                content={siteContent.hero} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects}
                 onExploreClick={() => scrollToSection('shop-section')}
                 featuredProduct={bouquets.find(product => product.featured && product.inStock && product.imageUrl) || bouquets.find(product => product.inStock && product.imageUrl) || null}
                 onFeaturedClick={navigateToProduct}
@@ -735,7 +753,9 @@ export default function App() {
                   return { orderNumber: result.orderNumber };
                 }}/>
             );
-            return <RibbonStory key={id} content={siteContent.story} headingScale={siteContent.appearance.headingScale}/>;
+            if (id === 'story') return <RibbonStory key={id} content={siteContent.story} headingScale={siteContent.appearance.headingScale}/>;
+            const block = siteContent.blocks.find(item => item.id === id);
+            return block ? <CustomPageBlock key={block.id} block={block}/> : null;
           })}
 
           </>)}
@@ -743,6 +763,7 @@ export default function App() {
           {/* Boutique Footer */}
           <Footer
             storeSettings={storeSettings}
+            content={siteContent.footer}
             isOwner={isOwner}
             onOpenOwnerLogin={() => {
               if (isOwner) {

@@ -2,23 +2,24 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
   ArrowLeft, ArrowDown, ArrowUp, Check, ChevronRight, CloudUpload, Download,
   Eye, Image as ImageIcon, LayoutGrid, Monitor, RotateCcw, Save, Settings2,
-  Smartphone, Tablet, Type, UploadCloud, X,
+  Smartphone, Tablet, Type, UploadCloud, X, Palette, Sparkles, Layers3, Plus, Copy, Trash2, Link2, SlidersHorizontal,
 } from 'lucide-react';
 import Hero from './Hero';
 import CollectionShowcase from './CollectionShowcase';
+import CustomPageBlock from './CustomPageBlock';
 import type { RibbonBouquet } from '../types';
 import {
   DEFAULT_SITE_CONTENT, DEFAULT_CATEGORIES, FONT_LABELS, FONT_STACKS,
-  SECTION_IDS, sanitizeSiteContent,
+  SECTION_IDS, THEME_PRESETS, BLOCK_KINDS, defaultPageBlock, applyThemePreset, sanitizeSiteContent, safeEditorLink,
 } from '../../shared/siteEditor';
-import type { CategoryCardConfig, FontId, SectionId, SiteContent } from '../../shared/siteEditor';
+import type { CategoryCardConfig, FontId, SectionId, SiteContent, PageBlock, BlockKind, ThemeId, EffectShape } from '../../shared/siteEditor';
 import { apiGetSiteEditor, apiSaveSiteEditorDraft, apiPublishSiteEditor } from '../services/api';
 import type { SiteEditorPayload } from '../services/api';
 import { uploadImageToCloudinary } from '../services/cloudinary';
 
-type Panel = 'text' | 'collections' | 'appearance' | 'sections' | 'seo' | 'history';
+type Panel = 'text' | 'collections' | 'appearance' | 'sections' | 'seo' | 'history' | 'themes' | 'effects' | 'blocks' | 'branding';
 type Device = 'desktop' | 'tablet' | 'phone';
-const labels: Record<SectionId, string> = {
+const labels: Record<string, string> = {
   hero: 'Hero', collections: 'Collections', shop: 'Shop catalog',
   reviews: 'Customer reviews', custom: 'Custom order', story: 'Our craft',
 };
@@ -43,6 +44,7 @@ export default function SiteEditor({
   const [notice, setNotice] = useState('');
   const [panel, setPanel] = useState<Panel>('collections');
   const [selectedCategory, setSelectedCategory] = useState<string>(DEFAULT_CATEGORIES[0]);
+  const [selectedBlock, setSelectedBlock] = useState<string>('');
   const [device, setDevice] = useState<Device>('desktop');
   const [showPreview, setShowPreview] = useState(true);
 
@@ -92,7 +94,7 @@ export default function SiteEditor({
       [cards[index], cards[next]] = [cards[next], cards[index]];
       return { ...prev, collections: { ...prev.collections, cards } };
     });
-  const moveSection = (id: SectionId, direction: -1 | 1) =>
+  const moveSection = (id: string, direction: -1 | 1) =>
     update(prev => {
       const order = [...prev.sections.order];
       const index = order.indexOf(id);
@@ -101,6 +103,58 @@ export default function SiteEditor({
       [order[index], order[next]] = [order[next], order[index]];
       return { ...prev, sections: { ...prev.sections, order } };
     });
+
+  const currentBlock = draft.blocks.find(block => block.id === selectedBlock) || draft.blocks[0];
+  const updateBlock = (id: string, patch: Partial<PageBlock>) => update(prev => ({
+    ...prev, blocks: prev.blocks.map(block => block.id === id ? { ...block, ...patch } : block),
+  }));
+  const addBlock = (kind: BlockKind) => {
+    if (draft.blocks.length >= 24) { setError('A page can have up to 24 additional sections.'); return; }
+    const id = 'block-' + crypto.randomUUID();
+    const block = defaultPageBlock(id, kind);
+    update(prev => ({
+      ...prev, blocks: [...prev.blocks, block],
+      sections: { order: [...prev.sections.order, id], visible: { ...prev.sections.visible, [id]: true } },
+    }));
+    setSelectedBlock(id);
+    setPanel('blocks');
+  };
+  const removeBlock = (id: string) => {
+    update(prev => ({
+      ...prev,
+      blocks: prev.blocks.filter(b => b.id !== id),
+      sections: { order: prev.sections.order.filter(key => key !== id),
+        visible: Object.fromEntries(Object.entries(prev.sections.visible).filter(([key]) => key !== id)) },
+    }));
+    setSelectedBlock('');
+  };
+  const duplicateBlock = (block: PageBlock) => {
+    if (draft.blocks.length >= 24) { setError('Maximum 24 additional sections.'); return; }
+    const id = 'block-' + crypto.randomUUID();
+    update(prev => {
+      const index = prev.sections.order.indexOf(block.id);
+      const order = [...prev.sections.order];
+      order.splice(index + 1, 0, id);
+      return { ...prev, blocks: [...prev.blocks, { ...block, id }],
+        sections: { order, visible: { ...prev.sections.visible, [id]: true } } };
+    });
+    setSelectedBlock(id);
+  };
+  const uploadBlockPhoto = async (block: PageBlock, file?: File, gallery = false) => {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setError('Choose a JPG, PNG or WebP photo under 5 MB.'); return;
+    }
+    setUploadingKey(block.id); setError('');
+    try {
+      const result = await uploadImageToCloudinary(file, 'jame_bouquets_collections');
+      if (gallery) updateBlock(block.id, { images: [...block.images, result.url].slice(0, 8) });
+      else updateBlock(block.id, { imageUrl: result.url });
+      setNotice('Photo uploaded to your draft. Publish when ready.');
+    } catch (err: any) { setError(err?.message || 'Could not upload the photo.'); }
+    finally { setUploadingKey(null); }
+  };
+  const sectionName = (id: string) => labels[id] || draft.blocks.find(block => block.id === id)?.title || 'Custom section';
 
   const save = async (): Promise<number | null> => {
     if (busy) return null;
@@ -195,6 +249,10 @@ export default function SiteEditor({
     '--site-button-text': draft.appearance.buttonText,
     '--site-body-scale': String(draft.appearance.bodyScale),
     '--site-heading-scale': String(draft.appearance.headingScale),
+    '--site-hero-bg': draft.appearance.heroBackground,
+    '--site-story-bg': draft.appearance.storyBackground,
+    '--site-custom-bg': draft.appearance.customBackground,
+    '--site-footer-bg': draft.appearance.footerBackground,
     backgroundColor: draft.appearance.background,
     color: draft.appearance.text,
   } as CSSProperties;
@@ -276,6 +334,10 @@ export default function SiteEditor({
         <aside className="flex flex-col border-r border-stone-200 bg-white xl:max-h-[calc(100vh-73px)]">
           <nav className="flex gap-1 overflow-x-auto border-b border-stone-200 p-3" aria-label="Editor panels">
             {([
+              ['themes', Palette, 'Themes'],
+              ['blocks', Layers3, 'Build'],
+              ['effects', Sparkles, 'Motion'],
+              ['branding', Settings2, 'Header/Footer'],
               ['text', Type, 'Text'],
               ['collections', LayoutGrid, 'Collections'],
               ['appearance', Settings2, 'Style'],
@@ -290,6 +352,269 @@ export default function SiteEditor({
             ))}
           </nav>
           <div className="space-y-5 overflow-y-auto p-5 pb-12 sm:p-6">
+            {panel === 'themes' && (
+              <>
+                <div>
+                  <h2 className="font-serif text-2xl">Seasonal theme gallery</h2>
+                  <p className="mt-2 text-xs leading-6 text-stone-500">Choose a complete colour, font and ambient-effects preset. The product catalog, photos, written content, section order and customer data are preserved.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {THEME_PRESETS.map(preset => (
+                    <button key={preset.id} type="button" aria-pressed={draft.theme === preset.id}
+                      onClick={() => update(prev => applyThemePreset(prev, preset.id))}
+                      className={`overflow-hidden border-2 text-left transition-colors ${draft.theme === preset.id ? 'border-stone-900' : 'border-stone-200 hover:border-stone-500'}`}>
+                      <div className="flex h-24 flex-col justify-between p-3" style={{ background: preset.appearance.heroBackground }}>
+                        <span className="font-serif text-base" style={{ color: preset.appearance.text }}>Jame</span>
+                        <div className="flex h-6 w-full items-center gap-2">
+                          <span className="h-4 w-4 rounded-full" style={{ background: preset.appearance.accent }}/>
+                          <span className="h-3 flex-1" style={{ background: preset.appearance.button }}/>
+                          <span className="h-3 w-7" style={{ background: preset.collectionBg }}/>
+                        </div>
+                      </div>
+                      <div className="bg-white p-3">
+                        <p className="flex items-center justify-between text-xs font-semibold">
+                          {preset.label}
+                          {draft.theme === preset.id && <Check className="h-4 w-4"/>}
+                        </p>
+                        <p className="mt-1 text-[11px] leading-4 text-stone-500">{preset.description}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <button type="button" onClick={() => {
+                  const other = THEME_PRESETS.filter(item => item.id !== draft.theme);
+                  update(prev => applyThemePreset(prev, other[Math.floor(Math.random() * other.length)].id));
+                }} className="w-full border border-stone-300 px-4 py-3 text-xs font-medium hover:bg-stone-50">
+                  Surprise me with a different theme
+                </button>
+                <p className="border-l-2 border-stone-300 pl-3 text-xs leading-6 text-stone-600">
+                  Theme changes are only a preview until you click <strong>Publish</strong>. For custom styling, switch to Style.
+                </p>
+              </>
+            )}
+            {panel === 'effects' && (
+              <>
+                <h2 className="font-serif text-2xl">Animations & ambience</h2>
+                <p className="text-xs leading-6 text-stone-500">Keep effects subtle for a luxury look. They appear behind hero content and never interfere with shopping or checkout.</p>
+                {([
+                  ['enabled', 'Enable ambient effects', 'Master switch for decorative motion'],
+                  ['glow', 'Soft glowing light', 'Accent-coloured ambient illumination'],
+                  ['glowingParticles', 'Glowing particles', 'Small soft glints drifting behind the hero'],
+                  ['floating', 'Floating objects', 'Gentle decorative motion'],
+                  ['parallax', 'Scroll parallax', 'Move the ambience subtly as visitors scroll'],
+                  ['hoverLift', 'Hover lift', 'Raise supported product and collection cards slightly'],
+                ] as const).map(([id, label, description]) => (
+                  <label key={id} className="flex cursor-pointer items-center justify-between gap-3 border-b border-stone-200 py-3">
+                    <span><span className="block text-xs font-medium">{label}</span>
+                      <span className="mt-1 block text-[11px] text-stone-500">{description}</span></span>
+                    <input type="checkbox" className="h-4 w-4 accent-stone-900" checked={draft.effects[id]}
+                      onChange={e => update(prev => ({ ...prev, effects: { ...prev.effects, [id]: e.target.checked } }))}/>
+                  </label>
+                ))}
+                {option('Floating object design', draft.effects.shape,
+                  [{ id: 'none', label: 'None' }, { id: 'petals', label: 'Drifting petals' },
+                    { id: 'snow', label: 'Soft snow' }, { id: 'confetti', label: 'Celebration confetti' },
+                    { id: 'lanterns', label: 'Glowing lanterns' }, { id: 'sparkles', label: 'Abstract glints' }],
+                  v => update(prev => ({ ...prev, effects: { ...prev.effects, shape: v as EffectShape } })))}
+                {([
+                  ['density', 'Object count', 0, 28, 1],
+                  ['speed', 'Animation speed', 0.25, 3, 0.25],
+                  ['opacity', 'Effect transparency', 0.05, 0.8, 0.05],
+                  ['parallaxStrength', 'Parallax intensity', 0, 0.6, 0.05],
+                ] as const).map(([key, label, min, max, step]) => (
+                  <label key={key} className="block space-y-2 text-xs text-stone-700">
+                    <span className="flex justify-between"><span>{label}</span><span className="font-mono">{draft.effects[key]}</span></span>
+                    <input type="range" className="w-full accent-stone-900" min={min} max={max} step={step}
+                      value={draft.effects[key]} onChange={e => update(prev => ({ ...prev, effects: {
+                        ...prev.effects, [key]: Number(e.target.value),
+                      } }))}/>
+                  </label>
+                ))}
+                <button type="button" onClick={() => update(prev => ({
+                  ...prev, effects: { ...DEFAULT_SITE_CONTENT.effects, hoverLift: true },
+                }))} className="border border-stone-300 px-4 py-3 text-xs">Disable decorative effects</button>
+                <p className="text-[11px] leading-6 text-stone-500">Animations are automatically reduced or disabled when a visitor requests reduced motion. Parallax is limited to a subtle range to protect readability and performance.</p>
+              </>
+            )}
+            {panel === 'branding' && (
+              <>
+                <h2 className="font-serif text-2xl">Header & footer</h2>
+                <p className="text-xs leading-6 text-stone-500">Edit the announcement and footer wording here. Store logo and contact data remain in Admin → Settings.</p>
+                <label className="flex items-center gap-3 text-xs text-stone-800">
+                  <input type="checkbox" checked={draft.announcement.enabled}
+                    onChange={e => update(prev => ({ ...prev, announcement: { ...prev.announcement, enabled: e.target.checked } }))}/>
+                  Show announcement above navigation
+                </label>
+                {input('Announcement text', draft.announcement.text,
+                  value => update(prev => ({ ...prev, announcement: { ...prev.announcement, text: value } })))}
+                {input('Announcement link', draft.announcement.link,
+                  value => update(prev => ({ ...prev, announcement: { ...prev.announcement, link: value } })))}
+                <p className="text-[11px] text-stone-500">Links can be a page section such as #shop-section, an internal URL, or an HTTPS address.</p>
+                {colour('Announcement background', draft.announcement.background,
+                  value => update(prev => ({ ...prev, announcement: { ...prev.announcement, background: value } })))}
+                {colour('Announcement text', draft.announcement.textColor,
+                  value => update(prev => ({ ...prev, announcement: { ...prev.announcement, textColor: value } })))}
+                <div className="border-t border-stone-200 pt-4">
+                  <h3 className="mb-4 font-serif text-xl">Footer copy</h3>
+                  {input('Footer description', draft.footer.description,
+                    value => update(prev => ({ ...prev, footer: { ...prev.footer, description: value } })), true)}
+                  {input('Ordering notice', draft.footer.orderNote,
+                    value => update(prev => ({ ...prev, footer: { ...prev.footer, orderNote: value } })))}
+                  {colour('Footer background', draft.appearance.footerBackground,
+                    value => update(prev => ({ ...prev, appearance: { ...prev.appearance, footerBackground: value } })))}
+                </div>
+              </>
+            )}
+            {panel === 'blocks' && (
+              <>
+                <div>
+                  <h2 className="font-serif text-2xl">Page builder</h2>
+                  <p className="mt-2 text-xs leading-6 text-stone-500">Add unlimited-style editorial layouts from seven safe section types (up to 24 sections), then arrange them anywhere among your existing shop sections. No coding required.</p>
+                </div>
+                <div>
+                  <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-stone-500">Add a new section</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {BLOCK_KINDS.map(kind => (
+                      <button key={kind.id} type="button" onClick={() => addBlock(kind.id)}
+                        className="border border-stone-200 bg-[#FAF8F5] p-3 text-left transition-colors hover:border-stone-900 hover:bg-white">
+                        <Plus className="mb-2 h-4 w-4"/>
+                        <span className="block text-xs font-semibold">{kind.label}</span>
+                        <span className="mt-1 block text-[11px] leading-4 text-stone-500">{kind.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="border-t border-stone-200 pt-4">
+                  <h3 className="mb-3 text-sm font-semibold">Your custom sections · {draft.blocks.length}/24</h3>
+                  {draft.blocks.length === 0 && <p className="border border-dashed border-stone-300 p-5 text-xs leading-6 text-stone-500">No custom sections yet. Choose a layout above to start building.</p>}
+                  <div className="space-y-2">
+                    {draft.blocks.map(block => (
+                      <button type="button" key={block.id} onClick={() => setSelectedBlock(block.id)}
+                        className={`flex w-full items-center gap-2 border px-3 py-3 text-left text-xs ${currentBlock?.id === block.id ? 'border-stone-900 bg-stone-100' : 'border-stone-200 hover:bg-stone-50'}`}>
+                        <Layers3 className="h-4 w-4 shrink-0 text-stone-500"/>
+                        <span className="min-w-0 flex-1"><span className="block truncate font-medium">{block.title}</span>
+                          <span className="mt-0.5 block text-[10px] text-stone-500">{BLOCK_KINDS.find(k => k.id === block.kind)?.label}</span>
+                        </span>
+                        <ChevronRight className="h-4 w-4 shrink-0"/>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {currentBlock && (
+                  <div className="space-y-4 border-t-2 border-stone-900 pt-5">
+                    <h3 className="font-serif text-xl">Edit section</h3>
+                    {option('Layout type', currentBlock.kind, BLOCK_KINDS.map(kind => ({ id: kind.id, label: kind.label })),
+                      value => updateBlock(currentBlock.id, { kind: value as BlockKind }))}
+                    {currentBlock.kind !== 'spacer' && (
+                      <>
+                        {input('Small heading', currentBlock.eyebrow, value => updateBlock(currentBlock.id, { eyebrow: value }))}
+                        {input('Main heading', currentBlock.title, value => updateBlock(currentBlock.id, { title: value }))}
+                        {input('Description / message', currentBlock.description,
+                          value => updateBlock(currentBlock.id, { description: value }), true)}
+                      </>
+                    )}
+                    {currentBlock.kind === 'image-text' && (
+                      <div className="space-y-3">
+                        <p className="text-xs font-medium">Section photograph</p>
+                        {currentBlock.imageUrl && <img src={currentBlock.imageUrl} alt="Section preview" className="aspect-[4/3] w-full border border-stone-200 object-cover"/>}
+                        <label className="flex cursor-pointer items-center justify-center gap-2 border border-stone-300 p-3 text-xs hover:bg-stone-50">
+                          <UploadCloud className="h-4 w-4"/>
+                          {uploadingKey === currentBlock.id ? 'Uploading…' : 'Upload your photo'}
+                          <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+                            disabled={Boolean(uploadingKey)} onChange={e => { void uploadBlockPhoto(currentBlock, e.target.files?.[0]); e.target.value = ''; }}/>
+                        </label>
+                        {currentBlock.imageUrl && <button type="button" className="text-xs text-stone-600 underline"
+                          onClick={() => updateBlock(currentBlock.id, { imageUrl: '' })}>Remove photo from this section</button>}
+                      </div>
+                    )}
+                    {currentBlock.kind === 'gallery' && (
+                      <div className="space-y-3">
+                        <p className="text-xs font-medium">Gallery photos ({currentBlock.images.length}/8)</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {currentBlock.images.map((url, index) => (
+                            <div key={url + index} className="relative overflow-hidden">
+                              <img src={url} alt={`Gallery photo ${index + 1}`} className="aspect-square w-full object-cover"/>
+                              <button type="button" aria-label={`Remove gallery photo ${index + 1}`}
+                                onClick={() => updateBlock(currentBlock.id, { images: currentBlock.images.filter((_, i) => i !== index) })}
+                                className="absolute right-1 top-1 bg-stone-900/90 p-1 text-white"><X className="h-3 w-3"/></button>
+                            </div>
+                          ))}
+                        </div>
+                        {currentBlock.images.length < 8 && <label className="flex cursor-pointer items-center justify-center gap-2 border border-stone-300 p-3 text-xs hover:bg-stone-50">
+                          <UploadCloud className="h-4 w-4"/>
+                          {uploadingKey === currentBlock.id ? 'Uploading…' : 'Add gallery photo'}
+                          <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+                            disabled={Boolean(uploadingKey)} onChange={e => { void uploadBlockPhoto(currentBlock, e.target.files?.[0], true); e.target.value = ''; }}/>
+                        </label>}
+                      </div>
+                    )}
+                    {(currentBlock.kind === 'faq' || currentBlock.kind === 'features') && (
+                      <div className="space-y-3">
+                        <h4 className="text-xs font-semibold uppercase tracking-wide">Cards / questions ({currentBlock.items.length}/6)</h4>
+                        {currentBlock.items.map((item, index) => (
+                          <div key={index} className="space-y-2 border border-stone-200 p-3">
+                            {input(currentBlock.kind === 'faq' ? 'Question' : 'Title', item.title, value => {
+                              const items = currentBlock.items.map((row, i) => i === index ? { ...row, title: value } : row);
+                              updateBlock(currentBlock.id, { items });
+                            })}
+                            {input(currentBlock.kind === 'faq' ? 'Answer' : 'Description', item.text, value => {
+                              const items = currentBlock.items.map((row, i) => i === index ? { ...row, text: value } : row);
+                              updateBlock(currentBlock.id, { items });
+                            }, true)}
+                            <button type="button" className="text-[11px] text-red-700 underline"
+                              onClick={() => updateBlock(currentBlock.id, { items: currentBlock.items.filter((_, i) => i !== index) })}>
+                              Remove item
+                            </button>
+                          </div>
+                        ))}
+                        {currentBlock.items.length < 6 && <button type="button"
+                          onClick={() => updateBlock(currentBlock.id, { items: [...currentBlock.items, { title: 'New item', text: 'Describe this detail.' }] })}
+                          className="flex items-center gap-2 border border-stone-300 px-4 py-3 text-xs"><Plus className="h-4 w-4"/> Add item</button>}
+                      </div>
+                    )}
+                    {currentBlock.kind === 'cta' && (
+                      <>
+                        {input('Button label', currentBlock.buttonText,
+                          value => updateBlock(currentBlock.id, { buttonText: value }))}
+                        {input('Button destination', currentBlock.buttonUrl,
+                          value => updateBlock(currentBlock.id, { buttonUrl: value }))}
+                        <p className="text-[11px] text-stone-500">For example #shop-section or https://www.instagram.com/jamebouquets</p>
+                      </>
+                    )}
+                    {currentBlock.kind !== 'spacer' && option('Text alignment', currentBlock.align,
+                      [{ id: 'left', label: 'Left' }, { id: 'center', label: 'Centre' }, { id: 'right', label: 'Right' }],
+                      value => updateBlock(currentBlock.id, { align: value as PageBlock['align'] }))}
+                    {colour('Section background', currentBlock.background, value => updateBlock(currentBlock.id, { background: value }))}
+                    {currentBlock.kind !== 'spacer' && colour('Section text', currentBlock.textColor,
+                      value => updateBlock(currentBlock.id, { textColor: value }))}
+                    <label className="block space-y-2 text-xs">
+                      <span>{currentBlock.kind === 'spacer' ? 'Spacer height' : 'Vertical padding'} · {currentBlock.padding}px</span>
+                      <input type="range" className="w-full accent-stone-900" min="0" max="200" step="8"
+                        value={currentBlock.padding} onChange={e => updateBlock(currentBlock.id, { padding: Number(e.target.value) })}/>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 border-t border-stone-200 pt-4">
+                      <button type="button" onClick={() => moveSection(currentBlock.id, -1)}
+                        className="flex items-center justify-center gap-2 border border-stone-300 px-3 py-2.5 text-xs">
+                        <ArrowUp className="h-3.5 w-3.5"/> Move up
+                      </button>
+                      <button type="button" onClick={() => moveSection(currentBlock.id, 1)}
+                        className="flex items-center justify-center gap-2 border border-stone-300 px-3 py-2.5 text-xs">
+                        <ArrowDown className="h-3.5 w-3.5"/> Move down
+                      </button>
+                      <button type="button" onClick={() => duplicateBlock(currentBlock)}
+                        className="flex items-center justify-center gap-2 border border-stone-300 px-3 py-2.5 text-xs">
+                        <Copy className="h-3.5 w-3.5"/> Duplicate
+                      </button>
+                      <button type="button" onClick={() => {
+                        if (window.confirm('Remove this section from the draft? It will disappear from the live site only after you publish.')) removeBlock(currentBlock.id);
+                      }} className="flex items-center justify-center gap-2 border border-red-200 px-3 py-2.5 text-xs text-red-700">
+                        <Trash2 className="h-3.5 w-3.5"/> Remove
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
             {panel === 'text' && (
               <>
                 <h2 className="font-serif text-2xl">Homepage copy</h2>
@@ -438,6 +763,14 @@ export default function SiteEditor({
                   ['buttonText', 'Button text'],
                 ] as const).map(([key, label]) => colour(label, draft.appearance[key],
                   value => update(prev => ({ ...prev, appearance: { ...prev.appearance, [key]: value } }))))}
+                <div className="border-t border-stone-200 pt-3">
+                  <h3 className="mb-2 font-serif text-xl">Section backgrounds</h3>
+                  {([
+                    ['heroBackground', 'Homepage hero'], ['storyBackground', 'Our craft'],
+                    ['customBackground', 'Custom order form'],
+                  ] as const).map(([key, label]) => colour(label, draft.appearance[key],
+                    value => update(prev => ({ ...prev, appearance: { ...prev.appearance, [key]: value } }))))}
+                </div>
                 <button type="button" className="border border-stone-300 px-4 py-2.5 text-xs" onClick={() => update(prev => ({
                   ...prev, appearance: DEFAULT_SITE_CONTENT.appearance,
                 }))}>Restore default style</button>
@@ -446,18 +779,25 @@ export default function SiteEditor({
             {panel === 'sections' && (
               <>
                 <h2 className="font-serif text-2xl">Homepage sections</h2>
-                <p className="text-xs leading-6 text-stone-500">Choose which sections appear and the order in which customers see them. Shop remains accessible through the navigation.</p>
+                <p className="text-xs leading-6 text-stone-500">Arrange all built-in and custom sections. Hide what you do not need; the shop remains accessible via navigation.</p>
+                <button type="button" onClick={() => setPanel('blocks')} className="mb-3 flex items-center gap-2 border border-stone-300 px-4 py-3 text-xs font-semibold">
+                  <Plus className="h-4 w-4"/> Add a new section
+                </button>
                 {draft.sections.order.map((id, i) => (
                   <div key={id} className="flex items-center gap-3 border border-stone-200 p-3">
                     <span className="w-5 text-xs text-stone-400">{i + 1}</span>
                     <label className="flex flex-1 items-center gap-2 text-sm">
                       <input type="checkbox" checked={draft.sections.visible[id]} onChange={e => update(prev => ({
                         ...prev, sections: { ...prev.sections, visible: { ...prev.sections.visible, [id]: e.target.checked } },
-                      }))}/>{labels[id]}
+                      }))}/>{sectionName(id)}
                     </label>
-                    <button type="button" title="Move earlier" aria-label={`Move ${labels[id]} earlier`}
+                    {id.startsWith('block-') && (
+                      <button type="button" onClick={() => { setSelectedBlock(id); setPanel('blocks'); }}
+                        className="text-[10px] text-stone-600 underline underline-offset-2">Edit</button>
+                    )}
+                    <button type="button" title="Move earlier" aria-label={`Move ${sectionName(id)} earlier`}
                       disabled={i === 0} onClick={() => moveSection(id, -1)} className="p-2 disabled:opacity-20"><ArrowUp className="h-4 w-4"/></button>
-                    <button type="button" title="Move later" aria-label={`Move ${labels[id]} later`}
+                    <button type="button" title="Move later" aria-label={`Move ${sectionName(id)} later`}
                       disabled={i === draft.sections.order.length - 1} onClick={() => moveSection(id, 1)} className="p-2 disabled:opacity-20"><ArrowDown className="h-4 w-4"/></button>
                   </div>
                 ))}
@@ -535,13 +875,20 @@ export default function SiteEditor({
           </div>
           <div className="mx-auto overflow-hidden border border-stone-300 bg-white shadow-xl transition-[max-width] duration-300"
             style={{ maxWidth: previewWidths[device] }}>
-            <div className="max-h-[calc(100vh-175px)] min-h-[420px] overflow-y-auto site-shell" style={previewStyle}>
-              <div className="flex items-center justify-between border-b border-stone-200/30 px-5 py-4">
+            <div className="max-h-[calc(100vh-175px)] min-h-[420px] overflow-y-auto site-shell"
+              style={previewStyle} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'}>
+              {draft.announcement.enabled && (
+                <div className="px-3 py-2 text-center text-[11px]" style={{
+                  backgroundColor: draft.announcement.background, color: draft.announcement.textColor,
+                }}>{draft.announcement.text}</div>
+              )}
+              <div className="jb-nav-surface flex items-center justify-between border-b border-stone-200/30 px-5 py-4">
                 <span className="font-serif text-lg">Jame Bouquets</span>
                 <span className="text-xs text-stone-500">HOME · SHOP · ABOUT</span>
               </div>
               {draft.sections.order.filter(id => draft.sections.visible[id]).map(id => {
                 if (id === 'hero') return <Hero key={id} content={draft.hero} headingScale={draft.appearance.headingScale}
+                  effects={draft.effects}
                   onExploreClick={() => setPanel('text')} onFeaturedClick={() => {}} featuredProduct={products.find(p => p.featured) || products[0] || null}/>;
                 if (id === 'collections') return <CollectionShowcase key={id} content={draft.collections} headingScale={draft.appearance.headingScale}
                   products={products} onCategoryClick={key => { setSelectedCategory(key); setPanel('collections'); }}/>;
@@ -560,7 +907,7 @@ export default function SiteEditor({
                   <p className="font-serif text-2xl">Customer reviews</p>
                   <p className="mt-2 text-xs text-stone-500">Only verified, approved reviews appear on the live site.</p>
                 </section>;
-                if (id === 'custom') return <section key={id} className="px-5 py-12" style={{ backgroundColor: '#F1ECE5' }}>
+                if (id === 'custom') return <section key={id} className="jb-custom-surface px-5 py-12">
                   <p className="text-xs uppercase tracking-widest text-stone-500">{draft.custom.eyebrow}</p>
                   <h2 className="mt-3 font-serif text-3xl">{draft.custom.heading} <em>{draft.custom.accentLine}</em></h2>
                   <p className="mt-3 max-w-lg text-sm text-stone-600">{draft.custom.description}</p>
@@ -568,12 +915,27 @@ export default function SiteEditor({
                     {draft.custom.button}
                   </button>
                 </section>;
-                return <section key={id} className="bg-[#EDE7E0] px-5 py-12">
+                if (id === 'story') return <section key={id} className="jb-story-surface px-5 py-12">
                   <p className="text-xs uppercase tracking-widest text-stone-500">{draft.story.eyebrow}</p>
                   <h2 className="mt-3 font-serif text-3xl">{draft.story.heading} <em>{draft.story.accentLine}</em></h2>
                   <p className="mt-3 max-w-lg text-sm text-stone-600">{draft.story.description}</p>
                 </section>;
+                const block = draft.blocks.find(item => item.id === id);
+                return block ? (
+                  <div key={block.id} className="group/preview relative">
+                    <button type="button" onClick={() => { setSelectedBlock(block.id); setPanel('blocks'); }}
+                      className="absolute right-2 top-2 z-20 border border-stone-300 bg-white px-3 py-2 text-[11px] text-stone-800 shadow-sm">
+                      Edit section
+                    </button>
+                    <CustomPageBlock block={block} preview/>
+                  </div>
+                ) : null;
               })}
+              <div className="jb-footer-surface px-5 py-7 text-xs text-white">
+                <p className="font-serif text-lg">Jame Bouquets</p>
+                <p className="mt-3 opacity-75">{draft.footer.description}</p>
+                <p className="mt-2 opacity-65">{draft.footer.orderNote}</p>
+              </div>
             </div>
           </div>
           <p className="mt-4 text-center text-xs text-stone-500">Preview sizes are approximate. Verify the published design on a real phone before launch.</p>

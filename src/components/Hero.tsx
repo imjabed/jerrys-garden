@@ -1,7 +1,8 @@
 import { ArrowRight } from 'lucide-react';
 import type { RibbonBouquet } from '../types';
 import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
-import type { SiteContent } from '../../shared/siteEditor';
+import type { SiteContent, PageEffects } from '../../shared/siteEditor';
+import SeasonalEffects from './SeasonalEffects';
 
 interface HeroProps {
   key?: string;
@@ -10,13 +11,15 @@ interface HeroProps {
   featuredProduct?: RibbonBouquet | null;
   content?: SiteContent['hero'];
   headingScale?: number;
+  effects?: PageEffects;
 }
 
-export default function Hero({ onExploreClick, onFeaturedClick, featuredProduct, content = DEFAULT_SITE_CONTENT.hero, headingScale = 1 }: HeroProps) {
+export default function Hero({ onExploreClick, onFeaturedClick, featuredProduct, content = DEFAULT_SITE_CONTENT.hero, headingScale = 1, effects = DEFAULT_SITE_CONTENT.effects }: HeroProps) {
   return (
-    <section className="relative overflow-hidden border-b border-stone-200 bg-[#F4F0EA]">
-      <div className="pointer-events-none absolute -right-32 -top-48 h-[32rem] w-[32rem] rounded-full bg-rose-100/40 blur-3xl" />
-      <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-6 py-16 sm:px-8 lg:min-h-[620px] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-16 lg:px-12 lg:py-24">
+    <section className="jb-hero-surface relative isolate overflow-hidden border-b border-stone-200">
+      <SeasonalEffects settings={effects}/>
+      <div className="pointer-events-none absolute -right-32 -top-48 h-[32rem] w-[32rem] rounded-full bg-rose-100/20 blur-3xl" />
+      <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-6 py-16 sm:px-8 lg:min-h-[620px] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-16 lg:px-12 lg:py-24">
         <div className="min-w-0">
           <p className="mb-7 text-[10px] uppercase tracking-[0.32em] text-stone-500">
             {content.eyebrow}

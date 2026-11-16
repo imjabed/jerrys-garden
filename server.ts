@@ -470,9 +470,16 @@ async function startServer() {
       const currentSettings = await database.collection('settings').findOne({ key: 'store_settings' });
       if (managedCloudinaryId(currentSettings?.data?.logoUrl, folder) === publicId) return { status: 'skipped' };
       const siteContent = await database.collection('site_content').findOne({ key: 'homepage' });
-      const usesImage = (config: any) =>
-        Array.isArray(config?.collections?.cards) &&
-        config.collections.cards.some((card: any) => managedCloudinaryId(card.imageUrl, folder) === publicId);
+      const usesImage = (config: any) => {
+        const usesCollectionCover = Array.isArray(config?.collections?.cards)
+          && config.collections.cards.some((card: any) => managedCloudinaryId(card.imageUrl, folder) === publicId);
+        const usesPageBlock = Array.isArray(config?.blocks)
+          && config.blocks.some((block: any) =>
+            managedCloudinaryId(block.imageUrl, folder) === publicId
+            || (Array.isArray(block.images)
+              && block.images.some((url: string) => managedCloudinaryId(url, folder) === publicId)));
+        return usesCollectionCover || usesPageBlock;
+      };
       if (siteContent && (
         usesImage(siteContent.draft) || usesImage(siteContent.published) ||
         (Array.isArray(siteContent.history) && siteContent.history.some((version: any) => usesImage(version.content)))

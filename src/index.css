@@ -50,3 +50,55 @@
   border-color: var(--site-button, #292524);
 }
 
+
+/* Website Studio: theme-aware surfaces and editor-controlled motion. */
+.site-shell .jb-hero-surface { background: var(--site-hero-bg, #F4F0EA); }
+.site-shell .jb-story-surface { background: var(--site-story-bg, #EDE7E0); }
+.site-shell .jb-custom-surface { background: var(--site-custom-bg, #F1ECE5); }
+.site-shell .jb-footer-surface { background: var(--site-footer-bg, #292524); }
+.site-shell .jb-nav-surface { background: var(--site-background, #FAF8F5); }
+.site-shell .jb-product-card,
+.site-shell .jb-collection-card,
+.site-shell .jb-block-photo { transition: transform 300ms ease, box-shadow 300ms ease; }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .site-shell[data-hover-lift="on"] .jb-product-card:hover,
+  .site-shell[data-hover-lift="on"] .jb-collection-card:hover { transform: translateY(-4px); }
+}
+.jb-effect-glow {
+  transform: translate3d(0, var(--effect-parallax-offset, 0px), 0);
+  transition: opacity 200ms ease;
+  filter: blur(45px);
+}
+.jb-floating-object {
+  position: absolute;
+  display: block;
+  will-change: transform;
+  background: var(--site-accent, #9D777C);
+  animation-name: jb-gentle-drift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  opacity: .35;
+}
+.jb-shape-petals { border-radius: 85% 12% 80% 18%; transform: rotate(35deg); }
+.jb-shape-snow { border-radius: 50%; background: #fff; box-shadow: 0 0 3px 1px rgba(92,133,160,.3); }
+.jb-shape-confetti { width: 5px; border-radius: 1px; background: var(--site-accent, #aa8749); }
+.jb-shape-lanterns { border: 1px solid var(--site-accent, #988345); border-radius: 40% 40% 12% 12%; background: transparent; box-shadow: 0 0 9px 0 var(--site-accent, #988345); }
+.jb-shape-sparkles { background: transparent; border-radius: 0; }
+.jb-shape-sparkles::after, .jb-shape-sparkles::before {
+  position: absolute; content: ''; background: var(--site-accent, #9D777C);
+}
+.jb-shape-sparkles::before { left: 45%; width: 10%; height: 100%; }
+.jb-shape-sparkles::after { top: 45%; height: 10%; width: 100%; }
+@keyframes jb-gentle-drift {
+  0% { transform: translate3d(0, calc(var(--effect-parallax-offset, 0px) + 4px), 0) rotate(-12deg); }
+  50% { transform: translate3d(14px, calc(var(--effect-parallax-offset, 0px) - 23px), 0) rotate(26deg); }
+  100% { transform: translate3d(0, calc(var(--effect-parallax-offset, 0px) + 4px), 0) rotate(-12deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jb-floating-object, .jb-effect-glow, .site-shell .jb-product-card, .site-shell .jb-collection-card { animation: none !important; transition: none !important; transform: none !important; }
+}
+
+.jb-glowing-dot { animation: jb-gentle-drift 18s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .jb-glowing-dot { animation: none !important; }
+}

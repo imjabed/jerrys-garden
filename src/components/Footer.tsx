@@ -3,6 +3,8 @@ import Logo from './Logo';
 import WhatsAppIcon from './WhatsAppIcon';
 import { StoreSettings } from '../types';
 import type { PolicyType } from './StorePolicies';
+import type { SiteContent } from '../../shared/siteEditor';
+import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
 
 interface FooterProps {
   storeSettings: StoreSettings;
@@ -12,6 +14,7 @@ interface FooterProps {
   onNavigateToBuilder?: () => void;
   onNavigateToShop: () => void;
   onOpenPolicy: (policy: PolicyType) => void;
+  content?: SiteContent['footer'];
 }
 
 export default function Footer({
@@ -21,9 +24,10 @@ export default function Footer({
   onOpenTracking,
   onNavigateToShop,
   onOpenPolicy,
+  content = DEFAULT_SITE_CONTENT.footer,
 }: FooterProps) {
   return (
-    <footer className="bg-stone-900 text-stone-300 border-t border-stone-800 pt-16 pb-12">
+    <footer className="jb-footer-surface text-stone-300 border-t border-stone-800 pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-stone-800">
@@ -35,10 +39,10 @@ export default function Footer({
             </div>
             
             <p className="text-xs text-stone-400 leading-relaxed">
-              Handmade bouquets, keepsakes, keychains & gifts. Thoughtfully crafted in Berhampore.
+              {content.description}
             </p>
 
-            <p className="text-[11px] tracking-wide text-stone-400">Order online · We confirm by phone</p>
+            <p className="text-[11px] tracking-wide text-stone-400">{content.orderNote}</p>
             <nav aria-label="Connect with Jame Bouquets" className="flex items-center gap-3 pt-3">
               <a href="https://www.instagram.com/jamebouquets" target="_blank" rel="noopener noreferrer"
                 aria-label="Follow Jame Bouquets on Instagram" title="Instagram"

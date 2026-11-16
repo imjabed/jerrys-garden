@@ -32,7 +32,7 @@ export default function CollectionShowcase({ content, products, onCategoryClick,
             const imageUrl = card.imageUrl || catalogueImage || '';
             return (
               <button key={card.categoryKey} type="button" onClick={() => onCategoryClick(card.categoryKey)}
-                className={`group relative isolate overflow-hidden border border-white/20 text-left transition-transform duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:-translate-y-1 ${sizes}`}
+                className={`jb-collection-card group relative isolate overflow-hidden border border-white/20 text-left transition-transform duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:-translate-y-1 ${sizes}`}
                 style={{ background: '#201C17', color: content.text }}
                 aria-label={`View ${card.title} collection`}>
                 {imageUrl && (

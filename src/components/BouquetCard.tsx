@@ -55,7 +55,7 @@ export default function BouquetCard({
   };
 
   return (
-    <div className="group bg-white border border-stone-200/60 hover:border-stone-300 transition-all duration-300 flex flex-col overflow-hidden relative">
+    <div className="jb-product-card group bg-white border border-stone-200/60 hover:border-stone-300 transition-all duration-300 flex flex-col overflow-hidden relative">
       {/* Image container */}
       <div
         className="relative aspect-square sm:aspect-[4/5] overflow-hidden bg-stone-100 cursor-pointer"
