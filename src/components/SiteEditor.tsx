@@ -1163,22 +1163,16 @@ export default function SiteEditor({
             )}
             {panel === 'branding' && (
               <>
-                <h2 className="font-serif text-2xl">Header & footer</h2>
-                <p className="text-xs leading-6 text-stone-500">Edit the announcement and footer wording here. Store logo and contact data remain in Admin → Settings.</p>
-                <label className="flex items-center gap-3 text-xs text-stone-800">
-                  <input type="checkbox" checked={draft.announcement.enabled}
-                    onChange={e => update(prev => ({ ...prev, announcement: { ...prev.announcement, enabled: e.target.checked } }))}/>
-                  Show announcement above navigation
-                </label>
-                {input('Announcement text', draft.announcement.text,
-                  value => update(prev => ({ ...prev, announcement: { ...prev.announcement, text: value } })))}
-                {input('Announcement link', draft.announcement.link,
-                  value => update(prev => ({ ...prev, announcement: { ...prev.announcement, link: value } })))}
-                <p className="text-[11px] text-stone-500">Links can be a page section such as #shop-section, an internal URL, or an HTTPS address.</p>
-                {colour('Announcement background', draft.announcement.background,
-                  value => update(prev => ({ ...prev, announcement: { ...prev.announcement, background: value } })))}
-                {colour('Announcement text', draft.announcement.textColor,
-                  value => update(prev => ({ ...prev, announcement: { ...prev.announcement, textColor: value } })))}
+                <h2 className="font-serif text-2xl">Branding & footer copy</h2>
+                <p className="text-xs leading-6 text-stone-500">
+                  Your horizontal marketing strip is now edited in Banner, above the hero.
+                  Logo and store contact details are in the owner Dashboard → Settings.
+                  Footer wording and colour here apply to the selected theme only.
+                </p>
+                <button type="button" onClick={() => setPanel('banner')}
+                  className="w-full border border-stone-300 px-4 py-3 text-xs font-semibold">
+                  Edit banner above the hero
+                </button>
                 <div className="border-t border-stone-200 pt-4">
                   <h3 className="mb-4 font-serif text-xl">Footer copy</h3>
                   {input('Footer description', draft.footer.description,
@@ -1602,11 +1596,6 @@ export default function SiteEditor({
             style={{ maxWidth: previewWidths[device] }}>
             <div className="max-h-[calc(100vh-175px)] min-h-[420px] overflow-y-auto site-shell"
               style={previewStyle} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'} data-festive-decor={draft.effects.enabled && draft.effects.illustrationEnabled ? 'on' : 'off'} data-illustration-placement={draft.effects.illustrationPlacement} data-editor-device={device} data-festive-motion={draft.effects.enabled && draft.effects.artworkMotion ? "on" : "off"}>
-              {draft.announcement.enabled && (
-                <div className="px-3 py-2 text-center text-[11px]" style={{
-                  backgroundColor: draft.announcement.background, color: draft.announcement.textColor,
-                }}>{draft.announcement.text}</div>
-              )}
               <div className="jb-nav-surface relative flex items-center justify-between overflow-hidden border-b border-stone-200/30 px-4 py-4">
                 {draft.theme === 'valentines' && (
                   <div className="jb-valentine-preview-trim pointer-events-none absolute inset-0" aria-hidden="true"/>
@@ -1627,7 +1616,9 @@ export default function SiteEditor({
                   : <span className="relative z-10 text-xs text-stone-500">HOME · SHOP · ABOUT</span>}
               </div>
               {draft.sections.order.filter(id => draft.sections.visible[id]).map(id => {
-                if (id === 'hero') return <Hero key={id}
+                if (id === 'hero') return <div key={id}>
+                  <ThemeBanner theme={draft.theme} config={draft.themeBanners[draft.theme]}/>
+                  <Hero
                   content={draft.theme === 'valentines' ? draft.valentines.hero : draft.hero}
                   headingScale={draft.appearance.headingScale}
                   effects={draft.effects} theme={draft.theme}
@@ -1635,7 +1626,8 @@ export default function SiteEditor({
                   mobilePhotoUrl={draft.theme === 'valentines' ? draft.valentines.heroMobileImageUrl : ''}
                   imagePosition={draft.heroImagePosition[draft.theme]}
                   offer={draft.theme === 'default' ? undefined : draft.offers[draft.theme]}
-                  onExploreClick={() => setPanel('text')} onFeaturedClick={() => {}} featuredProduct={products.find(p => p.featured) || products[0] || null}/>;
+                  onExploreClick={() => setPanel('text')} onFeaturedClick={() => {}} featuredProduct={products.find(p => p.featured) || products[0] || null}/>
+                </div>;
                 if (id === 'collections') return <CollectionShowcase key={id} content={draft.collections} headingScale={draft.appearance.headingScale}
                   products={products} onCategoryClick={key => { setSelectedCategory(key); setPanel('collections'); }}/>;
                 if (id === 'shop') return <section key={id} className="jb-shop-section relative isolate px-5 py-10">
@@ -1653,39 +1645,41 @@ export default function SiteEditor({
                   <p className="font-serif text-2xl">Customer reviews</p>
                   <p className="mt-2 text-xs text-stone-500">Only verified, approved reviews appear on the live site.</p>
                 </section>;
-                if (id === 'custom') return <section key={id}
-                  className={`jb-custom-surface relative isolate overflow-hidden px-5 py-12 ${draft.theme === 'valentines' ? 'jb-valentine-custom' : ''}`}
-                  style={draft.theme === 'valentines' ? { '--val-custom-overlay': String(draft.valentines.customOverlay) } as CSSProperties : undefined}>
-                  {draft.theme === 'valentines' && (
+                if (id === 'custom') {
+                  const isValentine = draft.theme === 'valentines';
+                  const design = draft.themeExtras[draft.theme];
+                  const customImage = isValentine ? draft.valentines.customImageUrl : design.customImageUrl;
+                  const focalPoint = isValentine ? draft.valentines.customImagePosition : design.customImagePosition;
+                  const photoOverlay = isValentine ? draft.valentines.customOverlay : design.customOverlay;
+                  const copy = isValentine ? draft.valentines.custom : draft.custom;
+                  return <section key={id}
+                    className={`jb-custom-surface relative isolate overflow-hidden px-5 py-12 ${isValentine ? 'jb-valentine-custom' : 'jb-themed-custom'}`}
+                    style={{ '--val-custom-overlay': String(photoOverlay), '--jb-custom-overlay': String(photoOverlay) } as CSSProperties}>
                     <div className="jb-val-custom-photo-layer pointer-events-none absolute inset-0" aria-hidden="true">
-                      {(draft.valentines.customImageUrl ||
-                        products.find(p => /gift|combo|keychain/i.test(p.category) && p.imageUrl)?.imageUrl) && (
-                        <img src={draft.valentines.customImageUrl ||
-                            products.find(p => /gift|combo|keychain/i.test(p.category) && p.imageUrl)?.imageUrl || ''}
-                          alt="" className="absolute inset-0 h-full w-full object-cover"
-                          style={{ objectPosition: `50% ${draft.valentines.customImagePosition}%` }}/>
-                      )}
+                      {customImage && <img src={customImage} alt="" className="absolute inset-0 h-full w-full object-cover"
+                        onError={event => { event.currentTarget.style.visibility = 'hidden'; }}
+                        style={{ objectPosition: `50% ${focalPoint}%` }}/>}
                       <div className="jb-val-custom-photo-shade absolute inset-0"/>
                     </div>
-                  )}
-                  <SeasonalEffects settings={draft.effects} theme={draft.theme} layer="support"/>
-                  <div className="relative z-10">
-                    <p className="text-xs uppercase tracking-widest text-stone-500">
-                      {draft.theme === 'valentines' ? draft.valentines.custom.eyebrow : draft.custom.eyebrow}
-                    </p>
-                    <h2 className="mt-3 font-serif text-3xl">
-                      {draft.theme === 'valentines' ? draft.valentines.custom.heading : draft.custom.heading}
-                      {' '}<em>{draft.theme === 'valentines' ? draft.valentines.custom.accentLine : draft.custom.accentLine}</em>
-                    </h2>
-                    <p className="mt-3 max-w-lg text-sm text-stone-600">
-                      {draft.theme === 'valentines' ? draft.valentines.custom.description : draft.custom.description}
-                    </p>
-                    <button type="button" className="mt-5 px-5 py-3 text-xs text-white"
-                      style={{ backgroundColor: draft.theme === 'valentines' ? draft.valentines.colors.buttonBackground : draft.appearance.button }}>
-                      {draft.theme === 'valentines' ? draft.valentines.custom.button : draft.custom.button}
-                    </button>
-                  </div>
-                </section>;
+                    <div className={`relative z-10 grid min-w-0 gap-6 ${device === 'desktop' ? 'grid-cols-2' : ''}`}>
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-widest text-stone-600">{copy.eyebrow}</p>
+                        <h2 className="mt-3 font-serif text-3xl leading-tight">{copy.heading} <em>{copy.accentLine}</em></h2>
+                        <p className="mt-4 text-xs leading-6 text-stone-700">{copy.description}</p>
+                        <button type="button" onClick={() => setPanel(isValentine ? 'valentines' : 'theme-detail')}
+                          className="site-primary-button mt-5 px-5 py-3 text-xs">{copy.button}</button>
+                      </div>
+                      <div className="jb-order-form-shell min-w-0 rounded-lg border border-stone-200 bg-[#FCFAF7] p-5 shadow-md">
+                        <p className="text-xs font-semibold tracking-wide">Create your arrangement</p>
+                        <p className="mt-2 text-[11px] text-stone-500">Live ordering fields appear here in the storefront.</p>
+                        <div className="mt-4 space-y-3">
+                          {['Occasion','Bouquet size','Flower colours','Wrapper material'].map(x =>
+                            <div key={x} className="rounded border border-stone-200 bg-white p-3 text-xs text-stone-500">{x}</div>)}
+                        </div>
+                      </div>
+                    </div>
+                  </section>;
+                }
                 if (id === 'story') return <section key={id} className="jb-story-surface relative isolate overflow-hidden px-5 py-12">
                   <SeasonalEffects settings={draft.effects} theme={draft.theme} layer="support"/>
                   <div className="relative z-10">
