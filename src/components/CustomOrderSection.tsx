@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { ArrowRight, CheckCircle2, Flower2, Gift, Minus, Plus } from 'lucide-react';
 import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
 import { customSizeMap, PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS } from '../../shared/productSizes';
@@ -61,6 +61,9 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
   const [error, setError] = useState('');
   const [confirmed, setConfirmed] = useState<string | null>(null);
 
+  useEffect(() => {
+    setWrappers(current => Math.max(current, minimumWrappers(flowers)));
+  }, [flowers]);
   const minWrappers = minimumWrappers(flowers);
   const dateMin = indiaDate(7);
   const quote = useMemo(() => estimateCustomBouquet({
