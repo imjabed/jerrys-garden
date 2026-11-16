@@ -1055,7 +1055,7 @@ export default function SiteEditor({
           <div className="mx-auto overflow-hidden border border-stone-300 bg-white shadow-xl transition-[max-width] duration-300"
             style={{ maxWidth: previewWidths[device] }}>
             <div className="max-h-[calc(100vh-175px)] min-h-[420px] overflow-y-auto site-shell"
-              style={previewStyle} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'} data-festive-decor={draft.effects.enabled && draft.effects.illustrationEnabled ? 'on' : 'off'} data-illustration-placement={draft.effects.illustrationPlacement} data-editor-device={device}>
+              style={previewStyle} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'} data-festive-decor={draft.effects.enabled && draft.effects.illustrationEnabled ? 'on' : 'off'} data-illustration-placement={draft.effects.illustrationPlacement} data-editor-device={device} data-festive-motion={draft.effects.enabled && draft.effects.artworkMotion ? "on" : "off"}>
               {draft.announcement.enabled && (
                 <div className="px-3 py-2 text-center text-[11px]" style={{
                   backgroundColor: draft.announcement.background, color: draft.announcement.textColor,
