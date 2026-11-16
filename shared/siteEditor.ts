@@ -190,11 +190,22 @@ export function applyThemePreset(current: SiteContent, id: ThemeId): SiteContent
   const targetCopy = themeCopy[preset.id] || {
     hero: current.hero, custom: current.custom, story: current.story, footer: current.footer,
   };
+  // A preset not yet personalised inherits the current editorial copy, but
+  // after it is edited its text is restored independently on later switches.
+  const neverEdited = JSON.stringify(targetCopy) === JSON.stringify(DEFAULT_SITE_CONTENT.themeCopy[preset.id]);
+  const shownCopy = neverEdited ? {
+    hero: current.hero, custom: current.custom, story: current.story, footer: current.footer,
+  } : targetCopy;
   return {
-    ...current, theme: preset.id, themeAppearance, themeCopy,
+    ...current, theme: preset.id, themeAppearance, themeCopy: {
+      ...themeCopy, [preset.id]: {
+        hero: { ...shownCopy.hero }, custom: { ...shownCopy.custom },
+        story: { ...shownCopy.story }, footer: { ...shownCopy.footer },
+      },
+    },
     appearance: { ...targetStyle },
-    hero: { ...targetCopy.hero }, custom: { ...targetCopy.custom },
-    story: { ...targetCopy.story }, footer: { ...targetCopy.footer },
+    hero: { ...shownCopy.hero }, custom: { ...shownCopy.custom },
+    story: { ...shownCopy.story }, footer: { ...shownCopy.footer },
     collections: { ...current.collections, background: preset.collectionBg, text: preset.collectionText },
     effects: { ...current.effects, shape: preset.effect,
       enabled: preset.id !== 'default',
