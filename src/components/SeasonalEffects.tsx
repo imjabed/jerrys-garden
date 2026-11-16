@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import type { PageEffects, ThemeId } from '../../shared/siteEditor';
+import { THEME_ARTWORK, type PageEffects, type ThemeId } from '../../shared/siteEditor';
 
 const artwork: Partial<Record<ThemeId, string>> = {
   valentines: '/seasonal/valentines-couple.svg',
-  'new-year': '/seasonal/new-year-fireworks.svg',
+  'new-year': '/seasonal/winter-landscape.svg',
   puja: '/seasonal/puja-diya.svg',
   eid: '/seasonal/eid-lanterns.svg',
   winter: '/seasonal/winter-landscape.svg',
@@ -54,10 +54,11 @@ export default function SeasonalEffects({
 
   if (!visible || theme === 'default') return null;
   const scene = artwork[theme];
+  const panorama = THEME_ARTWORK[theme];
   const showSnow = (theme === 'winter' || theme === 'new-year') && settings.snowEnabled;
   const showFireworks = theme === 'new-year' && settings.fireworksEnabled;
-  const artVisible = settings.illustrationEnabled && Boolean(scene)
-    && (theme !== 'new-year' || settings.fireworksEnabled);
+  // Fireworks are optional; switching them off must never hide the New Year scenery.
+  const artVisible = settings.illustrationEnabled && Boolean(scene);
   const strength = onSupport ? 0.5 : 1;
   const flakeCount = showSnow
     ? Math.min(onSupport ? 40 : 128, Math.round(settings.snowDensity * (onSupport ? 0.34 : 1.28))) : 0;
@@ -67,6 +68,14 @@ export default function SeasonalEffects({
     <div ref={root} aria-hidden="true"
       className={`jb-seasonal-scene pointer-events-none absolute inset-0 z-0 overflow-hidden jb-seasonal-${theme}`}
       style={{ '--seasonal-parallax': '0px' } as CSSProperties}>
+      {artVisible && panorama && (
+        <img src={panorama} alt="" draggable={false} loading={onSupport ? 'lazy' : 'eager'}
+          className={`jb-seasonal-panorama absolute inset-0 h-full w-full object-cover ${settings.artworkMotion && !reducedMotion ? 'jb-seasonal-panorama-breathe' : ''}`}
+          style={{
+            '--seasonal-panorama-opacity': settings.artworkOpacity * (onSupport ? .42 : .98),
+            animationDuration: `${29 / Math.max(.25, settings.speed)}s`,
+          } as CSSProperties}/>
+      )}
       {artVisible && (
         <img src={scene} alt="" draggable={false}
           className={`jb-seasonal-art absolute right-[-9%] top-[-7%] h-[115%] w-[70%] object-contain object-center
@@ -76,6 +85,14 @@ export default function SeasonalEffects({
             '--seasonal-art-opacity': settings.artworkOpacity * strength
               * (theme === 'new-year' ? settings.fireworksIntensity / 100 : 1),
             animationDuration: `${22 / Math.max(.25, settings.speed)}s`,
+          }}/>
+      )}
+      {showFireworks && artVisible && (
+        <img src="/seasonal/new-year-fireworks.svg" alt="" draggable={false}
+          className={`jb-seasonal-fireworks-art absolute inset-0 h-full w-full object-contain ${settings.artworkMotion && !reducedMotion ? 'jb-seasonal-fireworks-active' : ''}`}
+          style={{
+            opacity: (settings.fireworksIntensity / 100) * (onSupport ? .25 : .68),
+            animationDuration: `${8 / Math.max(.25, settings.speed)}s`,
           }}/>
       )}
       {showSnow && Array.from({ length: flakes }, (_, i) => {
