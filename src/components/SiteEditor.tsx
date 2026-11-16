@@ -49,6 +49,7 @@ export default function SiteEditor({
   const [device, setDevice] = useState<Device>('phone');
   const [offerTheme, setOfferTheme] = useState<SeasonalThemeId>('valentines');
   const [photoTheme, setPhotoTheme] = useState<ThemeId>('default');
+  const [heroAssetInfo, setHeroAssetInfo] = useState<{ url: string; width: number; height: number } | null>(null);
   const [showPreview, setShowPreview] = useState(true);
 
   const load = async () => {
@@ -235,7 +236,12 @@ export default function SiteEditor({
     try {
       const upload = await uploadImageToCloudinary(file, 'jame_bouquets_themes');
       update(prev => ({ ...prev, themeMedia: { ...prev.themeMedia, [id]: upload.url } }));
-      setNotice('Hero background uploaded to Cloudinary. Preview, then Publish to show customers.');
+      if (upload.width && upload.height) {
+        setHeroAssetInfo({ url: upload.url, width: upload.width, height: upload.height });
+      }
+      setNotice(upload.width && upload.width < 2000 && id === 'valentines'
+        ? 'Uploaded, but this photo may be soft on large screens. For the sharpest Valentine hero, upload an original at least 2400 pixels wide before publishing.'
+        : 'Hero background uploaded to Cloudinary. Preview, then Publish to show customers.');
     } catch (err: any) {
       setError(err?.message || 'Could not upload seasonal photo.');
     } finally { setUploadingKey(null); }
@@ -608,6 +614,11 @@ export default function SiteEditor({
                     {draft.themeMedia[photoTheme] ? (
                       <img src={draft.themeMedia[photoTheme]} alt={`${photoTheme} hero background preview`}
                         className="absolute inset-0 h-full w-full object-cover"
+                        onLoad={event => setHeroAssetInfo({
+                          url: draft.themeMedia[photoTheme],
+                          width: event.currentTarget.naturalWidth,
+                          height: event.currentTarget.naturalHeight,
+                        })}
                         style={{ objectPosition: `50% ${draft.heroImagePosition[photoTheme]}%` }}/>
                     ) : (
                       <div className="flex h-full items-center justify-center px-5 text-center text-xs text-stone-500">
@@ -626,6 +637,23 @@ export default function SiteEditor({
                         void uploadThemePhoto(photoTheme, e.target.files?.[0]); e.target.value = '';
                       }}/>
                   </label>
+                  {photoTheme === 'valentines' && draft.themeMedia.valentines && (
+                    <div className="rounded-lg border border-stone-200 bg-[#FFFAF7] p-3 text-xs leading-5 text-stone-700">
+                      {heroAssetInfo?.url === draft.themeMedia.valentines
+                        ? <>Original photo: <strong>{heroAssetInfo.width} × {heroAssetInfo.height} pixels</strong>.</>
+                        : 'Checking source photo dimensions…'}
+                      {heroAssetInfo?.url === draft.themeMedia.valentines && heroAssetInfo.width < 2000 && (
+                        <p className="mt-1 font-semibold text-amber-800">
+                          This source is relatively small for a full-width desktop hero. Upload a sharper
+                          2400–3200px-wide original; higher delivery resolution cannot restore missing detail.
+                        </p>
+                      )}
+                      <p className="mt-1 text-stone-500">
+                        The storefront now serves an appropriate high-quality Cloudinary variant
+                        for each screen size, rather than stretching the old 1280px rendition.
+                      </p>
+                    </div>
+                  )}
                   {draft.themeMedia[photoTheme] && (
                     <button type="button" className="text-xs font-medium text-red-700 underline underline-offset-4"
                       onClick={() => update(prev => ({
@@ -635,8 +663,9 @@ export default function SiteEditor({
                     </button>
                   )}
                   <p className="text-[11px] leading-5 text-stone-500">
-                    Use a portrait 9:16 bouquet image for mobile. Uploading changes only
-                    this theme's hero background, not your actual product photos.
+                    For desktops, use a sharp landscape original (ideally 2400–3200px wide).
+                    For phones, upload a separate 9:16 portrait in Valentine Studio.
+                    Changing the hero background never changes product photographs.
                   </p>
                   <label className="block space-y-2 border-t border-stone-100 pt-4 text-xs">
                     <span className="flex justify-between gap-2">
@@ -1360,10 +1389,7 @@ export default function SiteEditor({
                   content={draft.theme === 'valentines' ? draft.valentines.hero : draft.hero}
                   headingScale={draft.appearance.headingScale}
                   effects={draft.effects} theme={draft.theme}
-                  photoUrl={draft.theme === 'valentines'
-                    ? (draft.themeMedia.valentines ||
-                        products.find(p => /ribbon bouquet/i.test(p.category) && p.imageUrl)?.imageUrl || '')
-                    : draft.themeMedia[draft.theme]}
+                  photoUrl={draft.themeMedia[draft.theme]}
                   mobilePhotoUrl={draft.theme === 'valentines' ? draft.valentines.heroMobileImageUrl : ''}
                   imagePosition={draft.heroImagePosition[draft.theme]}
                   offer={draft.theme === 'default' ? undefined : draft.offers[draft.theme]}
