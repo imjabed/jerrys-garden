@@ -511,7 +511,7 @@ export default function App() {
   } as CSSProperties;
 
   return (
-    <div className="site-shell min-h-screen flex flex-col selection:bg-rose-100 selection:text-rose-900" style={storefrontStyle} data-site-theme={siteContent.theme} data-hover-lift={siteContent.effects.hoverLift ? "on" : "off"} data-festive-decor={siteContent.effects.enabled && siteContent.effects.illustrationEnabled ? "on" : "off"} data-illustration-placement={siteContent.effects.illustrationPlacement}>
+    <div className="site-shell min-h-screen flex flex-col selection:bg-rose-100 selection:text-rose-900" style={storefrontStyle} data-site-theme={siteContent.theme} data-hover-lift={siteContent.effects.hoverLift ? "on" : "off"} data-festive-decor={siteContent.effects.enabled && siteContent.effects.illustrationEnabled ? "on" : "off"} data-illustration-placement={siteContent.effects.illustrationPlacement} data-festive-motion={siteContent.effects.enabled && siteContent.effects.artworkMotion ? "on" : "off"}>
       
       {/* Toast Notification */}
       {toastMessage && (
