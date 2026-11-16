@@ -279,6 +279,47 @@ export default function SiteEditor({
       setError(err?.message || 'Could not upload the Valentine image.');
     } finally { setUploadingKey(null); }
   };
+  const uploadThemeDetail = async (field: 'customImageUrl' | 'footerSceneUrl', file?: File) => {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setError('Choose a JPEG, PNG or WebP image under 5 MB.'); return;
+    }
+    setUploadingKey(`theme-detail-${field}`); setError('');
+    const id = draft.theme;
+    try {
+      const uploaded = await uploadImageToCloudinary(file, 'jame_bouquets_themes');
+      rememberSuperseded(draft.themeExtras[id][field], uploaded.url);
+      update(prev => ({ ...prev, themeExtras: {
+        ...prev.themeExtras, [id]: { ...prev.themeExtras[id], [field]: uploaded.url },
+      } }));
+      setNotice(uploaded.reused ? 'Photo already exists in Cloudinary. Reused it.' : 'Theme image ready. Publish to show customers.');
+    } catch (err: any) { setError(err?.message || 'Theme media could not be uploaded.'); }
+    finally { setUploadingKey(null); }
+  };
+  const uploadBannerPhoto = async (id: ThemeId, file?: File) => {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setError('Choose an image under 5 MB.'); return;
+    }
+    setUploadingKey(`banner-${id}`); setError('');
+    try {
+      const uploaded = await uploadImageToCloudinary(file, 'jame_bouquets_themes');
+      rememberSuperseded(draft.themeBanners[id].imageUrl, uploaded.url);
+      update(prev => ({ ...prev, themeBanners: {
+        ...prev.themeBanners, [id]: { ...prev.themeBanners[id], imageUrl: uploaded.url },
+      } }));
+      setNotice(uploaded.reused ? 'Existing Cloudinary photo reused.' : 'Banner photo uploaded. Publish when ready.');
+    } catch (err: any) { setError(err?.message || 'Banner photo upload failed.'); }
+    finally { setUploadingKey(null); }
+  };
+  const updateBanner = (id: ThemeId, patch: Partial<SiteContent['themeBanners'][ThemeId]>) =>
+    update(prev => ({ ...prev, themeBanners: { ...prev.themeBanners,
+      [id]: { ...prev.themeBanners[id], ...patch },
+    } }));
+  const updateThemeExtra = (patch: Partial<SiteContent['themeExtras'][ThemeId]>) =>
+    update(prev => ({ ...prev, themeExtras: { ...prev.themeExtras,
+      [prev.theme]: { ...prev.themeExtras[prev.theme], ...patch },
+    } }));
   const updateValentineCopy = (section: 'hero' | 'custom', field: keyof SiteContent['hero'], value: string) =>
     update(prev => ({ ...prev, valentines: { ...prev.valentines,
       [section]: { ...prev.valentines[section], [field]: value },
@@ -451,6 +492,186 @@ export default function SiteEditor({
             ))}
           </nav>
           <div className="space-y-5 overflow-y-auto p-5 pb-12 sm:p-6">
+            {panel === 'banner' && (
+              <>
+                <div>
+                  <h2 className="font-serif text-2xl">Campaign banner editor</h2>
+                  <p className="mt-2 text-xs leading-6 text-stone-600">
+                    This horizontal campaign strip appears directly above the homepage hero.
+                    Default is hidden. Each festive theme starts with a tasteful banner,
+                    and all text, colours and imagery can be changed independently.
+                  </p>
+                </div>
+                {option('Theme banner', bannerTheme, ALL_THEME_IDS.map(id => ({
+                  id, label: THEME_PRESETS.find(p => p.id === id)?.label || id,
+                })), id => setBannerTheme(id as ThemeId))}
+                <div className="space-y-4 rounded-xl border border-stone-200 bg-white p-4">
+                  <label className="flex items-center justify-between gap-3 text-xs font-semibold">
+                    <span>Display banner in {THEME_PRESETS.find(p => p.id === bannerTheme)?.label}</span>
+                    <input type="checkbox" checked={draft.themeBanners[bannerTheme].enabled}
+                      onChange={e => updateBanner(bannerTheme, { enabled: e.target.checked })}
+                      className="h-4 w-4 accent-stone-900"/>
+                  </label>
+                  <div className="overflow-hidden rounded-lg">
+                    <ThemeBanner theme={bannerTheme} config={draft.themeBanners[bannerTheme]}/>
+                    {!draft.themeBanners[bannerTheme].enabled && (
+                      <p className="bg-stone-100 px-3 py-3 text-center text-[11px] text-stone-600">Hidden on storefront; enable to preview above.</p>
+                    )}
+                  </div>
+                  {input('Small label', draft.themeBanners[bannerTheme].eyebrow,
+                    v => updateBanner(bannerTheme, { eyebrow: v }))}
+                  {input('Main banner message', draft.themeBanners[bannerTheme].text,
+                    v => updateBanner(bannerTheme, { text: v }), true)}
+                  {input('Action button text', draft.themeBanners[bannerTheme].buttonText,
+                    v => updateBanner(bannerTheme, { buttonText: v }))}
+                  {input('Button link, e.g. #shop-section', draft.themeBanners[bannerTheme].link,
+                    v => updateBanner(bannerTheme, { link: v }))}
+                  {colour('Background colour', draft.themeBanners[bannerTheme].background,
+                    v => updateBanner(bannerTheme, { background: v }))}
+                  {colour('Text colour', draft.themeBanners[bannerTheme].textColor,
+                    v => updateBanner(bannerTheme, { textColor: v }))}
+                  {colour('Accent colour', draft.themeBanners[bannerTheme].accentColor,
+                    v => updateBanner(bannerTheme, { accentColor: v }))}
+                  {draft.themeBanners[bannerTheme].imageUrl && (
+                    <img src={draft.themeBanners[bannerTheme].imageUrl} alt="Banner preview" className="h-28 w-full rounded object-cover"/>
+                  )}
+                  <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded border border-stone-300 px-3 py-3 text-xs font-semibold">
+                    <UploadCloud className="h-4 w-4"/>
+                    {uploadingKey === 'banner-' + bannerTheme ? 'Uploading…' : 'Upload / replace banner background image'}
+                    <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+                      disabled={Boolean(uploadingKey)} onChange={e => {
+                        void uploadBannerPhoto(bannerTheme, e.target.files?.[0]); e.target.value = '';
+                      }}/>
+                  </label>
+                  {draft.themeBanners[bannerTheme].imageUrl && (
+                    <button type="button" onClick={() => {
+                      rememberSuperseded(draft.themeBanners[bannerTheme].imageUrl, '');
+                      updateBanner(bannerTheme, { imageUrl: '' });
+                    }} className="text-xs font-medium text-red-700 underline">Remove banner photo</button>
+                  )}
+                  <label className="block space-y-2 text-xs">
+                    <span>Image visibility · {Math.round(draft.themeBanners[bannerTheme].imageOpacity * 100)}%</span>
+                    <input type="range" min="0" max=".75" step=".05" className="w-full accent-stone-900"
+                      value={draft.themeBanners[bannerTheme].imageOpacity}
+                      onChange={e => updateBanner(bannerTheme, { imageOpacity: Number(e.target.value) })}/>
+                  </label>
+                  <p className="text-[11px] leading-5 text-stone-500">
+                    This is a branding banner, not an automatic discount.
+                    For a real percentage-off coupon, create it in Admin → Coupons,
+                    then enable the matching code in Coupon Offers.
+                  </p>
+                </div>
+              </>
+            )}
+            {panel === 'theme-detail' && (
+              <>
+                <div>
+                  <h2 className="font-serif text-2xl">Theme details</h2>
+                  <p className="mt-2 text-xs leading-6 text-stone-600">
+                    Edit the navbar, custom-order background and cinematic footer for
+                    the current {THEME_PRESETS.find(p => p.id === draft.theme)?.label} preset.
+                    Colours and typography for the entire page are in Style.
+                  </p>
+                </div>
+                {draft.theme === 'valentines' ? (
+                  <button type="button" onClick={() => setPanel('valentines')}
+                    className="w-full rounded border border-rose-300 bg-rose-50 px-4 py-4 text-left text-sm font-semibold text-rose-950">
+                    Open Valentine Studio for specialised photography, custom order and park skyline editing
+                  </button>
+                ) : (
+                  <>
+                    <div className="space-y-3 rounded-xl border border-stone-200 p-4">
+                      <h3 className="font-serif text-xl">Navigation</h3>
+                      {colour('Navbar background', draft.themeExtras[draft.theme].navBackground,
+                        v => updateThemeExtra({ navBackground: v }))}
+                      {colour('Navbar text', draft.themeExtras[draft.theme].navText,
+                        v => updateThemeExtra({ navText: v }))}
+                      {colour('Navbar accent', draft.themeExtras[draft.theme].navAccent,
+                        v => updateThemeExtra({ navAccent: v }))}
+                    </div>
+                    <div className="space-y-4 rounded-xl border border-stone-200 p-4">
+                      <h3 className="font-serif text-xl">Custom-order backdrop</h3>
+                      <p className="text-[11px] leading-5 text-stone-500">
+                        Decorative imagery is optional and never replaces the order form.
+                        No catalogue photo will be automatically stretched into this section.
+                      </p>
+                      {draft.themeExtras[draft.theme].customImageUrl ? (
+                        <img src={draft.themeExtras[draft.theme].customImageUrl} alt="Custom section background"
+                          className="h-40 w-full rounded object-cover"
+                          style={{ objectPosition: `50% ${draft.themeExtras[draft.theme].customImagePosition}%` }}/>
+                      ) : <div className="flex h-24 items-center justify-center rounded bg-stone-100 px-3 text-xs text-stone-500">No photo yet — solid background remains</div>}
+                      <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 border border-stone-300 px-3 py-3 text-xs font-semibold">
+                        <UploadCloud className="h-4 w-4"/>
+                        {uploadingKey === 'theme-detail-customImageUrl' ? 'Uploading…' : 'Upload / replace custom-order background'}
+                        <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+                          disabled={Boolean(uploadingKey)} onChange={e => {
+                            void uploadThemeDetail('customImageUrl', e.target.files?.[0]); e.target.value = '';
+                          }}/>
+                      </label>
+                      {draft.themeExtras[draft.theme].customImageUrl && (
+                        <button type="button" className="text-left text-xs text-red-700 underline"
+                          onClick={() => {
+                            rememberSuperseded(draft.themeExtras[draft.theme].customImageUrl, '');
+                            updateThemeExtra({ customImageUrl: '' });
+                          }}>Remove custom-order background</button>
+                      )}
+                      <label className="block space-y-2 text-xs">
+                        <span>Image focal point · {draft.themeExtras[draft.theme].customImagePosition}%</span>
+                        <input type="range" min="0" max="100" step="5" value={draft.themeExtras[draft.theme].customImagePosition}
+                          onChange={e => updateThemeExtra({ customImagePosition: Number(e.target.value) })}
+                          className="w-full accent-stone-900"/>
+                      </label>
+                      <label className="block space-y-2 text-xs">
+                        <span>Text overlay · {Math.round(draft.themeExtras[draft.theme].customOverlay * 100)}%</span>
+                        <input type="range" min=".15" max=".95" step=".05" value={draft.themeExtras[draft.theme].customOverlay}
+                          onChange={e => updateThemeExtra({ customOverlay: Number(e.target.value) })}
+                          className="w-full accent-stone-900"/>
+                      </label>
+                    </div>
+                    <div className="space-y-4 rounded-xl border border-stone-200 p-4">
+                      <h3 className="font-serif text-xl">Cinematic footer floor</h3>
+                      <label className="flex items-center justify-between gap-3 text-xs">
+                        <span>Show decorative footer skyline</span>
+                        <input type="checkbox" checked={draft.themeExtras[draft.theme].footerSceneEnabled}
+                          onChange={e => updateThemeExtra({ footerSceneEnabled: e.target.checked })}/>
+                      </label>
+                      <p className="text-[11px] leading-5 text-stone-500">
+                        Built-in monochrome SVG for each celebration. Use a transparent PNG/WebP to replace it,
+                        or turn it off without affecting the footer links.
+                      </p>
+                      {colour('Silhouette / floor colour', draft.themeExtras[draft.theme].footerSceneColor,
+                        v => updateThemeExtra({ footerSceneColor: v }))}
+                      {input('Footer tagline', draft.themeExtras[draft.theme].footerTagline,
+                        v => updateThemeExtra({ footerTagline: v }))}
+                      {draft.themeExtras[draft.theme].footerSceneUrl && (
+                        <img src={draft.themeExtras[draft.theme].footerSceneUrl} alt="Uploaded footer scene"
+                          className="h-28 w-full rounded object-contain bg-stone-100"/>
+                      )}
+                      <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 border border-stone-300 px-3 py-3 text-xs font-semibold">
+                        <UploadCloud className="h-4 w-4"/>
+                        {uploadingKey === 'theme-detail-footerSceneUrl' ? 'Uploading…' : 'Upload / replace footer silhouette'}
+                        <input type="file" accept="image/png,image/webp" className="sr-only"
+                          disabled={Boolean(uploadingKey)} onChange={e => {
+                            void uploadThemeDetail('footerSceneUrl', e.target.files?.[0]); e.target.value = '';
+                          }}/>
+                      </label>
+                      {draft.themeExtras[draft.theme].footerSceneUrl && (
+                        <button type="button" className="text-xs text-red-700 underline"
+                          onClick={() => {
+                            rememberSuperseded(draft.themeExtras[draft.theme].footerSceneUrl, '');
+                            updateThemeExtra({ footerSceneUrl: '' });
+                          }}>
+                          Restore original festival SVG
+                        </button>
+                      )}
+                    </div>
+                    <button type="button" onClick={() => setPanel('appearance')} className="w-full border border-stone-300 px-4 py-3 text-xs font-semibold">
+                      Edit colours and fonts for this theme
+                    </button>
+                  </>
+                )}
+              </>
+            )}
             {panel === 'valentines' && (
               <>
                 <div className="space-y-2">
