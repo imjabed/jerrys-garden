@@ -735,15 +735,56 @@
   }
 }
 
-/* Honor editor motion switch and keep parallax GPU-only and bounded. */
+/* The Cloudinary photo sits behind content on every preset, including Default. */
+.site-shell .jb-hero-with-image .jb-photo-readable {
+  pointer-events: none;
+}
+.site-shell .jb-hero-with-image:not(.jb-hero-seasonal) .jb-photo-readable {
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--site-hero-bg) 95%, transparent) 0%,
+    color-mix(in srgb, var(--site-hero-bg) 77%, transparent) 41%,
+    color-mix(in srgb, var(--site-hero-bg) 12%, transparent) 75%);
+}
+.site-shell .jb-hero-with-image:not(.jb-hero-seasonal) .jb-hero-copy {
+  position: relative;
+  z-index: 3;
+}
+.site-shell .jb-hero-with-image:not(.jb-hero-seasonal) .jb-featured-panel {
+  z-index: 3;
+}
+
+/* Use transform for smooth parallax; never use fixed backgrounds on iOS. */
 .jb-hero-photo {
-  transform: translate3d(0, var(--jb-photo-parallax, 0px), 0) scale(1.035);
-  will-change: auto;
+  transform: none;
+  backface-visibility: hidden;
+  transform-origin: center;
+}
+.jb-hero-photo.jb-hero-photo-parallax {
+  transform: translate3d(0, var(--jb-photo-parallax, 0px), 0) scale(1.16);
 }
 .site-shell[data-festive-motion="off"] .jb-nav-ornament { animation:none !important; }
 @media(max-width:680px) {
-  .jb-hero-photo { transform: none; }
+  .jb-hero-photo.jb-hero-photo-parallax {
+    transform: translate3d(0, var(--jb-photo-parallax, 0px), 0) scale(1.10);
+  }
+  .site-shell .jb-hero-with-image:not(.jb-hero-seasonal) .jb-photo-readable {
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--site-hero-bg) 95%, transparent) 0%,
+      color-mix(in srgb, var(--site-hero-bg) 84%, transparent) 37%,
+      color-mix(in srgb, var(--site-hero-bg) 32%, transparent) 78%,
+      transparent 100%);
+  }
+}
+.site-shell[data-editor-device="phone"] .jb-hero-photo.jb-hero-photo-parallax {
+  transform: translate3d(0, var(--jb-photo-parallax, 0px), 0) scale(1.10);
+}
+.site-shell[data-editor-device="phone"] .jb-hero-with-image:not(.jb-hero-seasonal) .jb-photo-readable {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--site-hero-bg) 95%, transparent) 0%,
+    color-mix(in srgb, var(--site-hero-bg) 84%, transparent) 37%,
+    color-mix(in srgb, var(--site-hero-bg) 32%, transparent) 78%,
+    transparent 100%);
 }
 @media(prefers-reduced-motion:reduce) {
-  .jb-hero-photo { transform:none !important; }
+  .jb-hero-photo.jb-hero-photo-parallax { transform:none !important; }
 }
