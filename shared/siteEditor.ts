@@ -79,14 +79,14 @@ export const THEME_PRESETS: ThemePreset[] = [
     background: '#FFF5E1', text: '#4B2E1C', accent: '#B61A12', button: '#A6080A', buttonText: '#FFFFFF',
     headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#FFF3DF', storyBackground: '#FFF0DA', customBackground: '#FFF6E7', footerBackground: '#620A12',
   }, collectionBg: '#8B0000', collectionText: '#FFF6DC', effect: 'petals' },
-  { id: 'eid', label: 'Eid Celebration', description: 'Emerald arches · golden lanterns · crescent moon', appearance: {
-    background: '#F8F4E6', text: '#1E4738', accent: '#C79A3B', button: '#0E5136', buttonText: '#FFFFFF',
-    headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#FAF5E7', storyBackground: '#F2F1E6', customBackground: '#FBF6EB', footerBackground: '#082E26',
-  }, collectionBg: '#0E3B2D', collectionText: '#F8F4E6', effect: 'lanterns' },
   { id: 'winter', label: 'Winter / Christmas / New Year', description: 'Snowy holiday gifting · Christmas lights · New Year joy', appearance: {
     background: '#FFF7E9', text: '#30283A', accent: '#B32834', button: '#B32834', buttonText: '#FFFFFF',
     headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#F1EEF3', storyBackground: '#F3EFF1', customBackground: '#FFF8EF', footerBackground: '#14283F',
   }, collectionBg: '#0E223A', collectionText: '#FFF7E9', effect: 'snow' },
+  { id: 'eid', label: 'Eid Celebration', description: 'Emerald arches · golden lanterns · crescent moon', appearance: {
+    background: '#F8F4E6', text: '#1E4738', accent: '#C79A3B', button: '#0E5136', buttonText: '#FFFFFF',
+    headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#FAF5E7', storyBackground: '#F2F1E6', customBackground: '#FBF6EB', footerBackground: '#082E26',
+  }, collectionBg: '#0E3B2D', collectionText: '#F8F4E6', effect: 'lanterns' },
 ];
 export function applyThemePreset(current: SiteContent, id: ThemeId): SiteContent {
   const preset = THEME_PRESETS.find(x => x.id === id) || THEME_PRESETS[0];
