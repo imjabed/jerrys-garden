@@ -11,14 +11,14 @@ import SeasonalEffects from './SeasonalEffects';
 import type { RibbonBouquet } from '../types';
 import {
   DEFAULT_SITE_CONTENT, DEFAULT_CATEGORIES, FONT_LABELS, FONT_STACKS,
-  SECTION_IDS, SEASONAL_THEME_IDS, THEME_PRESETS, BLOCK_KINDS, defaultPageBlock, applyThemePreset, sanitizeSiteContent, safeEditorLink,
+  SECTION_IDS, SEASONAL_THEME_IDS, ALL_THEME_IDS, THEME_PRESETS, BLOCK_KINDS, defaultPageBlock, applyThemePreset, sanitizeSiteContent, safeEditorLink,
 } from '../../shared/siteEditor';
 import type { CategoryCardConfig, FontId, SectionId, SiteContent, PageBlock, BlockKind, ThemeId, EffectShape, SeasonalThemeId, SeasonalOffer } from '../../shared/siteEditor';
 import { apiGetSiteEditor, apiSaveSiteEditorDraft, apiPublishSiteEditor, apiGetPublishedSiteContent } from '../services/api';
 import type { SiteEditorPayload } from '../services/api';
 import { uploadImageToCloudinary } from '../services/cloudinary';
 
-type Panel = 'text' | 'collections' | 'appearance' | 'sections' | 'seo' | 'history' | 'themes' | 'effects' | 'blocks' | 'branding' | 'offers';
+type Panel = 'hero' | 'text' | 'collections' | 'appearance' | 'sections' | 'seo' | 'history' | 'themes' | 'effects' | 'blocks' | 'branding' | 'offers';
 type Device = 'desktop' | 'tablet' | 'phone';
 const labels: Record<string, string> = {
   hero: 'Hero', collections: 'Collections', shop: 'Shop catalog',
@@ -43,11 +43,12 @@ export default function SiteEditor({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [panel, setPanel] = useState<Panel>('collections');
+  const [panel, setPanel] = useState<Panel>('hero');
   const [selectedCategory, setSelectedCategory] = useState<string>(DEFAULT_CATEGORIES[0]);
   const [selectedBlock, setSelectedBlock] = useState<string>('');
   const [device, setDevice] = useState<Device>('phone');
   const [offerTheme, setOfferTheme] = useState<SeasonalThemeId>('valentines');
+  const [photoTheme, setPhotoTheme] = useState<ThemeId>('default');
   const [showPreview, setShowPreview] = useState(true);
 
   const load = async () => {
@@ -58,6 +59,7 @@ export default function SiteEditor({
       setData(result);
       setRevision(result.revision);
       setDraft(result.draft);
+      setPhotoTheme(result.draft.theme);
       setLastSaved(result.draft);
       setDirty(false);
     } catch (err: any) { setError(err?.message || 'Could not load the editor.'); }
@@ -224,7 +226,7 @@ export default function SiteEditor({
     } catch (err: any) { setError(err?.message || 'Could not upload this category photo.'); }
     finally { setUploadingKey(null); }
   };
-  const uploadThemePhoto = async (id: SeasonalThemeId, file?: File) => {
+  const uploadThemePhoto = async (id: ThemeId, file?: File) => {
     if (!file) return;
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
       setError('Please choose a JPG, PNG or WebP image under 5 MB.'); return;
@@ -233,7 +235,7 @@ export default function SiteEditor({
     try {
       const upload = await uploadImageToCloudinary(file, 'jame_bouquets_themes');
       update(prev => ({ ...prev, themeMedia: { ...prev.themeMedia, [id]: upload.url } }));
-      setNotice('Seasonal photo uploaded to Cloudinary. Publish to show it to customers.');
+      setNotice('Hero background uploaded to Cloudinary. Preview, then Publish to show customers.');
     } catch (err: any) {
       setError(err?.message || 'Could not upload seasonal photo.');
     } finally { setUploadingKey(null); }
@@ -365,6 +367,7 @@ export default function SiteEditor({
         <aside className="flex flex-col border-r border-stone-200 bg-white xl:max-h-[calc(100vh-73px)]">
           <nav className="flex gap-1 overflow-x-auto border-b border-stone-200 p-3" aria-label="Editor panels">
             {([
+              ['hero', ImageIcon, 'Hero Background'],
               ['themes', Palette, 'Themes'],
               ['offers', BadgePercent, 'Offers'],
               ['blocks', Layers3, 'Build'],
@@ -384,6 +387,109 @@ export default function SiteEditor({
             ))}
           </nav>
           <div className="space-y-5 overflow-y-auto p-5 pb-12 sm:p-6">
+            {panel === 'hero' && (
+              <>
+                <div>
+                  <h2 className="font-serif text-2xl">Hero background studio</h2>
+                  <p className="mt-2 text-xs leading-6 text-stone-600">
+                    Replace your full-width hero backdrop for any of the five themes.
+                    Upload a real photo to Cloudinary, adjust its focal point, and choose
+                    whether the background moves gently as customers scroll.
+                    Your Default theme keeps its separate featured product card.
+                  </p>
+                </div>
+                {option('Background to edit', photoTheme, ALL_THEME_IDS.map(id => ({
+                  id, label: THEME_PRESETS.find(p => p.id === id)?.label || id,
+                })), value => setPhotoTheme(value as ThemeId))}
+                <div className="space-y-4 rounded-xl border border-stone-200 bg-white p-4">
+                  <div className="relative mx-auto aspect-[9/12] w-full max-w-[280px] overflow-hidden rounded-xl border border-stone-200"
+                    style={{ backgroundColor: THEME_PRESETS.find(p => p.id === photoTheme)?.appearance.heroBackground }}>
+                    {draft.themeMedia[photoTheme] ? (
+                      <img src={draft.themeMedia[photoTheme]} alt={`${photoTheme} hero background preview`}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        style={{ objectPosition: `50% ${draft.heroImagePosition[photoTheme]}%` }}/>
+                    ) : (
+                      <div className="flex h-full items-center justify-center px-5 text-center text-xs text-stone-500">
+                        No background image yet. The theme colour remains visible until you upload one.
+                      </div>
+                    )}
+                    <span className="absolute bottom-3 left-3 rounded-md bg-white/90 px-3 py-1.5 text-[10px] font-semibold text-stone-900 shadow-sm">
+                      {THEME_PRESETS.find(p => p.id === photoTheme)?.label}
+                    </span>
+                  </div>
+                  <label className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg bg-stone-900 px-4 py-3 text-xs font-semibold text-white hover:bg-stone-800">
+                    <UploadCloud className="h-4 w-4"/>
+                    {uploadingKey === 'theme-' + photoTheme ? 'Uploading to Cloudinary…' : 'Upload or replace background'}
+                    <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+                      disabled={Boolean(uploadingKey)} onChange={e => {
+                        void uploadThemePhoto(photoTheme, e.target.files?.[0]); e.target.value = '';
+                      }}/>
+                  </label>
+                  {draft.themeMedia[photoTheme] && (
+                    <button type="button" className="text-xs font-medium text-red-700 underline underline-offset-4"
+                      onClick={() => update(prev => ({
+                        ...prev, themeMedia: { ...prev.themeMedia, [photoTheme]: '' },
+                      }))}>
+                      Clear hero background for this theme
+                    </button>
+                  )}
+                  <p className="text-[11px] leading-5 text-stone-500">
+                    Use a portrait 9:16 bouquet image for mobile. Uploading changes only
+                    this theme's hero background, not your actual product photos.
+                  </p>
+                  <label className="block space-y-2 border-t border-stone-100 pt-4 text-xs">
+                    <span className="flex justify-between gap-2">
+                      <span className="font-semibold">Background image focal point</span>
+                      <span>{Math.round(draft.heroImagePosition[photoTheme])}% down</span>
+                    </span>
+                    <input type="range" min="0" max="100" step="5" className="w-full accent-stone-900"
+                      value={draft.heroImagePosition[photoTheme]} onChange={e => update(prev => ({
+                        ...prev, heroImagePosition: {
+                          ...prev.heroImagePosition, [photoTheme]: Number(e.target.value),
+                        },
+                      }))}/>
+                    <span className="block text-[11px] text-stone-500">Move the crop toward the top or bottom of the image.</span>
+                  </label>
+                  {photoTheme !== draft.theme && (
+                    <button type="button" className="w-full rounded border border-stone-300 px-4 py-3 text-xs font-semibold"
+                      onClick={() => update(prev => applyThemePreset(prev, photoTheme))}>
+                      Preview {THEME_PRESETS.find(p => p.id === photoTheme)?.label} as active theme
+                    </button>
+                  )}
+                  <p className="text-[11px] leading-5 text-stone-500">
+                    Active preview: <strong>{THEME_PRESETS.find(p => p.id === draft.theme)?.label}</strong>.
+                    Publishing applies the active theme and saves all five background selections.
+                  </p>
+                </div>
+                <div className="space-y-4 rounded-xl border border-stone-200 bg-white p-4">
+                  <h3 className="font-serif text-xl">Scroll parallax</h3>
+                  <label className="flex items-center justify-between gap-3 text-xs font-semibold">
+                    <span>Move hero photo gently when scrolling</span>
+                    <input type="checkbox" className="h-4 w-4 accent-stone-900"
+                      checked={draft.effects.parallax} onChange={e => update(prev => ({
+                        ...prev, effects: { ...prev.effects, parallax: e.target.checked },
+                      }))}/>
+                  </label>
+                  <label className="block space-y-2 text-xs">
+                    <span className="flex justify-between gap-2">
+                      <span>Parallax strength</span>
+                      <span>{Math.round(draft.effects.parallaxStrength * 100)}%</span>
+                    </span>
+                    <input type="range" min="0" max="0.6" step="0.05" className="w-full accent-stone-900"
+                      value={draft.effects.parallaxStrength}
+                      disabled={!draft.effects.parallax}
+                      onChange={e => update(prev => ({
+                        ...prev, effects: { ...prev.effects, parallaxStrength: Number(e.target.value) },
+                      }))}/>
+                  </label>
+                  <p className="text-[11px] leading-5 text-stone-500">
+                    Works on mobile and desktop using lightweight scroll-linked image movement.
+                    It is automatically static when a visitor prefers reduced motion.
+                    Scroll the phone preview below to inspect the effect.
+                  </p>
+                </div>
+              </>
+            )}
             {panel === 'themes' && (
               <>
                 <div>
@@ -433,43 +539,11 @@ export default function SiteEditor({
                     </button>
                   ))}
                 </div>
-                <div className="border-t border-stone-200 pt-5 space-y-4">
-                  <div>
-                    <h3 className="font-serif text-xl">Seasonal hero photography</h3>
-                    <p className="mt-2 text-xs leading-5 text-stone-500">
-                      Upload the four previously generated ribbon-bouquet scenes. Photos are securely saved to
-                      your Cloudinary account. The image fills the seasonal hero; the featured product card
-                      appears only in Default. Portrait 9:16 works best on phones.
-                    </p>
-                  </div>
-                  {SEASONAL_THEME_IDS.map(id => (
-                    <div key={id} className="rounded-lg border border-stone-200 bg-white p-3">
-                      <p className="mb-2 text-sm font-semibold">{THEME_PRESETS.find(p => p.id === id)?.label}</p>
-                      {draft.themeMedia[id] ? (
-                        <img alt={`${id} uploaded seasonal hero`} src={draft.themeMedia[id]}
-                          className="mx-auto h-48 w-full rounded object-cover object-bottom"/>
-                      ) : (
-                        <div className="flex h-28 items-center justify-center rounded bg-stone-100 px-4 text-center text-xs text-stone-500">
-                          No photo uploaded — seasonal colours remain as fallback
-                        </div>
-                      )}
-                      <label className="mt-3 flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded border border-stone-300 px-3 py-2 text-xs font-medium">
-                        <UploadCloud className="h-4 w-4"/>
-                        {uploadingKey === 'theme-' + id ? 'Uploading…' : 'Upload photo to Cloudinary'}
-                        <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
-                          disabled={Boolean(uploadingKey)} onChange={e => {
-                            void uploadThemePhoto(id, e.target.files?.[0]); e.target.value = '';
-                          }}/>
-                      </label>
-                      {draft.themeMedia[id] && (
-                        <button type="button" className="mt-2 text-xs text-red-700 underline"
-                          onClick={() => update(prev => ({ ...prev, themeMedia: { ...prev.themeMedia, [id]: '' } }))}>
-                          Remove photo from this theme
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                <button type="button" onClick={() => { setPhotoTheme(draft.theme); setPanel('hero'); }}
+                  className="flex w-full items-center justify-between gap-3 rounded-lg border border-stone-300 bg-white px-4 py-3 text-left text-xs font-semibold text-stone-800 hover:bg-stone-50">
+                  <span className="flex items-center gap-2"><ImageIcon className="h-4 w-4"/> Change hero background photo & parallax</span>
+                  <ChevronRight className="h-4 w-4"/>
+                </button>
                 <button type="button" onClick={() => {
                   const other = THEME_PRESETS.filter(item => item.id !== draft.theme);
                   update(prev => applyThemePreset(prev, other[Math.floor(Math.random() * other.length)].id));
@@ -1082,7 +1156,8 @@ export default function SiteEditor({
               {draft.sections.order.filter(id => draft.sections.visible[id]).map(id => {
                 if (id === 'hero') return <Hero key={id} content={draft.hero} headingScale={draft.appearance.headingScale}
                   effects={draft.effects} theme={draft.theme}
-                  photoUrl={draft.theme === 'default' ? '' : draft.themeMedia[draft.theme]}
+                  photoUrl={draft.themeMedia[draft.theme]}
+                  imagePosition={draft.heroImagePosition[draft.theme]}
                   offer={draft.theme === 'default' ? undefined : draft.offers[draft.theme]}
                   onExploreClick={() => setPanel('text')} onFeaturedClick={() => {}} featuredProduct={products.find(p => p.featured) || products[0] || null}/>;
                 if (id === 'collections') return <CollectionShowcase key={id} content={draft.collections} headingScale={draft.appearance.headingScale}
