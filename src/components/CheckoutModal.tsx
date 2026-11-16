@@ -114,7 +114,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
   );
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Place order">
-      <div className="relative flex w-full max-w-xl max-h-[94vh] flex-col overflow-hidden bg-[#FCFAF7] shadow-2xl">
+      <div className="jb-customer-panel relative flex w-full max-w-xl max-h-[94vh] flex-col overflow-hidden bg-[#FCFAF7] shadow-2xl">
         <div className="flex items-center justify-between border-b border-stone-200 px-7 py-6">
           <div>
             <p className="text-[10px] tracking-[0.25em] uppercase text-stone-500">Jame Bouquets</p>
