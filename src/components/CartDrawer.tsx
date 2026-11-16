@@ -40,7 +40,7 @@ export default function CartDrawer({
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between">
+        <div className="jb-customer-panel w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between">
           
           {/* Header */}
           <div className="p-6 border-b border-stone-200 flex items-center justify-between">
