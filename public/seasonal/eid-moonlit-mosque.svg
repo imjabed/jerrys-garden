@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 300"><title>Eid skyline with a mosque, crescent moon, archways and lanterns</title>
+<g fill="#000">
+<path d="M0 266 Q164 254 350 263 T730 263 T1080 263 T1440 266 V300 H0Z"/>
+<!-- Mosque pavilion -->
+<path d="M530 266 V178 Q580 143 639 177 L639 266Z"/>
+<path d="M644 263 V153 Q716 80 784 153 V263Z"/>
+<path d="M697 112 Q718 78 721 60 Q727 87 744 111Z"/>
+<rect x="715" y="50" width="6" height="27"/><circle cx="718" cy="46" r="7"/>
+<path d="M780 266 V175 Q834 144 885 175 V266Z"/>
+<rect x="653" y="150" width="120" height="117"/>
+<!-- main mosque arches -->
+<path d="M677 264 V214 Q706 167 734 214 V264Z" fill="white"/>
+<path d="M561 264 V218 Q584 190 604 218 V264Z" fill="white"/>
+<path d="M809 264 V218 Q832 190 852 218 V264Z" fill="white"/>
+<!-- Minarets -->
+<path d="M487 263 L492 103 L523 103 L528 263Z"/><path d="M479 111 L534 111 L526 121 H487Z"/>
+<path d="M483 101 Q506 65 533 101Z"/><rect x="503" y="74" width="5" height="15"/><circle cx="506" cy="70" r="6"/>
+<path d="M895 263 L900 103 L930 103 L936 263Z"/><path d="M888 111 L945 111 L936 121 H896Z"/>
+<path d="M891 101 Q915 65 943 101Z"/><rect x="912" y="74" width="5" height="15"/><circle cx="914" cy="70" r="6"/>
+<!-- Crescent nested carve-out -->
+<path d="M1114 79 A44 44 0 1 0 1152 17 A40 40 0 1 1 1114 79Z"/>
+<!-- Lanterns on hanging chains -->
+<path d="M131 0 H134 V87 H131Z M127 91 H140 L148 110 L141 153 H125 L117 110Z"/>
+<path d="M131 81 Q133 75 135 81 V89 H131Z M113 113 H151 V120 H113Z M125 153 H142 L140 161 H128Z"/>
+<path d="M1331 0 H1334 V60 H1331Z M1326 65 H1340 L1347 80 L1341 118 H1325 L1319 80Z"/>
+<path d="M1321 87 H1345 V93 H1321Z M1326 118 H1340 V125 H1326Z"/>
+<!-- date palm silhouettes -->
+<path d="M236 264 L231 140 L243 140 L247 264Z"/><path d="M235 138 Q201 101 164 108 Q205 122 224 152 Q179 121 151 150 Q199 146 229 167 Q225 116 209 89 Q239 111 241 152 Q243 109 276 87 Q251 121 249 154 Q281 115 330 124 Q285 137 254 165 Q289 148 319 168 Q270 156 244 172Z"/>
+<path d="M1227 266 L1221 165 L1232 165 L1239 266Z"/><path d="M1228 156 Q1185 113 1156 131 Q1197 146 1217 169 Q1176 147 1156 168 Q1202 162 1223 183 Q1219 133 1201 112 Q1237 132 1230 174 Q1241 128 1276 113 Q1250 144 1242 179 Q1280 146 1311 160 Q1273 173 1244 187Z"/>
+</g></svg>
