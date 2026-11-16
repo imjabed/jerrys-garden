@@ -82,7 +82,7 @@ export default function SeasonalEffects({
         <img src={cdn(960)} srcSet={`${cdn(640)} 640w, ${cdn(960)} 960w, ${cdn(1280)} 1280w`}
           sizes="(max-width: 680px) 100vw, 100vw" alt="" draggable={false} fetchPriority="high"
           style={{ objectPosition: `50% ${Math.max(0, Math.min(100, imagePosition))}%` }}
-          className="jb-hero-photo absolute inset-0 h-full w-full object-cover"/>
+          className={`jb-hero-photo absolute inset-0 h-full w-full object-cover ${settings.parallax && !reduceMotion ? "jb-hero-photo-parallax" : ""}`}/>
       )}
       {!support && <div className="jb-photo-readable absolute inset-0"/>}
 
