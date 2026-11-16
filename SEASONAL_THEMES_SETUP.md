@@ -18,17 +18,22 @@ in this conversation. They are not automatically uploaded to Cloudinary because 
 requires the authenticated store owner's admin session.
 
 1. Download the seasonal hero image pack from the ChatGPT conversation.
-2. Sign in to the live website as owner and open **Website Editor → Themes**.
-3. Under **Seasonal hero photography**, upload each matching WebP image:
+2. Sign in to the live website as owner and open **Website Editor → Hero Background**.
+3. Use **Background to edit** to choose Default, Valentines, Durga Puja, Winter or Eid,
+   then select **Upload or replace background** for each image:
    - Durga Puja → `01_Durga_Puja.webp`
    - Eid Celebration → `02_Eid.webp`
    - Winter / Christmas / New Year → `03_Winter_Christmas_NewYear.webp`
    - Valentines → `04_Valentines.webp`
 4. The upload uses the authenticated `/api/upload-image` backend endpoint and saves to
    `jame_bouquets_themes` in Cloudinary. The editor saves the HTTPS CDN URL to the draft.
-5. Use the **Phone** preview to inspect the hero image; then click **Publish**.
-   Repeat if necessary after selecting the desired live preset.
-6. The storefront uses Cloudinary automatic format, quality and size variants (`f_auto,q_auto`).
+5. Adjust **Background image focal point** (0–100%) for the bouquet to sit correctly behind
+   the hero heading. Choose **Move hero photo gently when scrolling** and adjust
+   **Parallax strength** to control the optional scroll movement.
+6. Use the **Phone** preview and scroll the preview frame to inspect the image/parallax.
+   To change the currently active theme, use Themes or **Preview selected theme as active theme**.
+   Click **Publish** to make the active design visible to customers.
+7. The storefront uses Cloudinary automatic format, quality and size variants (`f_auto,q_auto`).
 
 The uploaded image is a **campaign composition**, not a replacement for any actual
 catalogue product photo. If no theme photo is uploaded, the seasonal hero uses its
@@ -46,6 +51,11 @@ discount, and it should never advertise a discount that checkout won't honor.
 
 Theme decorative effects are CSS-only and non-interactive. They honor
 `prefers-reduced-motion`. Snow element counts are limited for mobile hardware.
-In **Website Editor → Motion** you can disable animations without losing the seasonal
-photograph, control snowfall intensity and (on wide screens) adjust parallax.
-The Default theme remains clean. The phone preview opens by default.
+In **Website Editor → Hero Background**, parallax can be enabled independently of the
+seasonal decorative animations and can be adjusted for both desktop and phones.
+On phones it uses smaller bounded CSS transforms rather than fixed backgrounds;
+visitors who request reduced motion see a stationary image. The photo remains
+visible even if seasonal animations are disabled.
+
+**Default** may also have a custom Cloudinary hero background, but it retains its
+separate featured product card. The editor opens with a phone preview by default.
