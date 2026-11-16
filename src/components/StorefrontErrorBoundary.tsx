@@ -4,6 +4,7 @@ type Props = { children: ReactNode };
 type State = { failed: boolean };
 
 export default class StorefrontErrorBoundary extends Component<Props, State> {
+  declare readonly props: Readonly<Props>;
   state: State = { failed: false };
 
   static getDerivedStateFromError(): State {
