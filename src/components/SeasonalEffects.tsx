@@ -74,7 +74,6 @@ export default function SeasonalEffects({
   const cdn = (width: number) => photoUrl.replace('/image/upload/', `/image/upload/f_auto,q_auto,w_${width},c_limit/`);
   const showSnow = showDecoration && theme === 'winter' && settings.snowEnabled;
   const winterFlakes = showSnow ? Math.max(6, Math.min(32, Math.round(settings.snowDensity / 3))) : 0;
-  const detailCount = support ? 3 : 9;
 
   return (
     <div ref={root} aria-hidden="true" className={`jb-photo-atmosphere pointer-events-none absolute inset-0 z-0 overflow-hidden jb-seasonal-${theme}`}>
@@ -86,17 +85,8 @@ export default function SeasonalEffects({
       )}
       {!support && <div className="jb-photo-readable absolute inset-0"/>}
 
-      {showDecoration && theme === 'valentines' && Array.from({ length: detailCount }, (_, i) => (
-        <span key={i} className={`jb-floating-love absolute ${animated ? 'jb-love-drift' : ''}`}
-          style={{
-            left: `${(11 + i * 13) % 92}%`, top: `${(22 + i * 17) % 71}%`,
-            animationDelay: `${-i * .9}s`,
-            animationDuration: `${(8 + (i % 4) * 2) / Math.max(.25, settings.speed)}s`,
-            fontSize: `${13 + (i % 3) * 6}px`,
-            opacity: (0.24 + (i % 3) * .11) * settings.artworkOpacity,
-          }}>{i % 3 === 0 ? '♥' : '🌸'}</span>
-      ))}
-
+      {/* Valentine's uses only photographic lighting and the original footer
+          park SVG; no emoji or floating heart/petal effects. */}
       {showDecoration && theme === 'eid' && !support && (
         <div className={`jb-eid-moon ${animated ? 'jb-moon-breathe' : ''}`}
           style={{ animationDuration: `${6 / Math.max(.25, settings.speed)}s` }} role="presentation">
