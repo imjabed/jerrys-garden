@@ -1,6 +1,8 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { ArrowRight, CheckCircle2, Flower2, Gift, Minus, Plus } from 'lucide-react';
 import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
+import { customSizeMap, PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS } from '../../shared/productSizes';
+import type { ProductSizeKey } from '../../shared/productSizes';
 import type { SiteContent } from '../../shared/siteEditor';
 import {
   estimateCustomBouquet, indiaDate, leadDays, minimumWrappers,
@@ -14,8 +16,10 @@ interface CustomOrderSectionProps {
   onMobileToggle: () => void;
   content?: SiteContent['custom'];
   headingScale?: number;
+  sizeChart?: Record<ProductSizeKey, number>;
 }
 export interface CustomEnquiryPayload {
+  size: ProductSizeKey;
   occasion: string;
   flowers: number;
   flowerColors: string;
@@ -35,9 +39,11 @@ export interface CustomEnquiryPayload {
 
 const occasions = ['Wedding', 'Anniversary', 'Birthday', 'Event', 'Other'];
 
-export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggle, content = DEFAULT_SITE_CONTENT.custom, headingScale = 1 }: CustomOrderSectionProps) {
+export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggle, content = DEFAULT_SITE_CONTENT.custom, headingScale = 1, sizeChart }: CustomOrderSectionProps) {
   const [occasion, setOccasion] = useState('Wedding');
-  const [flowers, setFlowers] = useState(25);
+  const [size, setSize] = useState<ProductSizeKey>('S');
+  const sizes = customSizeMap(sizeChart);
+  const flowers = sizes[size];
   const [flowerColors, setFlowerColors] = useState('');
   const [wrapperColor, setWrapperColor] = useState('');
   const [wrapperType, setWrapperType] = useState<WrapperType>('paper');
@@ -60,12 +66,9 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
   const quote = useMemo(() => estimateCustomBouquet({
     flowers, wrappers, wrapperType, gypsy, glitter, deliveryDate,
   }), [flowers, wrappers, wrapperType, gypsy, glitter, deliveryDate]);
-  const adjustFlowers = (count: number) => {
-    const next = Math.max(25, Math.min(100, Math.round(count / 5) * 5));
-    // Keep manually added wrappers while automatically recalculating the baseline.
-    const extraWrappers = Math.max(0, wrappers - minimumWrappers(flowers));
-    setFlowers(next);
-    setWrappers(Math.min(100, minimumWrappers(next) + extraWrappers));
+  const selectSize = (next: ProductSizeKey) => {
+    setSize(next);
+    setWrappers(minimumWrappers(sizes[next]));
   };
 
   async function send(e: FormEvent) {
@@ -91,7 +94,7 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
     setError('');
     try {
       const result = await onSubmit({
-        occasion, flowers, flowerColors: flowerColors.trim(), wrapperColor: wrapperColor.trim(),
+        occasion, size, flowers, flowerColors: flowerColors.trim(), wrapperColor: wrapperColor.trim(),
         wrapperType, wrappers, gypsy, glitter, extraNotes: extraNotes.trim(),
         deliveryDate, address: address.trim(), name: name.trim(),
         email: email.trim(), phone: phone.trim(), withinBerhampore,
@@ -197,15 +200,19 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
                       ))}
                     </div>
                   </div>
-                  <div>
-                    <span className={labelClass}>Number of flowers · 25–100</span>
-                    <div className="mt-3 flex items-center gap-5">
-                      <button type="button" onClick={() => adjustFlowers(flowers - 5)} disabled={flowers <= 25} aria-label="Remove five flowers" className="border border-stone-300 p-3 disabled:opacity-30"><Minus size={15}/></button>
-                      <span className="min-w-14 text-center font-serif text-3xl text-stone-900">{flowers}</span>
-                      <button type="button" onClick={() => adjustFlowers(flowers + 5)} disabled={flowers >= 100} aria-label="Add five flowers" className="border border-stone-300 p-3 disabled:opacity-30"><Plus size={15}/></button>
+                  <section aria-label="Custom bouquet size">
+                    <span className={labelClass}>Choose bouquet size</span>
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {PRODUCT_SIZE_KEYS.map(key => (
+                        <button key={key} type="button" aria-pressed={size === key} onClick={() => selectSize(key)}
+                          className={`min-h-20 border px-3 py-3 text-left transition ${size === key ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-200 bg-white text-stone-800 hover:border-stone-500'}`}>
+                          <span className="block text-xs font-semibold">{PRODUCT_SIZE_LABELS[key]}</span>
+                          <span className="mt-2 block text-[11px]">{sizes[key]} flowers</span>
+                        </button>
+                      ))}
                     </div>
-                    <input aria-label="Choose flowers" className="mt-4 w-full accent-stone-800" type="range" min="25" max="100" step="5" value={flowers} onChange={e => adjustFlowers(Number(e.target.value))}/>
-                  </div>
+                    <p className="mt-2 text-xs leading-5 text-stone-500">Selected: {PRODUCT_SIZE_LABELS[size]} · {flowers} flowers. Our team confirms your final design and quote.</p>
+                  </section>
                   <div className="grid gap-5 sm:grid-cols-2">
                     <label className={labelClass}>Flower colour(s) *
                       <input required maxLength={200} value={flowerColors} onChange={e => setFlowerColors(e.target.value)}

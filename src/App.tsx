@@ -47,7 +47,9 @@ import {
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import BouquetCard from './components/BouquetCard';
-import BouquetDetailModal from './components/BouquetDetailModal';
+import ProductPage from './components/ProductPage';
+import { PRODUCT_SIZE_LABELS, normalizeProductSizes, productSizeFor, isBouquetCategory } from '../shared/productSizes';
+import type { ProductSizeKey } from '../shared/productSizes';
 import CartDrawer from './components/CartDrawer';
 import CheckoutModal from './components/CheckoutModal';
 import OrderTrackingModal from './components/OrderTrackingModal';
@@ -95,7 +97,17 @@ export default function App() {
   const [preselectedTrackingId, setPreselectedTrackingId] = useState<string | undefined>(undefined);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [ownerLoginModalOpen, setOwnerLoginModalOpen] = useState(false);
-  const [detailModalBouquet, setDetailModalBouquet] = useState<RibbonBouquet | null>(null);
+  const [productId, setProductId] = useState<string | null>(() => {
+    if (!window.location.pathname.startsWith('/products/')) return null;
+    try { return decodeURIComponent(window.location.pathname.slice('/products/'.length)) || null; }
+    catch { return null; }
+  });
+  const [recentlyViewed, setRecentlyViewed] = useState<string[]>(() => {
+    try {
+      const ids = JSON.parse(localStorage.getItem('jb_recent_products_v1') || '[]');
+      return Array.isArray(ids) ? ids.filter(id => typeof id === 'string').slice(0, 20) : [];
+    } catch { return []; }
+  });
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<Order | null>(null);
   const [bouquetEditorOpen, setBouquetEditorOpen] = useState(false);
   const [bouquetToEdit, setBouquetToEdit] = useState<RibbonBouquet | null>(null);
@@ -112,6 +124,44 @@ export default function App() {
   const refreshReviewDisplays = () => {
     void apiGetReviewSummaries().then(setReviewSummaries).catch(() => {});
     void apiGetReviewHighlights().then(setReviewHighlights).catch(() => {});
+  };
+
+  useEffect(() => {
+    const onPopState = () => {
+      const path = window.location.pathname;
+      if (path.startsWith('/products/')) {
+        try { setProductId(decodeURIComponent(path.slice('/products/'.length))); }
+        catch { setProductId(null); }
+      } else setProductId(null);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  useEffect(() => {
+    if (!productId || !bouquets.some(p => p.id === productId)) return;
+    setRecentlyViewed(previous => {
+      const next = [productId, ...previous.filter(id => id !== productId)].slice(0, 20);
+      try { localStorage.setItem('jb_recent_products_v1', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, [productId, bouquets.length]);
+
+  const navigateToProduct = (product: RibbonBouquet | string) => {
+    const id = typeof product === 'string' ? product : product.id;
+    if (!id) return;
+    const path = '/products/' + encodeURIComponent(id);
+    if (window.location.pathname !== path) window.history.pushState({}, '', path);
+    setIsOwnerView(false);
+    setProductId(id);
+    window.scrollTo(0, 0);
+  };
+  const navigateHome = (category?: string) => {
+    if (window.location.pathname !== '/') window.history.pushState({}, '', '/');
+    setProductId(null);
+    setIsOwnerView(false);
+    if (category) setSelectedCategory(category);
+    window.setTimeout(() => document.getElementById('shop-section')?.scrollIntoView({ behavior: 'smooth' }), 90);
   };
 
   // Sync state with storage updates & remote MongoDB
@@ -178,10 +228,12 @@ export default function App() {
 
   useEffect(() => {
     if (editorRoute) return;
-    document.title = siteContent.seo.title;
+    document.title = productId
+      ? (bouquets.find(p => p.id === productId)?.title || 'Product') + ' | Jame Bouquets'
+      : siteContent.seo.title;
     const description = document.querySelector('meta[name="description"]');
     if (description) description.setAttribute('content', siteContent.seo.description);
-  }, [siteContent.seo, editorRoute]);
+  }, [siteContent.seo, editorRoute, productId, bouquets]);
 
   // Keep the order queue current while the admin is viewing the dashboard.
   useEffect(() => {
@@ -208,9 +260,14 @@ export default function App() {
   };
 
   // Cart operations
-  const handleAddToCart = (bouquet: RibbonBouquet, quantity = 1) => {
+  const handleAddToCart = (bouquet: RibbonBouquet, quantity = 1, selectedSize?: ProductSizeKey) => {
+    const needsSize = isBouquetCategory(bouquet.category);
+    const size = needsSize ? selectedSize || normalizeProductSizes(bouquet).find(v => v.available)?.size : undefined;
+    const variant = needsSize ? productSizeFor(bouquet, size) : null;
+    if (needsSize && !variant) { showToast('Select an available size for this product.'); return; }
+    const chosenBouquet = variant ? { ...bouquet, price: variant.price, flowerCount: variant.flowerCount } : bouquet;
     if (bouquet.inStock === false) { showToast('This piece is currently unavailable.'); return; }
-    const existingIndex = cart.findIndex((item) => item.bouquet.id === bouquet.id);
+    const existingIndex = cart.findIndex(item => item.bouquet.id === bouquet.id && item.selectedSize === size);
     const alreadyInBag = existingIndex >= 0 ? cart[existingIndex].quantity : 0;
     if (!Number.isInteger(quantity) || quantity < 1 || alreadyInBag + quantity > 20) {
       showToast('Maximum 20 pieces of each product per order.');
@@ -219,14 +276,16 @@ export default function App() {
 
     let updatedCart: CartItem[];
     if (existingIndex >= 0) {
-      updatedCart = [...cart];
-      updatedCart[existingIndex].quantity += quantity;
+      updatedCart = cart.map((item, i) => i === existingIndex
+        ? { ...item, bouquet: chosenBouquet, quantity: item.quantity + quantity }
+        : item);
     } else {
       updatedCart = [
         ...cart,
         {
-          bouquet,
+          bouquet: chosenBouquet,
           quantity,
+          selectedSize: size,
         },
       ];
     }
@@ -251,9 +310,14 @@ export default function App() {
   };
 
   // Quick Buy (add & open checkout immediately)
-  const handleQuickBuy = (bouquet: RibbonBouquet, quantity = 1) => {
+  const handleQuickBuy = (bouquet: RibbonBouquet, quantity = 1, selectedSize?: ProductSizeKey) => {
     if (bouquet.inStock === false) { showToast('This piece is currently unavailable.'); return; }
-    setDirectBuyItems([{ bouquet, quantity }]);
+    const needsSize = isBouquetCategory(bouquet.category);
+    const size = needsSize ? selectedSize || normalizeProductSizes(bouquet).find(v => v.available)?.size : undefined;
+    const variant = needsSize ? productSizeFor(bouquet, size) : null;
+    if (needsSize && !variant) { showToast('Select an available size first.'); return; }
+    const selectedProduct = variant ? { ...bouquet, price: variant.price, flowerCount: variant.flowerCount } : bouquet;
+    setDirectBuyItems([{ bouquet: selectedProduct, quantity, selectedSize: size }]);
     setCheckoutModalOpen(true);
   };
 
@@ -304,7 +368,7 @@ export default function App() {
     if (!outcome.success) { showToast(outcome.error || 'Could not save bouquet image. Please try again.'); return; }
     setBouquets((items) => items.map((b) => b.id === bouquetId ? updatedBouquet : b));
     updateCart(cart.map((item) => item.bouquet.id === bouquetId ? { ...item, bouquet: updatedBouquet } : item));
-    if (detailModalBouquet && detailModalBouquet.id === bouquetId) setDetailModalBouquet(updatedBouquet);
+    // Product page displays the updated catalog record.
     showToast(outcome.cleanupWarning || 'Photo updated successfully.');
   };
 
@@ -413,6 +477,10 @@ export default function App() {
 
   // Navigation scroll helpers
   const scrollToSection = (id: string) => {
+    if (productId) {
+      if (window.location.pathname !== '/') window.history.pushState({}, '', '/');
+      setProductId(null);
+    }
     if (isOwnerView) {
       setIsOwnerView(false);
     }
@@ -528,6 +596,25 @@ export default function App() {
             setSearchQuery={setSearchQuery}
           />
 
+          {productId ? (
+            bouquets.find(item => item.id === productId) ? (
+              <ProductPage product={bouquets.find(item => item.id === productId)!}
+                products={bouquets} reviewSummaries={reviewSummaries} recentlyViewed={recentlyViewed}
+                activeUserEmail={activeUser?.email}
+                onSelectProduct={navigateToProduct} onBackToShop={navigateHome}
+                onAddToCart={handleAddToCart} onBuyNow={handleQuickBuy}
+                onSignIn={() => setAuthModalOpen(true)}
+                onReviewSubmitted={refreshReviewDisplays}/>
+            ) : (
+              <main className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-5 px-6 text-center">
+                <h1 className="font-serif text-3xl text-stone-900">
+                  {catalogStatus === 'loading' ? 'Loading the product…' : 'This product is unavailable.'}
+                </h1>
+                <p className="text-sm text-stone-600">The product may have been removed or the catalogue is temporarily unavailable.</p>
+                <button onClick={() => navigateHome()} className="bg-stone-900 px-6 py-3 text-xs text-white">View collection</button>
+              </main>
+            )
+          ) : (<>
           {/* Shared published homepage layout; the editor controls section order. */}
           {siteContent.sections.order.filter(id => siteContent.sections.visible[id]).map(id => {
             if (id === 'hero') return (
@@ -535,7 +622,7 @@ export default function App() {
                 content={siteContent.hero} headingScale={siteContent.appearance.headingScale}
                 onExploreClick={() => scrollToSection('shop-section')}
                 featuredProduct={bouquets.find(product => product.featured && product.inStock && product.imageUrl) || bouquets.find(product => product.inStock && product.imageUrl) || null}
-                onFeaturedClick={product => setDetailModalBouquet(product)}
+                onFeaturedClick={navigateToProduct}
               />
             );
             if (id === 'collections') return (
@@ -622,9 +709,9 @@ export default function App() {
                     key={bouquet.id}
                     bouquet={bouquet}
                     isOwner={isOwner}
-                    onSelect={(b) => setDetailModalBouquet(b)}
-                    onAddToCart={(b) => handleAddToCart(b, 1)}
-                    onQuickBuy={(b) => handleQuickBuy(b, 1)}
+                    onSelect={navigateToProduct}
+                    onAddToCart={navigateToProduct}
+                    onQuickBuy={navigateToProduct}
                     onUpdatePhoto={handleUpdateBouquetImage}
                     reviewSummary={reviewSummaries[bouquet.id]}
                   />
@@ -637,11 +724,11 @@ export default function App() {
             if (id === 'reviews') return (
               <CustomerReviewsSection key={id} reviews={reviewHighlights} onSelect={productId => {
                 const product = bouquets.find(item => item.id === productId);
-                if (product) setDetailModalBouquet(product);
+                if (product) navigateToProduct(product);
               }}/>
             );
             if (id === 'custom') return (
-              <CustomOrderSection key={id} content={siteContent.custom} headingScale={siteContent.appearance.headingScale}
+              <CustomOrderSection key={id} content={siteContent.custom} headingScale={siteContent.appearance.headingScale} sizeChart={storeSettings.customSizeFlowers}
                 mobileOpen={customMobileOpen} onMobileToggle={() => setCustomMobileOpen(current => !current)}
                 onSubmit={async payload => {
                   const result = await apiSendCustomEnquiry(payload);
@@ -650,6 +737,8 @@ export default function App() {
             );
             return <RibbonStory key={id} content={siteContent.story} headingScale={siteContent.appearance.headingScale}/>;
           })}
+
+          </>)}
 
           {/* Boutique Footer */}
           <Footer
@@ -716,21 +805,6 @@ export default function App() {
           activeUser={activeUser}
           storeSettings={storeSettings}
           preselectedOrderId={preselectedTrackingId}
-        />
-      )}
-
-      {/* Bouquet Details Modal */}
-      {detailModalBouquet && (
-        <BouquetDetailModal
-          bouquet={detailModalBouquet}
-          isOwner={isOwner}
-          onClose={() => setDetailModalBouquet(null)}
-          onAddToCart={(b, qty) => handleAddToCart(b, qty)}
-          onBuyNow={(b, qty) => handleQuickBuy(b, qty)}
-          onUpdateBouquetImage={handleUpdateBouquetImage}
-          activeUserEmail={activeUser?.email}
-          onReviewSignIn={() => { setDetailModalBouquet(null); setAuthModalOpen(true); }}
-          onReviewSubmitted={refreshReviewDisplays}
         />
       )}
 

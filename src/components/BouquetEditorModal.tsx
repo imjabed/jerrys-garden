@@ -1,6 +1,8 @@
 import { useState, type FormEvent, type ChangeEvent } from 'react';
 import { X, Upload, Image as ImageIcon, Sparkles, Check, Trash2, Cloud, Loader2 } from 'lucide-react';
 import { RibbonBouquet } from '../types';
+import { PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS, normalizeProductSizes, isBouquetCategory } from '../../shared/productSizes';
+import type { ProductSizeKey, ProductSizeOption } from '../../shared/productSizes';
 import { uploadImageToCloudinary, isCloudinaryUrl } from '../services/cloudinary';
 
 interface BouquetEditorModalProps {
@@ -29,6 +31,15 @@ export default function BouquetEditorModal({
     bouquetToEdit?.ribbonColors.join(', ') || ''
   );
   const [flowerCount, setFlowerCount] = useState(bouquetToEdit?.flowerCount?.toString() || '1');
+  const [sizeRows, setSizeRows] = useState<Record<ProductSizeKey, { enabled: boolean; flowers: string; price: string }>>(() => {
+    const existing = bouquetToEdit ? normalizeProductSizes(bouquetToEdit) : [];
+    return Object.fromEntries(PRODUCT_SIZE_KEYS.map(key => {
+      const row = existing.find(v => v.size === key);
+      return [key, { enabled: Boolean(row?.available || (!bouquetToEdit && key === 'M')),
+        flowers: String(row?.flowerCount || (key === 'M' ? bouquetToEdit?.flowerCount || 1 : '')),
+        price: String(row?.price || (key === 'M' ? bouquetToEdit?.price || '' : '')) }];
+    })) as Record<ProductSizeKey, { enabled: boolean; flowers: string; price: string }>;
+  });
   const [category, setCategory] = useState<RibbonBouquet['category']>(bouquetToEdit?.category || 'Ribbon Bouquets');
   const [whatsInsideText, setWhatsInsideText] = useState((bouquetToEdit?.whatsInside || []).join('\n'));
   const [featured, setFeatured] = useState(bouquetToEdit?.featured ?? true);
@@ -87,16 +98,33 @@ export default function BouquetEditorModal({
       .map((c) => c.trim())
       .filter(Boolean);
 
+    const sizeOptions: ProductSizeOption[] = [];
+    if (isBouquetCategory(category)) {
+      for (const key of PRODUCT_SIZE_KEYS) {
+        const row = sizeRows[key];
+        if (!row.enabled) continue;
+        const count = Number(row.flowers);
+        const cost = Number(row.price || (key === 'M' ? price : ''));
+        if (!Number.isInteger(count) || count < 1 || count > 500 || !Number.isFinite(cost) || cost <= 0 || cost > 500000) {
+          setSaveError(`Enter a valid flower count (1–500) and price for ${PRODUCT_SIZE_LABELS[key]}.`);
+          return;
+        }
+        sizeOptions.push({ size: key, flowerCount: count, price: cost, available: true });
+      }
+      if (!sizeOptions.length) { setSaveError('Enable at least one bouquet size with a valid count and price.'); return; }
+    }
+    const defaultOption = sizeOptions.find(item => item.size === 'M') || sizeOptions[0];
     const saved: RibbonBouquet = {
       id: bouquetToEdit?.id || `bouq-${Date.now()}`,
       title: title.trim(),
-      price: Number(price),
+      price: defaultOption ? defaultOption.price : Number(price),
       originalPrice: originalPrice ? Number(originalPrice) : undefined,
       imageUrl: imageUrl.trim(),
       description: description.trim(),
       ribbonColors: colors.length > 0 ? colors : ['Custom Ribbon Colors'],
       ribbonMaterial: bouquetToEdit?.ribbonMaterial || 'Handcrafted',
-      flowerCount: Number(flowerCount) || 1,
+      flowerCount: defaultOption ? defaultOption.flowerCount : Number(flowerCount) || 1,
+      sizeOptions: isBouquetCategory(category) ? sizeOptions : [],
       category: category.trim() || 'Other',
       whatsInside: whatsInsideText.split('\n').map(item => item.trim()).filter(Boolean),
       featured,
@@ -205,6 +233,37 @@ export default function BouquetEditorModal({
               />
             </div>
           </div>
+
+          {isBouquetCategory(category) && (
+            <section className="space-y-3 border border-stone-200 bg-[#FAF8F5] p-4 sm:p-5" aria-label="Product size choices">
+              <h3 className="font-serif text-xl text-stone-900">Available sizes & prices</h3>
+              <p className="text-xs leading-5 text-stone-600">
+                Set how many flowers and the selling price for each size. Only enabled sizes are orderable.
+                Existing products initially retain their current price as Medium until you configure the others.
+              </p>
+              {PRODUCT_SIZE_KEYS.map(size => (
+                <div key={size} className="grid grid-cols-2 items-end gap-3 border-t border-stone-200 pt-3">
+                  <label className="col-span-2 flex items-center gap-2 text-xs font-medium text-stone-800">
+                    <input type="checkbox" checked={sizeRows[size].enabled} onChange={event =>
+                      setSizeRows(previous => ({ ...previous, [size]: { ...previous[size], enabled: event.target.checked } }))}/>
+                    {PRODUCT_SIZE_LABELS[size]} ({size})
+                  </label>
+                  <label className="text-[11px] text-stone-600">Flower count
+                    <input type="number" min="1" max="500" step="1" disabled={!sizeRows[size].enabled}
+                      required={sizeRows[size].enabled} value={sizeRows[size].flowers}
+                      onChange={event => setSizeRows(previous => ({...previous, [size]: { ...previous[size], flowers: event.target.value }}))}
+                      className="mt-1 w-full border border-stone-300 bg-white px-2 py-2 text-xs disabled:opacity-40"/>
+                  </label>
+                  <label className="text-[11px] text-stone-600">Price (₹)
+                    <input type="number" min="1" max="500000" step="1" disabled={!sizeRows[size].enabled}
+                      required={sizeRows[size].enabled} value={sizeRows[size].price}
+                      onChange={event => setSizeRows(previous => ({...previous, [size]: { ...previous[size], price: event.target.value }}))}
+                      className="mt-1 w-full border border-stone-300 bg-white px-2 py-2 text-xs disabled:opacity-40"/>
+                  </label>
+                </div>
+              ))}
+            </section>
+          )}
 
           {/* Image Upload / URL */}
           <div className="space-y-2 p-4 bg-stone-50 rounded-2xl border border-stone-200">

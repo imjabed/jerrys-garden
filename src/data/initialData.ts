@@ -1,7 +1,9 @@
 import { RibbonBouquet, Order, StoreSettings } from '../types';
+import { DEFAULT_CUSTOM_SIZE_FLOWERS } from '../../shared/productSizes';
 
 export const INITIAL_SETTINGS: StoreSettings = {
   storeName: "Jame Bouquets",
+  customSizeFlowers: { ...DEFAULT_CUSTOM_SIZE_FLOWERS },
   tagline: "Everlasting, by hand.",
   ownerEmail: "meherkhan7190@gmail.com",
   upiId: "jerrysgarden@axl",

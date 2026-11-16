@@ -3,6 +3,10 @@
     {
       "source": "/admin/editor",
       "destination": "/index.html"
+    },
+    {
+      "source": "/products/:productId",
+      "destination": "/index.html"
     }
   ]
 }

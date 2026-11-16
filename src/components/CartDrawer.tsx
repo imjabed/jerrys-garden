@@ -1,5 +1,6 @@
 import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck } from 'lucide-react';
 import { CartItem } from '../types';
+import { PRODUCT_SIZE_LABELS } from '../../shared/productSizes';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -111,7 +112,7 @@ export default function CartDrawer({
 
                       {/* Price & Flower Count */}
                       <p className="text-[11px] text-stone-500 mt-0.5">
-                        {item.bouquet.category.toLowerCase().includes('keychain') ? 'Handmade keepsake' : `${item.bouquet.flowerCount} handmade flowers`}
+                        {item.selectedSize && !item.bouquet.category.toLowerCase().includes('keychain') ? `${PRODUCT_SIZE_LABELS[item.selectedSize]} · ${item.bouquet.flowerCount} flowers` : item.bouquet.category.toLowerCase().includes('keychain') ? 'Handmade keepsake' : `${item.bouquet.flowerCount} handmade flowers`}
                       </p>
                     </div>
 

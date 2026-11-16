@@ -1,3 +1,5 @@
+import type { ProductSizeKey, ProductSizeOption } from '../shared/productSizes';
+
 export type OrderStatus = 'Order Placed' | 'Pending' | 'Delivered' | 'Cancelled';
 
 export interface RibbonBouquet {
@@ -10,6 +12,7 @@ export interface RibbonBouquet {
   ribbonColors: string[];
   ribbonMaterial: string;
   flowerCount: number;
+  sizeOptions?: ProductSizeOption[];
   category: string;
   whatsInside?: string[];
   featured?: boolean;
@@ -20,6 +23,7 @@ export interface RibbonBouquet {
 export interface CartItem {
   bouquet: RibbonBouquet;
   quantity: number;
+  selectedSize?: ProductSizeKey;
 }
 
 export interface CustomerDetails {
@@ -36,6 +40,7 @@ export interface CustomerDetails {
 }
 
 export interface CustomOrderDetails {
+  size?: ProductSizeKey;
   occasion: string;
   flowerCount: number;
   flowerColors: string;
@@ -112,4 +117,5 @@ export interface StoreSettings {
   address: string;
   deliveryFee: number;
   freeDeliveryThreshold: number;
+  customSizeFlowers?: Record<ProductSizeKey, number>;
 }

@@ -337,7 +337,7 @@ export async function apiDeleteCoupon(id: string): Promise<boolean> {
   try { const res = await fetch(`${API_URL}/api/coupons/${encodeURIComponent(id)}`, { method: 'DELETE', headers: jsonHeaders, credentials: 'include' }); return res.ok; } catch { return false; }
 }
 
-export async function apiValidateCoupon(payload: { code: string; email: string; items: { productId: string; quantity: number }[] }): Promise<{ success: boolean; coupon?: Coupon; discountAmount?: number; error?: string }> {
+export async function apiValidateCoupon(payload: { code: string; email: string; items: { productId: string; quantity: number; selectedSize?: import('../../shared/productSizes').ProductSizeKey }[] }): Promise<{ success: boolean; coupon?: Coupon; discountAmount?: number; error?: string }> {
   try { const res = await fetch(`${API_URL}/api/coupons/validate`, { method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify(payload) }); return await parseResponse<any>(res); }
   catch (err: any) { return { success: false, error: err.message }; }
 }

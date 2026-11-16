@@ -1,3 +1,4 @@
+import { PRODUCT_SIZE_LABELS } from '../../shared/productSizes';
 import { X, Phone, Mail, MapPin, Calendar, Clock, QrCode, CheckCircle2, XCircle, AlertCircle, MessageCircle, ExternalLink, Printer, Banknote } from 'lucide-react';
 import { Order, OrderStatus } from '../types';
 
@@ -231,7 +232,7 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus }: Or
                     <div>
                       <h4 className="font-bold text-stone-900">{item.bouquet.title}</h4>
                       <p className="text-[11px] text-stone-500">
-                        Qty: <strong className="text-stone-800">{item.quantity}</strong> × ₹{item.bouquet.price} • {item.bouquet.flowerCount} Pieces
+                        Qty: <strong className="text-stone-800">{item.quantity}</strong> × ₹{item.bouquet.price} • {item.selectedSize ? PRODUCT_SIZE_LABELS[item.selectedSize] + ' · ' : ''}{item.bouquet.flowerCount} Pieces
                       </p>
                     </div>
                   </div>

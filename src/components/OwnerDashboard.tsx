@@ -33,6 +33,7 @@ import {
   Tag
 } from 'lucide-react';
 import { Order, OrderStatus, RibbonBouquet, StoreSettings, UserAccount, Coupon } from '../types';
+import { PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS, DEFAULT_CUSTOM_SIZE_FLOWERS, validateCustomSizeFlowers } from '../../shared/productSizes';
 import CustomerInsights from './CustomerInsights';
 import ReviewModerationPanel from './ReviewModerationPanel';
 import { isCloudinaryUrl, uploadImageToCloudinary } from '../services/cloudinary';
@@ -165,6 +166,10 @@ export default function OwnerDashboard({
   const handleSaveSettings = async (e: FormEvent) => {
     e.preventDefault();
     setSettingsSavedMessage(false);
+    if (!validateCustomSizeFlowers(settingsForm.customSizeFlowers)) {
+      setSyncNotice('Custom bouquet sizes must increase from Small to Extra Large, be 25–100 flowers and use multiples of five.');
+      return;
+    }
     const ok = await onUpdateSettings(settingsForm);
     if (ok) {
       setSettingsSavedMessage(true);
@@ -405,7 +410,7 @@ export default function OwnerDashboard({
                             <p className="font-medium text-stone-800">
                               {order.orderType === 'Custom' && order.customDetails
                                 ? `${order.customDetails.occasion} · ${order.customDetails.flowerCount} flowers`
-                                : order.items.map(it => `${it.quantity}x ${it.bouquet.title}`).join(', ')}
+                                : order.items.map(it => `${it.quantity}x ${it.bouquet.title}${it.selectedSize ? ' (' + PRODUCT_SIZE_LABELS[it.selectedSize] + ')' : ''}`).join(', ')}
                             </p>
                             <p className="text-[10px] text-stone-400">
                               {order.items.reduce((sum, it) => sum + (it.bouquet.flowerCount * it.quantity), 0)} Items
@@ -692,6 +697,29 @@ export default function OwnerDashboard({
                     className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"
                   />
                 </div>
+
+                <section className="space-y-4 border border-stone-200 bg-[#FCFAF7] p-5 sm:p-6">
+                  <h4 className="font-serif text-xl font-normal text-stone-900">Custom order size chart</h4>
+                  <p className="text-xs leading-6 text-stone-600">
+                    Decide how many flowers are included in Small, Medium, Large and Extra Large custom event bouquets.
+                    Values must increase in steps of five from 25 to 100. These sizes control the custom enquiry form and estimated quotes.
+                    For regular catalog products, set each size's flower count and selling price in <strong>Products → Edit Product</strong>.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {PRODUCT_SIZE_KEYS.map(size => (
+                      <label key={size} className="text-xs font-medium text-stone-700">
+                        {PRODUCT_SIZE_LABELS[size]}
+                        <input type="number" required min="25" max="100" step="5"
+                          value={(settingsForm.customSizeFlowers || DEFAULT_CUSTOM_SIZE_FLOWERS)[size]}
+                          onChange={event => setSettingsForm(prev => ({ ...prev,
+                            customSizeFlowers: { ...DEFAULT_CUSTOM_SIZE_FLOWERS, ...(prev.customSizeFlowers || {}), [size]: Number(event.target.value) },
+                          }))}
+                          className="mt-2 w-full border border-stone-300 bg-white px-3 py-3 text-sm text-stone-900 outline-none focus:border-stone-900"/>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-stone-500">These are initial defaults. Review and save your actual size chart before accepting enquiries.</p>
+                </section>
 
                 <div className="pt-2">
                   <button

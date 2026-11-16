@@ -38,7 +38,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
   });
   if (!isOpen) return null;
   const subtotal = cartItems.reduce((sum, item) => sum + item.bouquet.price * item.quantity, 0);
-  const cartKey = cartItems.map(item => `${item.bouquet.id}:${item.quantity}`).join('|');
+  const cartKey = cartItems.map(item => `${item.bouquet.id}:${item.selectedSize || 'ONE'}:${item.quantity}`).join('|');
   const couponIsCurrent = Boolean(appliedCoupon && appliedCoupon.email === customer.email.trim().toLowerCase() && appliedCoupon.items === cartKey);
   const validCoupon = couponIsCurrent ? appliedCoupon : null;
   const discount = validCoupon?.discount || 0;
@@ -59,7 +59,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
     try {
       const result = await apiValidateCoupon({
         code, email,
-        items: cartItems.map(item => ({ productId: item.bouquet.id, quantity: item.quantity })),
+        items: cartItems.map(item => ({ productId: item.bouquet.id, quantity: item.quantity, selectedSize: item.selectedSize })),
       });
       if (!result.success || !result.discountAmount) throw new Error(result.error || 'This offer is not available for your order.');
       setAppliedCoupon({ code, discount: result.discountAmount, email, items: cartKey });

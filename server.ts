@@ -8,6 +8,7 @@ import { estimateCustomBouquet, indiaDate, minimumWrappers } from './shared/cust
 import { isValidCustomDeliveryDate, isValidCustomPhone, isValidCustomEmail } from './shared/customOrderValidation.js';
 import { isServiceableCity, isValidOptionalDeliveryDate, SERVICE_CITY } from './shared/orderRules.js';
 import { customerReviewId, reviewerDisplayName, reviewInputError } from './shared/reviewRules.js';
+import { PRODUCT_SIZE_KEYS, isProductSize, isBouquetCategory, isValidProductSizeOption, normalizeProductSizes, productSizeFor, customSizeMap, validateCustomSizeFlowers } from './shared/productSizes.js';
 import { DEFAULT_SITE_CONTENT, sanitizeSiteContent } from './shared/siteEditor.js';
 import type { SiteContent } from './shared/siteEditor.js';
 import {
@@ -300,7 +301,14 @@ async function resolveCouponItems(items: any[], database: any) {
     // Coupon validation must use the same fallback as the public catalogue.
     const product = await database.collection('products').findOne({ id: productId });
     if (product) {
-      pricedItems.push({ productId: String(product.id || productId), quantity, price: Number(product.price || 0) });
+      const size = item?.selectedSize || item?.bouquet?.selectedSize || 'M';
+      const variant = isBouquetCategory(String(product.category || ''))
+        ? productSizeFor(product, size) : null;
+      if (isBouquetCategory(String(product.category || '')) && !variant) continue;
+      pricedItems.push({
+        productId: String(product.id || productId), quantity,
+        price: variant ? variant.price : Number(product.price || 0),
+      });
     }
   }
   return pricedItems;
@@ -916,6 +924,21 @@ async function startServer() {
       if (!bouquet || !bouquet.id || !bouquet.title || typeof bouquet.price !== 'number' || bouquet.price < 0) return res.status(400).json({ success: false, error: 'Valid bouquet data is required.' });
       const database = await getMongoDb();
       if (!database) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable.' });
+      const category = String(bouquet.category || '');
+      if (isBouquetCategory(category)) {
+        if (!Array.isArray(bouquet.sizeOptions) || bouquet.sizeOptions.length < 1
+            || bouquet.sizeOptions.length > 4
+            || bouquet.sizeOptions.some((option: unknown) => !isValidProductSizeOption(option))
+            || new Set(bouquet.sizeOptions.map((option: any) => option.size)).size !== bouquet.sizeOptions.length) {
+          return res.status(400).json({ success: false, error: 'Configure one to four valid sizes and their flower counts and prices.' });
+        }
+        if (!bouquet.sizeOptions.some((option: any) => option.available)) {
+          return res.status(400).json({ success: false, error: 'Enable at least one size.' });
+        }
+        const first = bouquet.sizeOptions.find((option: any) => option.size === 'M' && option.available) || bouquet.sizeOptions.find((option: any) => option.available);
+        bouquet.price = first.price;
+        bouquet.flowerCount = first.flowerCount;
+      } else bouquet.sizeOptions = [];
       const previous = await database.collection('products').findOne({ id: bouquet.id });
       const saved = await mongoSaveBouquet(bouquet);
       if (!saved) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable.' });
@@ -1230,7 +1253,13 @@ async function startServer() {
         return res.status(429).json({ success: false, error: 'Too many enquiries. Please try again later.' });
       }
       const input = req.body || {};
-      const flowers = Number(input.flowers);
+      const size = input.size;
+      const customSettings = await mongoGetSettings();
+      const sizeChart = customSizeMap(customSettings?.customSizeFlowers);
+      if (!isProductSize(size) || Number(input.flowers) !== sizeChart[size]) {
+        return res.status(400).json({ success: false, error: 'Size selection changed. Refresh and choose a bouquet size again.' });
+      }
+      const flowers = sizeChart[size];
       const wrappers = Number(input.wrappers);
       const wrapperType = String(input.wrapperType || '');
       const occasion = String(input.occasion || '').trim();
@@ -1275,7 +1304,7 @@ async function startServer() {
       const now = new Date().toISOString();
       const orderNumber = `JB-C-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
       const customDetails = {
-        occasion, flowerCount: flowers, flowerColors, wrapperColor,
+        occasion, size, flowerCount: flowers, flowerColors, wrapperColor,
         wrapperType, wrapperCount: wrappers, gypsy, glitter,
         extraNotes, estimatedMin: estimate.minimum, estimatedMax: estimate.maximum,
       };
@@ -1334,9 +1363,16 @@ async function startServer() {
         const quantity = Number(raw?.quantity);
         if (!id || !Number.isInteger(quantity) || quantity < 1 || quantity > 20) return res.status(400).json({ success: false, error: 'Invalid cart item or quantity.' });
         const product = await database.collection('products').findOne({ id });
-        if (!product) return res.status(400).json({ success: false, error: `A selected product is no longer available.` });
+        if (!product) return res.status(400).json({ success: false, error: 'A selected product is no longer available.' });
         if (product.inStock === false) return res.status(409).json({ success: false, error: `${product.title || 'A selected product'} is currently out of stock.` });
-        normalizedItems.push({ bouquet: product, quantity });
+        const bouquetProduct = isBouquetCategory(String(product.category || ''));
+        const selectedSize = raw.selectedSize || 'M';
+        const variant = bouquetProduct ? productSizeFor(product, selectedSize) : null;
+        if (bouquetProduct && !variant) {
+          return res.status(409).json({ success: false, error: `${product.title} is not available in the selected size. Please update your bag.` });
+        }
+        const itemSnapshot = variant ? { ...product, flowerCount: variant.flowerCount, price: variant.price } : product;
+        normalizedItems.push({ bouquet: itemSnapshot, quantity, selectedSize: variant?.size });
       }
       const subtotal = normalizedItems.reduce((sum, item) => sum + Number(item.bouquet.price || 0) * item.quantity, 0);
       const deliveryFee = 0;
@@ -1349,7 +1385,7 @@ async function startServer() {
         if (!couponDoc || couponDoc.active === false || String(couponDoc.expiresAt) < indiaTodayPlusDays(0)) return res.status(400).json({ success: false, error: 'Coupon is invalid or expired.' });
         if (couponDoc.firstOrderOnly && await mongoHasCustomerOrder(String(c.email))) return res.status(400).json({ success: false, error: 'This coupon is only valid on your first order.' });
         if (couponDoc.usageLimitPerCustomer) { const uses = await mongoCountCustomerCouponUses(couponCode, String(c.email)); if (uses === null || uses >= Number(couponDoc.usageLimitPerCustomer)) return res.status(400).json({ success: false, error: 'Coupon usage limit reached for this customer.' }); }
-        const couponItems = await resolveCouponItems(rawItems, database);
+        const couponItems = normalizedItems.map(item => ({ productId: item.bouquet.id, quantity: item.quantity, price: item.bouquet.price }));
         discountAmount = calculateCouponDiscount(couponDoc, couponItems);
         if (discountAmount <= 0) return res.status(400).json({ success: false, error: 'This coupon does not apply to the selected products.' });
       }
@@ -1409,7 +1445,7 @@ async function startServer() {
       // Translate old business-name defaults without overwriting intentional custom names.
       const legacyName = /^(jerry(?:'s|s)? garden|jericasgarden)$/i;
       const displaySettings = settings
-        ? { ...settings, storeName: legacyName.test(String(settings.storeName || '').trim())
+        ? { ...settings, customSizeFlowers: customSizeMap(settings.customSizeFlowers), storeName: legacyName.test(String(settings.storeName || '').trim())
             ? 'Jame Bouquets' : (settings.storeName || 'Jame Bouquets') }
         : null;
       return res.json({ success: true, connected: settings !== null, settings: displaySettings });
@@ -1429,12 +1465,16 @@ async function startServer() {
       if (logoUrl && (logoUrl.length > 1000 || !/^https:\/\/res\.cloudinary\.com\//i.test(logoUrl))) {
         return res.status(400).json({ success: false, error: 'The logo must be a secure Cloudinary image.' });
       }
+      if (!validateCustomSizeFlowers(settings.customSizeFlowers)) {
+        return res.status(400).json({ success: false, error: 'Set four increasing custom bouquet flower counts (25–100, multiples of five).' });
+      }
       const existing = await mongoGetSettings();
       const saved = await mongoUpdateSettings({
         ...(existing || {
           tagline: 'Everlasting, by hand.', ownerEmail: ADMIN_EMAIL, upiId: '', upiName: '',
           city: 'Berhampore', deliveryFee: 0, freeDeliveryThreshold: 0,
         }), storeName, logoUrl,
+        customSizeFlowers: customSizeMap(settings.customSizeFlowers),
         phone: String(settings.phone || '').slice(0, 100),
         whatsapp: String(settings.whatsapp || '').slice(0, 100),
         address: String(settings.address || '').slice(0, 300),
