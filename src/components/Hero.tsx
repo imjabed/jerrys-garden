@@ -14,6 +14,7 @@ interface HeroProps {
   effects?: PageEffects;
   theme?: ThemeId;
   photoUrl?: string;
+  mobilePhotoUrl?: string;
   imagePosition?: number;
   offer?: SeasonalOffer;
 }
@@ -21,13 +22,13 @@ interface HeroProps {
 export default function Hero({
   onExploreClick, onFeaturedClick, featuredProduct,
   content = DEFAULT_SITE_CONTENT.hero, headingScale = 1,
-  effects = DEFAULT_SITE_CONTENT.effects, theme = 'default', photoUrl, imagePosition = 76, offer,
+  effects = DEFAULT_SITE_CONTENT.effects, theme = 'default', photoUrl, mobilePhotoUrl, imagePosition = 76, offer,
 }: HeroProps) {
   const seasonal = theme !== 'default';
   const showOffer = seasonal && offer?.enabled && Boolean(offer.code);
   return (
     <section className={`jb-hero-surface relative isolate overflow-hidden border-b border-stone-200 ${seasonal ? 'jb-hero-seasonal' : ''} ${photoUrl ? 'jb-hero-with-image' : ''}`}>
-      <SeasonalEffects settings={effects} theme={theme} photoUrl={photoUrl} imagePosition={imagePosition}/>
+      <SeasonalEffects settings={effects} theme={theme} photoUrl={photoUrl} mobilePhotoUrl={mobilePhotoUrl} imagePosition={imagePosition}/>
       <div className={`jb-hero-layout relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-5 py-14 sm:px-8 lg:gap-16 lg:px-12 lg:py-24
         ${seasonal ? 'jb-hero-seasonal-layout lg:grid-cols-1' : 'lg:min-h-[620px] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]'}`}>
         <div className={`jb-hero-copy min-w-0 ${seasonal ? 'jb-hero-seasonal-copy' : ''}`}>
