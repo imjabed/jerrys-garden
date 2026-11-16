@@ -3,8 +3,10 @@ import { ShoppingBag, Search, Compass, ShieldCheck, User as UserIcon, Menu, X, I
 import Logo from './Logo';
 import WhatsAppIcon from './WhatsAppIcon';
 import { UserAccount, StoreSettings } from '../types';
+import type { ThemeId } from '../../shared/siteEditor';
 
 interface NavbarProps {
+  theme?: ThemeId;
   storeSettings: StoreSettings;
   cartCount: number;
   onOpenCart: () => void;
@@ -23,6 +25,7 @@ interface NavbarProps {
 }
 
 export default function Navbar({
+  theme = 'default',
   storeSettings,
   cartCount,
   onOpenCart,
@@ -44,11 +47,19 @@ export default function Navbar({
   const [showSearchBar, setShowSearchBar] = useState(false);
 
   return (
-    <header className="jb-nav-surface sticky top-0 z-40 backdrop-blur-md border-b border-stone-200/80 transition-all">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+    <header className="jb-nav-surface sticky top-0 z-40 border-b border-stone-200/80 backdrop-blur-md transition-all" data-nav-theme={theme}>
+      {theme !== 'default' && (
+        <div className="jb-navbar-festive-details pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+          {theme === 'valentines' && <><span className="jb-nav-ornament jb-nav-ornament-a">🌹</span><span className="jb-nav-ornament jb-nav-ornament-b">♥</span></>}
+          {theme === 'puja' && <><span className="jb-nav-ornament jb-nav-ornament-a">🌼</span><span className="jb-nav-ornament jb-nav-ornament-b">🪔</span></>}
+          {theme === 'eid' && <><span className="jb-nav-ornament jb-nav-ornament-a">☾</span><span className="jb-nav-ornament jb-nav-ornament-b">🏮</span></>}
+          {theme === 'winter' && <><span className="jb-nav-ornament jb-nav-ornament-a">❄</span><span className="jb-nav-ornament jb-nav-ornament-b">🎄</span></>}
+        </div>
+      )}
+      <div className="relative max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="jb-nav-inner flex h-[68px] items-center justify-between gap-2 sm:h-20">
           {/* Brand Logo */}
-          <div onClick={onNavigateToShop}>
+          <div onClick={onNavigateToShop} className="jb-nav-brand min-w-0 shrink cursor-pointer">
             <Logo size="md" logoUrl={storeSettings.logoUrl} brandName={storeSettings.storeName || "Jame Bouquets"} />
           </div>
 
@@ -85,7 +96,7 @@ export default function Navbar({
           </nav>
 
           {/* Right Action Icons */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="jb-nav-actions flex shrink-0 items-center gap-1 sm:gap-4">
             {/* Search Toggle */}
             <div className="relative">
               {showSearchBar ? (
@@ -228,7 +239,7 @@ export default function Navbar({
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-stone-200 px-4 pt-2 pb-6 space-y-3 shadow-lg">
+        <div className="jb-mobile-menu lg:hidden border-b border-stone-200 px-4 pt-2 pb-6 space-y-3 shadow-lg">
           <button
             onClick={() => {
               onNavigateToShop();
