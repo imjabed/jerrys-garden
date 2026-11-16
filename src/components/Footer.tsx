@@ -61,7 +61,7 @@ export default function Footer({
             }}/>
         </div>
       )}
-      {sceneEnabled && footerTagline && (
+      {footerTagline && (
         <p className="jb-festival-footer-tagline mx-auto max-w-3xl px-6 pt-8 text-center font-serif text-lg italic tracking-wide sm:text-2xl">
           {footerTagline}
         </p>
