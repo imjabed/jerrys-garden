@@ -1,4 +1,5 @@
 import type { ThemeBanner as ThemeBannerConfig, ThemeId } from '../../shared/siteEditor';
+import type { CSSProperties } from 'react';
 import { safeEditorLink } from '../../shared/siteEditor';
 import { ArrowUpRight } from 'lucide-react';
 
@@ -17,7 +18,7 @@ export default function ThemeBanner({ theme, config }: Props) {
       style={{
         backgroundColor: config.background, color: config.textColor,
         '--jb-banner-accent': config.accentColor,
-      } as React.CSSProperties}>
+      } as CSSProperties}>
       {media && (
         <img src={media} alt="" loading="eager" decoding="async" draggable={false}
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
