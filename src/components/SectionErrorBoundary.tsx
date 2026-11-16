@@ -20,7 +20,7 @@ export default class SectionErrorBoundary extends Component<Props, State> {
         <p className="mt-3 text-sm text-stone-600">
           Please refresh this page or contact Jame Bouquets for help with your order.
         </p>
-        <button type="button" onClick={() => this.setState({ failed: false })}
+        <button type="button" onClick={() => window.location.reload()}
           className="mt-5 border border-stone-400 px-5 py-3 text-xs font-semibold text-stone-800">
           Try again
         </button>
