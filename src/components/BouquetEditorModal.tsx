@@ -201,7 +201,7 @@ export default function BouquetEditorModal({
                 min="1"
                 placeholder="899"
                 value={price}
-                onChange={(e) => setPrice(e.target.value)}
+                onChange={(e) => { setPrice(e.target.value); setSizeRows(prev => ({ ...prev, M: { ...prev.M, price: e.target.value } })); }}
                 className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white font-bold text-stone-900"
               />
             </div>
