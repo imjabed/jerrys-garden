@@ -3,7 +3,7 @@ import Logo from './Logo';
 import WhatsAppIcon from './WhatsAppIcon';
 import { StoreSettings } from '../types';
 import type { PolicyType } from './StorePolicies';
-import type { SiteContent, ThemeId, ValentinesDesign } from '../../shared/siteEditor';
+import type { SiteContent, ThemeId, ValentinesDesign, ThemeExtras } from '../../shared/siteEditor';
 import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
 
 interface FooterProps {
@@ -17,6 +17,7 @@ interface FooterProps {
   content?: SiteContent['footer'];
   theme?: ThemeId;
   valentines?: ValentinesDesign;
+  themeExtras?: ThemeExtras;
 }
 
 export default function Footer({
@@ -27,30 +28,45 @@ export default function Footer({
   onNavigateToShop,
   onOpenPolicy,
   content = DEFAULT_SITE_CONTENT.footer,
-  theme = 'default', valentines,
+  theme = 'default', valentines, themeExtras,
 }: FooterProps) {
   const valentineMode = theme === 'valentines' && Boolean(valentines);
+  const skylineSource: Record<ThemeId, string> = {
+    default: '', valentines: '/valentines/park-couple-silhouette.svg',
+    winter: '/seasonal/winter-night-silhouette.svg',
+    eid: '/seasonal/eid-moonlit-mosque.svg',
+    puja: '/seasonal/puja-bengali-pandal.svg',
+  };
+  const sceneEnabled = themeExtras?.footerSceneEnabled && (!valentineMode || valentines?.footerSceneEnabled !== false);
+  const sceneUrl = valentineMode
+    ? (valentines?.footerSceneUrl || themeExtras?.footerSceneUrl || skylineSource.valentines)
+    : (themeExtras?.footerSceneUrl || skylineSource[theme]);
+  const footerTagline = valentineMode ? valentines?.footerTagline : themeExtras?.footerTagline;
   const footerContent = valentineMode && valentines
     ? { description: valentines.footerDescription, orderNote: valentines.footerOrderNote }
     : content;
   return (
-    <footer className={`jb-footer-surface text-stone-300 border-t border-stone-800 pb-12 ${valentineMode ? 'jb-valentine-footer' : 'pt-16'}`}>
-      {valentineMode && valentines?.footerSceneEnabled && (
-        <div className="jb-valentine-scene relative isolate overflow-hidden" aria-hidden="true">
-          <div className="jb-valentine-sunset absolute inset-0"/>
-          <div className="jb-valentine-garden absolute inset-0" style={{
-            maskImage: `url("${valentines.footerSceneUrl || '/valentines/park-couple-silhouette.svg'}")`,
-            WebkitMaskImage: `url("${valentines.footerSceneUrl || '/valentines/park-couple-silhouette.svg'}")`,
-          }}/>
-          <div className="jb-valentine-scene-film absolute inset-0"/>
+    <footer className={`jb-footer-surface text-stone-300 border-t border-stone-800 pb-12 ${sceneEnabled ? 'jb-footer-with-scene' : 'pt-16'} ${valentineMode ? 'jb-valentine-footer' : ''}`}>
+      {sceneEnabled && sceneUrl && (
+        <div className={`jb-festival-scene relative isolate overflow-hidden jb-footer-scene-${theme}`}
+          aria-hidden="true">
+          <div className="jb-festival-sky absolute inset-0"/>
+          <div className="jb-festival-silhouette absolute inset-0"
+            style={{
+              backgroundColor: valentineMode
+                ? (valentines?.colors.silhouette || themeExtras?.footerSceneColor)
+                : themeExtras?.footerSceneColor,
+              maskImage: `url("${sceneUrl}")`,
+              WebkitMaskImage: `url("${sceneUrl}")`,
+            }}/>
         </div>
       )}
-      {valentineMode && valentines?.footerTagline && (
-        <p className="jb-valentine-footer-tagline mx-auto max-w-3xl px-6 pt-10 text-center font-serif text-lg italic tracking-wide sm:text-2xl">
-          {valentines.footerTagline}
+      {sceneEnabled && footerTagline && (
+        <p className="jb-festival-footer-tagline mx-auto max-w-3xl px-6 pt-8 text-center font-serif text-lg italic tracking-wide sm:text-2xl">
+          {footerTagline}
         </p>
       )}
-      <div className={`relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${valentineMode ? 'pt-12 sm:pt-16' : ''}`}>
+      <div className={`relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${sceneEnabled ? 'pt-10 sm:pt-14' : ''}`}>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-stone-800">
           
