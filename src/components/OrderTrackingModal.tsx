@@ -89,7 +89,7 @@ export default function OrderTrackingModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden my-8">
+      <div className="jb-customer-panel relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden my-8">
         
         {/* Header */}
         <div className="p-6 bg-gradient-to-r from-rose-50 via-white to-amber-50 border-b border-stone-200 flex items-center justify-between">
