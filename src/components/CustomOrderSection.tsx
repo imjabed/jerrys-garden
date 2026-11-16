@@ -3,7 +3,7 @@ import { ArrowRight, CheckCircle2, Flower2, Gift, Minus, Plus } from 'lucide-rea
 import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
 import { customSizeMap, PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS } from '../../shared/productSizes';
 import type { ProductSizeKey } from '../../shared/productSizes';
-import type { SiteContent, ThemeId, PageEffects, ValentinesDesign } from '../../shared/siteEditor';
+import type { SiteContent, ThemeId, PageEffects, ValentinesDesign, ThemeExtras } from '../../shared/siteEditor';
 import SeasonalEffects from './SeasonalEffects';
 import {
   estimateCustomBouquet, indiaDate, leadDays, minimumWrappers,
@@ -21,7 +21,7 @@ interface CustomOrderSectionProps {
   theme?: ThemeId;
   effects?: PageEffects;
   valentines?: ValentinesDesign;
-  fallbackPhotoUrl?: string;
+  themeExtras?: ThemeExtras;
 }
 export interface CustomEnquiryPayload {
   size: ProductSizeKey;
@@ -44,7 +44,14 @@ export interface CustomEnquiryPayload {
 
 const occasions = ['Wedding', 'Anniversary', 'Birthday', 'Event', 'Other'];
 
-export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggle, content = DEFAULT_SITE_CONTENT.custom, headingScale = 1, sizeChart, theme = 'default', effects = DEFAULT_SITE_CONTENT.effects, valentines, fallbackPhotoUrl = '' }: CustomOrderSectionProps) {
+export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggle, content = DEFAULT_SITE_CONTENT.custom, headingScale = 1, sizeChart, theme = 'default', effects = DEFAULT_SITE_CONTENT.effects, valentines, themeExtras }: CustomOrderSectionProps) {
+  // Images are optional decorations. Missing or failed Cloudinary photos must not
+  // change the order form's calculations or cause a render crash.
+  const customPhoto = valentines
+    ? (typeof valentines.customImageUrl === 'string' ? valentines.customImageUrl : '')
+    : (typeof themeExtras?.customImageUrl === 'string' ? themeExtras.customImageUrl : '');
+  const photoPosition = valentines ? valentines.customImagePosition : (themeExtras?.customImagePosition ?? 60);
+  const photoOverlay = valentines ? valentines.customOverlay : (themeExtras?.customOverlay ?? .72);
   const [occasion, setOccasion] = useState('Wedding');
   const [size, setSize] = useState<ProductSizeKey>('S');
   const sizes = customSizeMap(sizeChart);
@@ -119,15 +126,18 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
   const labelClass = 'block text-[11px] uppercase tracking-[0.14em] text-stone-600';
   return (
     <section id="custom-builder"
-      className={`jb-custom-surface relative isolate overflow-hidden border-y border-stone-200/70 py-14 sm:py-20 lg:py-28 ${valentines ? 'jb-valentine-custom' : ''}`}
-      style={valentines ? { '--val-custom-overlay': String(valentines.customOverlay) } as CSSProperties : undefined}>
-      {valentines && (
+      className={`jb-custom-surface relative isolate overflow-hidden border-y border-stone-200/70 py-14 sm:py-20 lg:py-28 ${theme === 'valentines' ? 'jb-valentine-custom' : ''} ${themeExtras && theme !== 'default' ? 'jb-themed-custom' : ''}`}
+      style={{ '--val-custom-overlay': String(photoOverlay), '--jb-custom-overlay': String(photoOverlay) } as CSSProperties}>
+      {themeExtras && theme !== 'default' && (
         <div className="jb-val-custom-photo-layer pointer-events-none absolute inset-0" aria-hidden="true">
-          {(valentines.customImageUrl || fallbackPhotoUrl) && (
+          {customPhoto && (
             <img className="absolute inset-0 h-full w-full object-cover"
-              src={(valentines.customImageUrl || fallbackPhotoUrl).replace('/image/upload/', '/image/upload/f_auto,q_auto,w_1600,c_limit/')}
+              src={customPhoto.includes('/image/upload/')
+                ? customPhoto.replace('/image/upload/', '/image/upload/f_auto,q_auto,w_1600,c_limit/')
+                : customPhoto}
               alt="" loading="lazy" decoding="async"
-              style={{ objectPosition: `50% ${valentines.customImagePosition}%` }}/>
+              onError={event => { event.currentTarget.style.visibility = 'hidden'; }}
+              style={{ objectPosition: `50% ${Math.max(0, Math.min(100, photoPosition))}%` }}/>
           )}
           <div className="jb-val-custom-photo-shade absolute inset-0"/>
         </div>
