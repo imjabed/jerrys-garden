@@ -201,3 +201,39 @@ test('hero backgrounds are safely stored independently for all five themes', () 
   assert.equal(switched.effects.parallax, true);
   assert.equal(switched.heroImagePosition.winter, 100);
 });
+
+
+test('Valentine luxury options are isolated, editable and safely validated', () => {
+  const cloud = 'https://res.cloudinary.com/demo/image/upload/v1/jame_bouquets_themes/love.webp';
+  const design = sanitizeSiteContent({
+    theme: 'valentines',
+    valentines: {
+      hero: { heading: 'For a love that lasts', accentLine: 'Made by hand.' },
+      custom: { heading: 'Make it yours', button: 'Plan a gift' },
+      heroMobileImageUrl: cloud,
+      customImageUrl: cloud,
+      footerSceneUrl: 'javascript:alert(1)',
+      footerTagline: 'Our favourite chapter.',
+      footerSceneEnabled: false,
+      customOverlay: 9,
+      customImagePosition: -5,
+      colors: { navBackground: '#73152C', navText: '#FFEEEE', heroAccent: 'javascript:alert(1)' },
+    },
+  });
+  assert.equal(design.valentines.hero.heading, 'For a love that lasts');
+  assert.equal(design.valentines.custom.heading, 'Make it yours');
+  assert.equal(design.valentines.heroMobileImageUrl, cloud);
+  assert.equal(design.valentines.customImageUrl, cloud);
+  assert.equal(design.valentines.footerSceneUrl, '');
+  assert.equal(design.valentines.footerSceneEnabled, false);
+  assert.equal(design.valentines.footerTagline, 'Our favourite chapter.');
+  assert.equal(design.valentines.customOverlay, 0.95);
+  assert.equal(design.valentines.customImagePosition, 0);
+  assert.equal(design.valentines.colors.navBackground, '#73152C');
+  assert.equal(design.valentines.colors.heroAccent, DEFAULT_SITE_CONTENT.valentines.colors.heroAccent);
+  const switched = applyThemePreset(design, 'eid');
+  assert.equal(switched.valentines.hero.heading, 'For a love that lasts');
+  assert.equal(switched.valentines.colors.navBackground, '#73152C');
+  assert.equal(switched.theme, 'eid');
+  assert.equal(switched.hero.heading, design.hero.heading);
+});
