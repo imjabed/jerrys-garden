@@ -177,3 +177,27 @@ test('seasonal presets affect atmosphere and appearance without replacing produc
     assert.equal(next.effects.illustrationPlacement, theme.id === 'default' ? 'hero' : 'homepage');
   }
 });
+
+test('hero backgrounds are safely stored independently for all five themes', () => {
+  const original = 'https://res.cloudinary.com/example/image/upload/v1/jame_bouquets_themes/home.jpg';
+  const winter = 'https://res.cloudinary.com/example/image/upload/v1/jame_bouquets_themes/winter.webp';
+  const saved = sanitizeSiteContent({
+    theme: 'default',
+    themeMedia: { default: original, winter, puja: 'javascript:alert(1)' },
+    heroImagePosition: { default: 20, winter: 500, eid: -42 },
+    effects: { parallax: true, parallaxStrength: 0.4, enabled: false },
+  });
+  assert.equal(saved.themeMedia.default, original);
+  assert.equal(saved.themeMedia.winter, winter);
+  assert.equal(saved.themeMedia.puja, '');
+  assert.equal(saved.heroImagePosition.default, 20);
+  assert.equal(saved.heroImagePosition.winter, 100);
+  assert.equal(saved.heroImagePosition.eid, 0);
+  assert.equal(saved.effects.parallax, true);
+  assert.equal(saved.effects.parallaxStrength, 0.4);
+  const switched = applyThemePreset(saved, 'eid');
+  assert.equal(switched.themeMedia.default, original);
+  assert.equal(switched.themeMedia.winter, winter);
+  assert.equal(switched.effects.parallax, true);
+  assert.equal(switched.heroImagePosition.winter, 100);
+});
