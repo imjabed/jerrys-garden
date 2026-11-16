@@ -73,7 +73,15 @@ export default function SeasonalEffects({
   // Background images are always visible when selected; animation toggles affect
   // decorative effects only and never remove the published hero photo.
   const showDecoration = theme !== 'default' && settings.illustrationEnabled && settings.enabled;
-  const cdn = (url: string, width: number) => url.replace('/image/upload/', `/image/upload/f_auto,q_auto,w_${width},c_limit/`);
+  const cdn = (url: string, width: number) => url.replace(
+    '/image/upload/',
+    `/image/upload/f_auto,${theme === 'valentines' ? 'q_auto:best' : 'q_auto'},w_${width},c_limit/`,
+  );
+  // Valentine's photograph is full-bleed on desktop. The previous 1280px
+  // maximum made images soft on large monitors even with a good original.
+  // c_limit keeps Cloudinary from pointlessly upscaling a small source.
+  const retinaSrcSet = (url: string, widths: number[]) =>
+    widths.map(width => `${cdn(url, width)} ${width}w`).join(', ');
   const showSnow = showDecoration && theme === 'winter' && settings.snowEnabled;
   const winterFlakes = showSnow ? Math.max(6, Math.min(32, Math.round(settings.snowDensity / 3))) : 0;
 
@@ -83,12 +91,16 @@ export default function SeasonalEffects({
         <picture className="absolute inset-0 h-full w-full">
           {mobilePhotoUrl && (
             <source media="(max-width: 700px)"
-              srcSet={`${cdn(mobilePhotoUrl, 640)} 640w, ${cdn(mobilePhotoUrl, 960)} 960w`}
+              srcSet={theme === 'valentines'
+                ? retinaSrcSet(mobilePhotoUrl, [480, 720, 960, 1200, 1440, 1920])
+                : retinaSrcSet(mobilePhotoUrl, [640, 960])}
               sizes="100vw"/>
           )}
-          <img src={cdn(desktopPhoto, 960)}
-            srcSet={`${cdn(desktopPhoto, 640)} 640w, ${cdn(desktopPhoto, 960)} 960w, ${cdn(desktopPhoto, 1280)} 1280w`}
-            sizes="(max-width: 680px) 100vw, 100vw" alt="" draggable={false} fetchPriority="high"
+          <img src={cdn(desktopPhoto, theme === 'valentines' ? 1920 : 960)}
+            srcSet={theme === 'valentines'
+              ? retinaSrcSet(desktopPhoto, [640, 960, 1280, 1600, 1920, 2400, 3200])
+              : retinaSrcSet(desktopPhoto, [640, 960, 1280])}
+            sizes="100vw" alt="" draggable={false} fetchPriority="high" decoding="async"
             style={{ objectPosition: `50% ${Math.max(0, Math.min(100, imagePosition))}%` }}
             className={`jb-hero-photo absolute inset-0 h-full w-full object-cover ${settings.parallax && !reduceMotion ? "jb-hero-photo-parallax" : ""}`}/>
         </picture>
