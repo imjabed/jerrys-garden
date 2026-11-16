@@ -50,7 +50,22 @@ export default function Navbar({
     <header className="jb-nav-surface sticky top-0 z-40 border-b border-stone-200/80 backdrop-blur-md transition-all" data-nav-theme={theme}>
       {theme !== 'default' && (
         <div className="jb-navbar-festive-details pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-          {theme === 'valentines' && <><span className="jb-nav-ornament jb-nav-ornament-a">🌹</span><span className="jb-nav-ornament jb-nav-ornament-b">♥</span></>}
+          {theme === 'valentines' && (
+            <svg className="jb-valentine-nav-ribbon" viewBox="0 0 240 80" fill="none"
+              xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <defs>
+                <linearGradient id="val-ribbon" x1="0" y1="0" x2="1" y2="1">
+                  <stop stopColor="#FFD1CE"/><stop offset=".42" stopColor="#AD354F"/>
+                  <stop offset=".68" stopColor="#71162E"/><stop offset="1" stopColor="#F5A8AD"/>
+                </linearGradient>
+              </defs>
+              <path d="M37 26 C19 -3 2 4 8 32 C14 57 39 43 54 36 C31 66 12 83 0 80 C36 58 58 43 72 39
+                C94 54 119 65 162 67 C125 49 92 29 73 31 C95 12 112 -6 121 2 C126 16 113 28 92 38
+                C114 22 143 25 178 23" stroke="url(#val-ribbon)" strokeWidth="9" strokeLinecap="round"
+                strokeLinejoin="round" opacity=".75"/>
+              <path d="M59 24 Q76 33 65 44 Q47 40 59 24Z" fill="#EBA9A8" opacity=".85"/>
+            </svg>
+          )}
           {theme === 'puja' && <><span className="jb-nav-ornament jb-nav-ornament-a">🌼</span><span className="jb-nav-ornament jb-nav-ornament-b">🪔</span></>}
           {theme === 'eid' && <><span className="jb-nav-ornament jb-nav-ornament-a">☾</span><span className="jb-nav-ornament jb-nav-ornament-b">🏮</span></>}
           {theme === 'winter' && <><span className="jb-nav-ornament jb-nav-ornament-a">❄</span><span className="jb-nav-ornament jb-nav-ornament-b">🎄</span></>}
