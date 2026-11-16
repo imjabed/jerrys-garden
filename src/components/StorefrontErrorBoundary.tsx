@@ -1,18 +1,19 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 type Props = { children: ReactNode };
-type State = { failed: boolean };
+type State = { failed: boolean; diagnostic: string };
 
 export default class StorefrontErrorBoundary extends Component<Props, State> {
   declare readonly props: Readonly<Props>;
-  state: State = { failed: false };
+  state: State = { failed: false, diagnostic: '' };
 
   static getDerivedStateFromError(): State {
-    return { failed: true };
+    return { failed: true, diagnostic: '' };
   }
 
   componentDidCatch(error: Error, details: ErrorInfo) {
     console.error('[Storefront] A page failed to render', error, details.componentStack);
+    this.setState({ diagnostic: `${error.name}: ${error.message}\n${details.componentStack || ''}`.slice(0, 1600) });
   }
 
   render() {
@@ -26,6 +27,12 @@ export default class StorefrontErrorBoundary extends Component<Props, State> {
           Your order and account information are not affected. Reload the website
           to try again, or return to the homepage.
         </p>
+        {typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug') && (
+          <details className="w-full max-w-xl text-left text-xs text-stone-600">
+            <summary className="cursor-pointer font-semibold">Technical error details</summary>
+            <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap border border-stone-200 bg-white p-3">{this.state.diagnostic || 'No error details recorded.'}</pre>
+          </details>
+        )}
         <div className="flex flex-wrap justify-center gap-3">
           <button type="button" onClick={() => window.location.reload()}
             className="bg-stone-900 px-5 py-3 text-xs font-semibold text-white">Reload page</button>
