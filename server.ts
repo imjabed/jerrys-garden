@@ -418,13 +418,27 @@ async function startServer() {
       // idempotent, even if renamed locally or used in several editor slots.
       // Never overwrite an asset that might be referenced by live pages/history.
       const digest = crypto.createHash('sha256').update(bytes).digest('hex');
-      const uploadResponse = await cloudinary.uploader.upload(image, {
-        folder: managedFolder,
-        public_id: `jb_${digest.slice(0, 44)}`,
-        unique_filename: false,
-        overwrite: false,
-        resource_type: 'image',
-      });
+      const publicId = `${managedFolder}/jb_${digest.slice(0, 44)}`;
+      let uploadResponse: any;
+      let reused = false;
+      try {
+        uploadResponse = await cloudinary.uploader.upload(image, {
+          folder: managedFolder,
+          public_id: `jb_${digest.slice(0, 44)}`,
+          unique_filename: false,
+          overwrite: false,
+          resource_type: 'image',
+        });
+        reused = uploadResponse.existing === true;
+      } catch (err: any) {
+        // Some Cloudinary configurations reply 409 instead of returning
+        // {existing:true}. Re-read only that exact content-addressed asset.
+        const code = Number(err?.http_code || err?.statusCode || err?.status || 0);
+        if (code !== 409) throw err;
+        const existing = await cloudinary.api.resource(publicId, { resource_type: 'image', type: 'upload' });
+        uploadResponse = existing;
+        reused = true;
+      }
 
       return res.json({
         success: true,
@@ -433,7 +447,7 @@ async function startServer() {
         width: uploadResponse.width,
         height: uploadResponse.height,
         format: uploadResponse.format,
-        reused: uploadResponse.existing === true,
+        reused,
       });
     } catch (error: any) {
       console.error('Cloudinary upload error:', error);
