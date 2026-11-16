@@ -687,3 +687,50 @@
   .jb-nav-ornament, .jb-love-drift, .jb-moon-breathe, .jb-lantern-sway,
   .jb-incense-smoke, .jb-sleigh-flight, .jb-photo-snowfall { animation:none !important; }
 }
+
+/* Pre-existing panorama pseudoelements must not leak into the photo-led design. */
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-atelier-section::before,
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-shop-section::before,
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-custom-surface::before,
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-story-surface::before {
+  display: none !important;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-seasonal .jb-hero-seasonal-layout {
+  min-height: 570px;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-seasonal .jb-hero-seasonal-copy {
+  border: 0 !important;
+  background: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-seasonal .jb-hero-seasonal-copy::before {
+  display:none !important;
+}
+.jb-hero-photo { z-index: 0; }
+.jb-photo-readable { z-index: 1; }
+
+/* The admin's phone preview is a narrow container even on a desktop display. */
+.site-shell[data-editor-device="phone"] .jb-hero-seasonal .jb-hero-seasonal-layout {
+  min-height: 690px !important;
+  padding: 34px 18px 24px !important;
+  align-items: flex-start !important;
+}
+.site-shell[data-editor-device="phone"] .jb-hero-seasonal .jb-hero-seasonal-copy {
+  width:100%; max-width:320px; padding:0 !important;
+}
+.site-shell[data-editor-device="phone"] .jb-hero-seasonal .site-editable-heading {
+  font-size: clamp(2.15rem, 7vw, 2.9rem) !important;
+}
+.site-shell[data-editor-device="phone"] .jb-photo-readable {
+  background: linear-gradient(180deg,var(--site-hero-bg) 0%,
+    color-mix(in srgb,var(--site-hero-bg) 93%,transparent) 28%,
+    color-mix(in srgb,var(--site-hero-bg) 76%,transparent) 49%,
+    color-mix(in srgb,var(--site-hero-bg) 12%,transparent) 73%, transparent 97%);
+}
+.site-shell[data-editor-device="phone"] .jb-hero-photo { object-position:center bottom; }
+@media (max-width:640px) {
+  .site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-seasonal .jb-hero-seasonal-layout {
+    min-height: clamp(580px,83svh,760px) !important;
+  }
+}
