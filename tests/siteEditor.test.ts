@@ -44,9 +44,9 @@ test('editor stores category images and changes without altering the defaults', 
   assert.equal(DEFAULT_SITE_CONTENT.collections.cards[0].imageUrl, '');
 });
 
-test('six seasonal theme presets are complete and preserve content when selected', () => {
+test('five seasonal theme presets are complete and preserve content when selected', () => {
   assert.deepEqual(THEME_PRESETS.map(t => t.label), [
-    'Default', 'Valentines Week', 'New Year Celebration', 'Puja Celebration', 'Eid Celebration', 'Winter Session',
+    'Default', 'Valentines', 'Durga Puja', 'Eid Celebration', 'Winter / Christmas / New Year',
   ]);
   const saved = sanitizeSiteContent({
     hero: { heading: 'My own carefully written headline' },
@@ -105,13 +105,13 @@ test('theme presets provide artwork without neon-glow particles', () => {
     assert.equal(configured.effects.glow, false);
     assert.equal(configured.effects.floating, false);
     assert.equal(configured.effects.illustrationEnabled, theme.id !== 'default');
-    assert.equal(configured.effects.snowEnabled, theme.id === 'winter' || theme.id === 'new-year');
-    assert.equal(configured.effects.fireworksEnabled, theme.id === 'new-year');
+    assert.equal(configured.effects.snowEnabled, theme.id === 'winter');
+    assert.equal(configured.effects.fireworksEnabled, false);
   }
   const winter = applyThemePreset(DEFAULT_SITE_CONTENT, 'winter');
-  assert.equal(winter.effects.snowDensity, 92);
-  const newYear = applyThemePreset(DEFAULT_SITE_CONTENT, 'new-year');
-  assert.equal(newYear.effects.fireworksIntensity, 87);
+  assert.equal(winter.effects.snowDensity, 30);
+  const previous = sanitizeSiteContent({ theme: 'new-year' });
+  assert.equal(previous.theme, 'winter');
 });
 test('seasonal editor settings clamp values and preserve theme-aligned scenes', () => {
   const config = sanitizeSiteContent({
@@ -136,13 +136,24 @@ test('seasonal editor settings clamp values and preserve theme-aligned scenes', 
   assert.equal(previous.effects.glow, false);
 });
 
-test('reference-board redesign maps four visual directions to unique illustration assets', () => {
-  assert.equal(THEME_ARTWORK.default, null);
-  assert.equal(THEME_ARTWORK.puja, '/seasonal/puja-festival-panorama.svg');
-  assert.equal(THEME_ARTWORK.eid, '/seasonal/eid-elegance-panorama.svg');
-  assert.equal(THEME_ARTWORK.valentines, '/seasonal/valentines-romance-panorama.svg');
-  assert.equal(THEME_ARTWORK.winter, '/seasonal/winter-holiday-panorama.svg');
-  assert.equal(THEME_ARTWORK['new-year'], THEME_ARTWORK.winter);
+test('seasonal photographs are Cloudinary-backed and disallow old SVG illustration URLs', () => {
+  assert.ok(Object.values(THEME_ARTWORK).every(value => value === null));
+  const photo = 'https://res.cloudinary.com/demo/image/upload/v124/jame_bouquets_themes/hero.webp';
+  const config = sanitizeSiteContent({
+    themeMedia: { valentines: photo, puja: 'javascript:evil', winter: photo, eid: '/seasonal/eid-lanterns.svg' },
+    offers: {
+      valentines: { enabled: true, percent: 15, headline: 'Love gifts', detail: 'Seasonal', code: 'LOVE15' },
+      puja: { enabled: true, percent: 100, code: '' },
+    },
+  });
+  assert.equal(config.themeMedia.valentines, photo);
+  assert.equal(config.themeMedia.winter, photo);
+  assert.equal(config.themeMedia.puja, '');
+  assert.equal(config.themeMedia.eid, '');
+  assert.equal(config.offers.valentines.enabled, true);
+  assert.equal(config.offers.valentines.code, 'LOVE15');
+  assert.equal(config.offers.puja.enabled, false);
+  assert.equal(config.offers.puja.percent, 70);
   const palettes = Object.fromEntries(THEME_PRESETS.map(p => [p.id, p]));
   assert.equal(palettes.puja.collectionBg, '#8B0000');
   assert.equal(palettes.eid.collectionBg, '#0E3B2D');
