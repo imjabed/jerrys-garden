@@ -379,7 +379,7 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
       illustrationPlacement: fx.illustrationPlacement === 'homepage' ? 'homepage' : 'hero',
       snowEnabled: typeof fx.snowEnabled === 'boolean' ? fx.snowEnabled : theme === 'winter',
       snowDensity: numberRange(fx.snowDensity, d.effects.snowDensity, 0, 100),
-      fireworksEnabled: typeof fx.fireworksEnabled === 'boolean' ? fx.fireworksEnabled : theme === 'new-year',
+      fireworksEnabled: false, // Standalone New Year preset was merged into Winter.
       fireworksIntensity: numberRange(fx.fireworksIntensity, d.effects.fireworksIntensity, 0, 100),
       artworkOpacity: numberRange(fx.artworkOpacity, d.effects.artworkOpacity, 0.1, 1),
       artworkMotion: fx.artworkMotion !== false,
