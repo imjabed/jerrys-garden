@@ -1612,10 +1612,10 @@ export default function SiteEditor({
                 {draft.theme !== 'default' && draft.theme !== 'valentines' && (
                   <div className="jb-navbar-festive-details pointer-events-none absolute inset-0" aria-hidden="true">
                     <span className="jb-nav-ornament jb-nav-ornament-a">
-                      {draft.theme === 'puja' ? '🌼' : draft.theme === 'winter' ? '❄' : '☾'}
+                      {draft.theme === 'puja' ? '✳' : draft.theme === 'winter' ? '❄' : '☾'}
                     </span>
                     <span className="jb-nav-ornament jb-nav-ornament-b">
-                      {draft.theme === 'puja' ? '🪔' : draft.theme === 'winter' ? '🎄' : '🏮'}
+                      {draft.theme === 'puja' ? '✦' : draft.theme === 'winter' ? '✧' : '✦'}
                     </span>
                   </div>
                 )}
