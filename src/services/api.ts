@@ -65,6 +65,16 @@ export async function apiPublishSiteEditor(revision: number) {
   return parseResponse<{ success: boolean; revision: number; published: SiteContent; publishedAt: string }>(res);
 }
 
+/** Removes a previously replaced managed photo only when it is not used by the
+ * published storefront, draft, or rollback history. No-op for shared photos. */
+export async function apiCleanupUnusedImage(url: string): Promise<'deleted' | 'skipped'> {
+  const res = await fetch(`${API_URL}/api/admin/media/cleanup`, {
+    method: 'POST', credentials: 'include', headers: jsonHeaders,
+    body: JSON.stringify({ url }),
+  });
+  const data = await parseResponse<{ success: boolean; status: 'deleted' | 'skipped' }>(res);
+  return data.status;
+}
 export interface MongoStatusResponse {
   configured: boolean;
   connected: boolean;
