@@ -1,7 +1,16 @@
 export type SectionId = 'hero' | 'collections' | 'shop' | 'reviews' | 'custom' | 'story';
 export type FontId = 'playfair' | 'cormorant' | 'lora' | 'plus-jakarta' | 'dm-sans' | 'inter';
 export type CategoryCountMode = 'auto' | 'custom';
-export type ThemeId = 'default' | 'valentines' | 'new-year' | 'puja' | 'eid' | 'winter';
+export type ThemeId = 'default' | 'valentines' | 'puja' | 'winter' | 'eid';
+export type SeasonalThemeId = Exclude<ThemeId, 'default'>;
+export const SEASONAL_THEME_IDS: SeasonalThemeId[] = ['valentines', 'puja', 'winter', 'eid'];
+export interface SeasonalOffer {
+  enabled: boolean;
+  percent: number;
+  headline: string;
+  code: string;
+  detail: string;
+}
 export type EffectShape = 'petals' | 'snow' | 'confetti' | 'lanterns' | 'sparkles' | 'none';
 export type BlockKind = 'text' | 'image-text' | 'gallery' | 'cta' | 'features' | 'faq' | 'spacer';
 export type BlockAlign = 'left' | 'center' | 'right';
@@ -51,13 +60,10 @@ export interface ThemePreset {
   collectionText: string;
   effect: EffectShape;
 }
+// Themed hero images are uploaded by the store owner to Cloudinary.
+ // A blank URL uses the theme's color treatment without the old SVG illustrations.
 export const THEME_ARTWORK: Record<ThemeId, string | null> = {
-  default: null,
-  valentines: '/seasonal/valentines-romance-panorama.svg',
-  'new-year': '/seasonal/winter-holiday-panorama.svg',
-  puja: '/seasonal/puja-festival-panorama.svg',
-  eid: '/seasonal/eid-elegance-panorama.svg',
-  winter: '/seasonal/winter-holiday-panorama.svg',
+  default: null, valentines: null, puja: null, winter: null, eid: null,
 };
 
 export const THEME_PRESETS: ThemePreset[] = [
@@ -65,15 +71,11 @@ export const THEME_PRESETS: ThemePreset[] = [
     background: '#FAF8F5', text: '#292524', accent: '#9D777C', button: '#292524', buttonText: '#FFFFFF',
     headingFont: 'playfair', bodyFont: 'plus-jakarta', heroBackground: '#F4F0EA', storyBackground: '#EDE7E0', customBackground: '#F1ECE5', footerBackground: '#292524',
   }, collectionBg: '#2E241B', collectionText: '#F8F2E9', effect: 'none' },
-  { id: 'valentines', label: 'Valentines Week', description: 'Blush garden · roses · romantic silhouettes', appearance: {
+  { id: 'valentines', label: 'Valentines', description: 'Romantic ribbon bouquets · roses · soft pink lights', appearance: {
     background: '#FFF0F4', text: '#451927', accent: '#C9184A', button: '#A80F3C', buttonText: '#FFFFFF',
     headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#FFF0F4', storyBackground: '#FCE5EB', customBackground: '#FFF4F5', footerBackground: '#6D0A26',
   }, collectionBg: '#6D0A26', collectionText: '#FFF1F5', effect: 'petals' },
-  { id: 'new-year', label: 'New Year Celebration', description: 'Snowy midnight · champagne fireworks · festive lights', appearance: {
-    background: '#FFF7E9', text: '#262434', accent: '#B32834', button: '#B32834', buttonText: '#FFFFFF',
-    headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#F3F1F3', storyBackground: '#F4EFF0', customBackground: '#FFF8EF', footerBackground: '#10223A',
-  }, collectionBg: '#10223A', collectionText: '#FFF5E7', effect: 'confetti' },
-  { id: 'puja', label: 'Puja Celebration', description: 'Durga Puja pandal · marigolds · diya light', appearance: {
+  { id: 'puja', label: 'Durga Puja', description: 'Real festive photography · marigolds · warm pandal lights', appearance: {
     background: '#FFF5E1', text: '#4B2E1C', accent: '#B61A12', button: '#A6080A', buttonText: '#FFFFFF',
     headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#FFF3DF', storyBackground: '#FFF0DA', customBackground: '#FFF6E7', footerBackground: '#620A12',
   }, collectionBg: '#8B0000', collectionText: '#FFF6DC', effect: 'petals' },
@@ -81,7 +83,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     background: '#F8F4E6', text: '#1E4738', accent: '#C79A3B', button: '#0E5136', buttonText: '#FFFFFF',
     headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#FAF5E7', storyBackground: '#F2F1E6', customBackground: '#FBF6EB', footerBackground: '#082E26',
   }, collectionBg: '#0E3B2D', collectionText: '#F8F4E6', effect: 'lanterns' },
-  { id: 'winter', label: 'Winter Session', description: 'Christmas greenery · deep snow · warm gifting', appearance: {
+  { id: 'winter', label: 'Winter / Christmas / New Year', description: 'Snowy holiday gifting · Christmas lights · New Year joy', appearance: {
     background: '#FFF7E9', text: '#30283A', accent: '#B32834', button: '#B32834', buttonText: '#FFFFFF',
     headingFont: 'playfair', bodyFont: 'inter', heroBackground: '#F1EEF3', storyBackground: '#F3EFF1', customBackground: '#FFF8EF', footerBackground: '#14283F',
   }, collectionBg: '#0E223A', collectionText: '#FFF7E9', effect: 'snow' },
@@ -97,10 +99,10 @@ export function applyThemePreset(current: SiteContent, id: ThemeId): SiteContent
       glow: false, glowingParticles: false, floating: false,
       illustrationEnabled: preset.id !== 'default',
       illustrationPlacement: preset.id === 'default' ? 'hero' : 'homepage',
-      snowEnabled: preset.id === 'winter' || preset.id === 'new-year',
-      snowDensity: preset.id === 'winter' ? 92 : preset.id === 'new-year' ? 67 : 45,
-      fireworksEnabled: preset.id === 'new-year',
-      fireworksIntensity: preset.id === 'new-year' ? 87 : 55,
+      snowEnabled: preset.id === 'winter',
+      snowDensity: preset.id === 'winter' ? 30 : 12,
+      fireworksEnabled: false,
+      fireworksIntensity: 45,
       artworkOpacity: preset.id === 'default' ? 0.68 : 0.9,
       artworkMotion: true,
       parallax: false,
@@ -148,6 +150,8 @@ export interface CategoryCardConfig {
 }
 export interface SiteContent {
   theme: ThemeId;
+  themeMedia: Record<SeasonalThemeId, string>;
+  offers: Record<SeasonalThemeId, SeasonalOffer>;
   effects: PageEffects;
   blocks: PageBlock[];
   announcement: { enabled: boolean; text: string; link: string; background: string; textColor: string };
@@ -199,6 +203,13 @@ export const DEFAULT_CATEGORIES = [
 ];
 export const DEFAULT_SITE_CONTENT: SiteContent = {
   theme: 'default',
+  themeMedia: { valentines: '', puja: '', winter: '', eid: '' },
+  offers: {
+    valentines: { enabled: false, percent: 14, headline: 'A little more love, for less.', code: '', detail: 'Valentine gifting week' },
+    puja: { enabled: false, percent: 12, headline: 'A celebration of handmade gifting.', code: '', detail: 'Durga Puja special' },
+    winter: { enabled: false, percent: 20, headline: 'Warm gifts for magical moments.', code: '', detail: 'Christmas & New Year special' },
+    eid: { enabled: false, percent: 15, headline: 'Share a little extra joy.', code: '', detail: 'Eid gifting special' },
+  },
   blocks: [],
   announcement: { enabled: false, text: 'Handmade gifting, thoughtfully prepared in Berhampore', link: '#shop-section', background: '#292524', textColor: '#FFFFFF' },
   footer: { description: 'Handmade bouquets, keepsakes, keychains & gifts. Thoughtfully crafted in Berhampore.', orderNote: 'Order online · We confirm by phone' },
@@ -319,10 +330,29 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
   const uniqueOrder: string[] = [...new Set(rawOrder.filter((id): id is string => typeof id === 'string' && allowedIds.includes(id)))];
   const order = [...uniqueOrder, ...allowedIds.filter(id => !uniqueOrder.includes(id))];
   const visible = Object.fromEntries(allowedIds.map(id => [id, raw.sections?.visible?.[id] !== false])) as Record<string, boolean>;
-  const theme: ThemeId = THEME_PRESETS.some(p => p.id === raw.theme) ? raw.theme : d.theme;
+  // Existing customers who used the retired New Year preset move to Winter.
+  const requestedTheme = raw.theme === 'new-year' ? 'winter' : raw.theme;
+  const theme: ThemeId = THEME_PRESETS.some(p => p.id === requestedTheme) ? requestedTheme : d.theme;
+  const themeMedia = Object.fromEntries(SEASONAL_THEME_IDS.map(id =>
+    [id, safeEditorImage(raw.themeMedia?.[id])],
+  )) as SiteContent['themeMedia'];
+  const offers = Object.fromEntries(SEASONAL_THEME_IDS.map(id => {
+    const source = raw.offers?.[id] || {};
+    const fallback = d.offers[id];
+    const code = typeof source.code === 'string' && /^[A-Za-z0-9_-]{1,24}$/.test(source.code.trim())
+      ? source.code.trim().toUpperCase() : '';
+    const percent = numberRange(source.percent, fallback.percent, 1, 70);
+    return [id, {
+      enabled: source.enabled === true && Boolean(code),
+      percent: Math.round(percent),
+      code,
+      headline: fieldText(source, 'headline', fallback.headline, 90),
+      detail: fieldText(source, 'detail', fallback.detail, 90),
+    }];
+  })) as SiteContent['offers'];
   const fx = raw.effects || {};
   return {
-    theme,
+    theme, themeMedia, offers,
     blocks,
     announcement: {
       enabled: raw.announcement?.enabled === true,
