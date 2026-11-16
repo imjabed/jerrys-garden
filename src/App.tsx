@@ -61,6 +61,7 @@ import OrderDetailsModal from './components/OrderDetailsModal';
 import BouquetEditorModal from './components/BouquetEditorModal';
 import RibbonStory from './components/RibbonStory';
 import CustomOrderSection from './components/CustomOrderSection';
+import SectionErrorBoundary from './components/SectionErrorBoundary';
 import Footer from './components/Footer';
 import CustomerReviewsSection from './components/CustomerReviewsSection';
 import StorePolicies, { type PolicyType } from './components/StorePolicies';
@@ -759,7 +760,8 @@ export default function App() {
               }}/>
             );
             if (id === 'custom') return (
-              <CustomOrderSection key={id}
+              <SectionErrorBoundary key={id} section="Custom order">
+              <CustomOrderSection
                 content={siteContent.theme === 'valentines' ? siteContent.valentines.custom : siteContent.custom}
                 valentines={siteContent.theme === 'valentines' ? siteContent.valentines : undefined}
                 themeExtras={siteContent.themeExtras[siteContent.theme]}
@@ -769,6 +771,7 @@ export default function App() {
                   const result = await apiSendCustomEnquiry(payload);
                   return { orderNumber: result.orderNumber };
                 }}/>
+              </SectionErrorBoundary>
             );
             if (id === 'story') return <RibbonStory key={id} content={siteContent.story} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects} theme={siteContent.theme}/>;
             const block = siteContent.blocks.find(item => item.id === id);
