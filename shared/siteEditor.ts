@@ -4,6 +4,7 @@ export type CategoryCountMode = 'auto' | 'custom';
 export type ThemeId = 'default' | 'valentines' | 'puja' | 'winter' | 'eid';
 export type SeasonalThemeId = Exclude<ThemeId, 'default'>;
 export const SEASONAL_THEME_IDS: SeasonalThemeId[] = ['valentines', 'puja', 'winter', 'eid'];
+export const ALL_THEME_IDS: ThemeId[] = ['default', ...SEASONAL_THEME_IDS];
 export interface SeasonalOffer {
   enabled: boolean;
   percent: number;
@@ -105,7 +106,7 @@ export function applyThemePreset(current: SiteContent, id: ThemeId): SiteContent
       fireworksIntensity: 45,
       artworkOpacity: preset.id === 'default' ? 0.68 : 0.9,
       artworkMotion: true,
-      parallax: false,
+      // Preserve the owner's explicit parallax setting when switching theme.
     },
   };
 }
@@ -150,7 +151,8 @@ export interface CategoryCardConfig {
 }
 export interface SiteContent {
   theme: ThemeId;
-  themeMedia: Record<SeasonalThemeId, string>;
+  themeMedia: Record<ThemeId, string>;
+  heroImagePosition: Record<ThemeId, number>;
   offers: Record<SeasonalThemeId, SeasonalOffer>;
   effects: PageEffects;
   blocks: PageBlock[];
@@ -203,7 +205,8 @@ export const DEFAULT_CATEGORIES = [
 ];
 export const DEFAULT_SITE_CONTENT: SiteContent = {
   theme: 'default',
-  themeMedia: { valentines: '', puja: '', winter: '', eid: '' },
+  themeMedia: { default: '', valentines: '', puja: '', winter: '', eid: '' },
+  heroImagePosition: { default: 50, valentines: 76, puja: 76, winter: 76, eid: 76 },
   offers: {
     valentines: { enabled: false, percent: 14, headline: 'A little more love, for less.', code: '', detail: 'Valentine gifting week' },
     puja: { enabled: false, percent: 12, headline: 'A celebration of handmade gifting.', code: '', detail: 'Durga Puja special' },
@@ -333,9 +336,12 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
   // Existing customers who used the retired New Year preset move to Winter.
   const requestedTheme = raw.theme === 'new-year' ? 'winter' : raw.theme;
   const theme: ThemeId = THEME_PRESETS.some(p => p.id === requestedTheme) ? requestedTheme : d.theme;
-  const themeMedia = Object.fromEntries(SEASONAL_THEME_IDS.map(id =>
+  const themeMedia = Object.fromEntries(ALL_THEME_IDS.map(id =>
     [id, safeEditorImage(raw.themeMedia?.[id])],
   )) as SiteContent['themeMedia'];
+  const heroImagePosition = Object.fromEntries(ALL_THEME_IDS.map(id =>
+    [id, numberRange(raw.heroImagePosition?.[id], d.heroImagePosition[id], 0, 100)],
+  )) as SiteContent['heroImagePosition'];
   const offers = Object.fromEntries(SEASONAL_THEME_IDS.map(id => {
     const source = raw.offers?.[id] || {};
     const fallback = d.offers[id];
@@ -352,7 +358,7 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
   })) as SiteContent['offers'];
   const fx = raw.effects || {};
   return {
-    theme, themeMedia, offers,
+    theme, themeMedia, heroImagePosition, offers,
     blocks,
     announcement: {
       enabled: raw.announcement?.enabled === true,
