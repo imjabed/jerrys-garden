@@ -639,7 +639,8 @@ export default function App() {
             if (id === 'hero') return (
               <Hero key={id}
                 content={siteContent.hero} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects} theme={siteContent.theme}
-                photoUrl={siteContent.theme === 'default' ? '' : siteContent.themeMedia[siteContent.theme]}
+                photoUrl={siteContent.themeMedia[siteContent.theme]}
+                imagePosition={siteContent.heroImagePosition[siteContent.theme]}
                 offer={siteContent.theme === 'default' ? undefined : siteContent.offers[siteContent.theme]}
                 onExploreClick={() => scrollToSection('shop-section')}
                 featuredProduct={bouquets.find(product => product.featured && product.inStock && product.imageUrl) || bouquets.find(product => product.inStock && product.imageUrl) || null}
