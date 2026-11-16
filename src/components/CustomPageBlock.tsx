@@ -4,6 +4,7 @@ import type { PageBlock } from '../../shared/siteEditor';
 import { safeEditorLink } from '../../shared/siteEditor';
 
 interface Props {
+  key?: string;
   block: PageBlock;
   preview?: boolean;
 }
