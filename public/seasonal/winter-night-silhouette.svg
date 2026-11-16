@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 300">
+<title>Christmas woodland: fir trees, quiet cabins, Santa's sleigh and fireworks</title>
+<g fill="#000">
+<path d="M0 260 Q130 249 250 260 T500 258 T760 258 T1030 258 T1440 259 V300 H0Z"/>
+<g transform="translate(8 35)">
+<path d="M92 12 L40 108 H66 L22 179 H60 L7 253 H179 L129 179 H161 L117 108 H142Z"/>
+<rect x="87" y="239" width="15" height="27"/>
+</g>
+<g transform="translate(195 72) scale(.77)"><path d="M92 12 L40 108 H66 L22 179 H60 L7 253 H179 L129 179 H161 L117 108 H142Z"/><rect x="87" y="239" width="15" height="27"/></g>
+<g transform="translate(1205 28) scale(1.04)"><path d="M92 12 L40 108 H66 L22 179 H60 L7 253 H179 L129 179 H161 L117 108 H142Z"/><rect x="87" y="239" width="15" height="27"/></g>
+<g transform="translate(1080 80) scale(.74)"><path d="M92 12 L40 108 H66 L22 179 H60 L7 253 H179 L129 179 H161 L117 108 H142Z"/><rect x="87" y="239" width="15" height="27"/></g>
+<g transform="translate(355 129)"><path d="M0 64 L83 13 L168 64 V145 H0Z"/><path d="M-9 72 L83 0 L180 72 L171 81 L83 21 L0 81Z"/><rect x="67" y="87" width="35" height="58"/><rect x="12" y="84" width="37" height="35"/><rect x="119" y="84" width="37" height="35"/><path d="M140 15 V-24 H156 V26Z"/></g>
+<g transform="translate(765 178)"><path d="M0 22 L54 0 L114 22 V79 H0Z"/><path d="M-6 23 L55 -9 L122 23 L118 31 L55 1 L-1 31Z"/><rect x="40" y="41" width="30" height="38"/></g>
+<!-- Flying Santa and a sleigh silhouette, small and cinematic instead of large emoji -->
+<g transform="translate(691 70)"><path d="M0 35 Q14 18 28 31 Q42 17 52 27 L79 26 L79 51 L55 51 Q42 62 27 46 Q18 55 3 46Z"/><path d="M73 41 Q88 52 103 46 L137 35 L151 43 Q135 66 102 62 Q84 59 73 50Z"/><path d="M106 33 Q110 7 126 8 Q138 13 133 30Z"/><circle cx="122" cy="5" r="8"/><path d="M142 41 Q155 31 167 37 L187 37 L194 49 L183 56 L164 51Z"/><path d="M165 37 L155 23 L162 21 L172 37Z"/><path d="M177 38 L187 22 L195 25 L185 39Z"/></g>
+<!-- Firework sprays with crisp radial streaks -->
+<g stroke="#000" stroke-width="3" stroke-linecap="round" fill="none">
+<path d="M995 35 V9 M995 42 V66 M988 35 L970 17 M1003 43 L1021 61 M1003 35 L1021 17 M987 43 L970 60 M980 40 H957 M1009 40 H1033"/>
+<path d="M1109 106 V87 M1109 113 V133 M1102 105 L1088 92 M1117 114 L1131 128 M1117 105 L1132 91 M1101 115 L1087 129 M1097 111 H1079 M1121 111 H1140"/>
+<path d="M637 19 V5 M637 26 V43 M628 20 L618 11 M647 27 L656 37 M646 20 L656 11 M628 27 L619 37 M628 23 H609 M647 23 H664"/>
+</g>
+<path d="M80 266 L86 241 L91 266Z M250 266 L258 239 L265 266Z M700 266 L707 242 L715 266Z M1000 266 L1007 242 L1013 266Z M1370 265 L1377 242 L1384 265Z"/>
+</g></svg>
