@@ -25,7 +25,7 @@ export default function StorePolicies({
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="policy-title"
       className="fixed inset-0 z-[90] flex items-center justify-center bg-stone-950/65 p-3 sm:p-6">
-      <div className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden bg-[#FCFAF7] text-stone-800 shadow-2xl">
+      <div className="jb-customer-panel flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden bg-[#FCFAF7] text-stone-800 shadow-2xl">
         <div className="flex items-start justify-between border-b border-stone-200 px-6 py-5 sm:px-9">
           <div>
             <p className="text-[11px] uppercase tracking-[0.2em] text-stone-500">Jame Bouquets · Customer information</p>
