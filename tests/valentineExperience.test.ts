@@ -19,7 +19,7 @@ test('Valentine footer includes the park silhouette scene and its own boutique c
     ...handlers, storeSettings: settings,
     theme: 'valentines', valentines: DEFAULT_SITE_CONTENT.valentines,
   }));
-  assert.match(html, /jb-valentine-scene/);
+  assert.match(html, /jb-festival-scene/);
   assert.match(html, /park-couple-silhouette\.svg/);
   assert.match(html, /The loveliest moments deserve to last/);
   assert.match(html, /A little romance, wrapped by hand/);
@@ -34,7 +34,7 @@ test('Disabling Valentine scene leaves footer navigation intact', () => {
   const html = renderToStaticMarkup(createElement(Footer, {
     ...handlers, storeSettings: settings, theme: 'valentines', valentines: design.valentines,
   }));
-  assert.doesNotMatch(html, /jb-valentine-scene relative/);
+  assert.doesNotMatch(html, /jb-festival-scene relative/);
   assert.match(html, /Made for you/);
   assert.match(html, /Browse Products/);
 });
