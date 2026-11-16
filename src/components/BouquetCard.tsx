@@ -154,11 +154,10 @@ export default function BouquetCard({
             ))}
           </div>
 
-          <h3
-            onClick={() => onSelect(bouquet)}
-            className="font-serif font-normal text-stone-900 text-sm leading-snug sm:text-xl hover:text-stone-600 transition-colors line-clamp-2 min-h-9 sm:min-h-0 cursor-pointer"
-          >
-            {bouquet.title}
+          <h3 className="font-serif font-normal text-stone-900 text-sm leading-snug sm:text-xl hover:text-stone-600 transition-colors line-clamp-2 min-h-9 sm:min-h-0">
+            <a href={`/products/${encodeURIComponent(bouquet.id)}`}
+              onClick={event => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return; event.preventDefault(); onSelect(bouquet); }}
+              className="hover:underline hover:underline-offset-4">{bouquet.title}</a>
           </h3>
 
           {reviewSummary && reviewSummary.count > 0 && (
@@ -190,10 +189,11 @@ export default function BouquetCard({
 
           </div>
 
-          <button type="button" onClick={() => onSelect(bouquet)}
+          <a href={`/products/${encodeURIComponent(bouquet.id)}`}
+            onClick={event => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return; event.preventDefault(); onSelect(bouquet); }}
             className="inline-flex items-center justify-center border border-stone-900 bg-stone-900 px-3 py-2.5 text-[11px] font-medium text-white transition-colors hover:bg-stone-700">
             View details
-          </button>
+          </a>
         </div>
       </div>
     </div>
