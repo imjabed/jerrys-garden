@@ -14,7 +14,7 @@ import {
   SECTION_IDS, THEME_PRESETS, THEME_ARTWORK, BLOCK_KINDS, defaultPageBlock, applyThemePreset, sanitizeSiteContent, safeEditorLink,
 } from '../../shared/siteEditor';
 import type { CategoryCardConfig, FontId, SectionId, SiteContent, PageBlock, BlockKind, ThemeId, EffectShape } from '../../shared/siteEditor';
-import { apiGetSiteEditor, apiSaveSiteEditorDraft, apiPublishSiteEditor } from '../services/api';
+import { apiGetSiteEditor, apiSaveSiteEditorDraft, apiPublishSiteEditor, apiGetPublishedSiteContent } from '../services/api';
 import type { SiteEditorPayload } from '../services/api';
 import { uploadImageToCloudinary } from '../services/cloudinary';
 
@@ -186,13 +186,26 @@ export default function SiteEditor({
       }
       const published = await apiPublishSiteEditor(rev);
       setRevision(published.revision);
-      onPublished(published.published);
-      const fresh = await apiGetSiteEditor();
-      setData(fresh);
-      setDraft(fresh.draft);
-      setLastSaved(fresh.draft);
-      setRevision(fresh.revision);
-      setNotice('Published successfully. Customers now see the updated homepage.');
+      // Publishing is not complete until the public endpoint can serve the chosen theme.
+      // A failed verification must be visible rather than silently leaving an empty page.
+      const liveContent = await apiGetPublishedSiteContent();
+      if (liveContent.theme !== published.published.theme) {
+        throw new Error('The backend accepted Publish, but the public website returned a different theme. Refresh and retry.');
+      }
+      onPublished(liveContent);
+      setDirty(false);
+      setNotice('Published and verified. Open the storefront to see your changes.');
+      // Refresh history opportunistically; a temporary admin read failure must
+      // not undo an otherwise successful publish.
+      try {
+        const fresh = await apiGetSiteEditor();
+        setData(fresh);
+        setDraft(fresh.draft);
+        setLastSaved(fresh.draft);
+        setRevision(fresh.revision);
+      } catch {
+        setNotice('Published and verified. History could not refresh; reload the editor when convenient.');
+      }
     } catch (err: any) { setError(err?.message || 'Could not publish changes.'); }
     finally { setBusy(false); }
   };
@@ -324,7 +337,7 @@ export default function SiteEditor({
         </button>
         <button type="button" onClick={() => void publish()} disabled={busy}
           className="flex items-center gap-2 bg-stone-900 px-4 py-2.5 text-xs font-semibold text-white hover:bg-stone-700 disabled:opacity-40">
-          <Check className="h-4 w-4"/>{busy ? 'Working…' : 'Publish'}
+          <Check className="h-4 w-4"/>{busy ? 'Publishing…' : 'Publish'}
         </button>
       </header>
       {(error || notice) && (
