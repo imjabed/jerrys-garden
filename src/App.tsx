@@ -653,7 +653,10 @@ export default function App() {
             if (id === 'hero') return (
               <Hero key={id}
                 content={siteContent.theme === 'valentines' ? siteContent.valentines.hero : siteContent.hero} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects} theme={siteContent.theme}
-                photoUrl={siteContent.themeMedia[siteContent.theme]}
+                photoUrl={siteContent.theme === 'valentines'
+                  ? (siteContent.themeMedia.valentines ||
+                      bouquets.find(product => /ribbon bouquet/i.test(product.category) && product.imageUrl)?.imageUrl || '')
+                  : siteContent.themeMedia[siteContent.theme]}
                 mobilePhotoUrl={siteContent.theme === 'valentines' ? siteContent.valentines.heroMobileImageUrl : ''}
                 imagePosition={siteContent.heroImagePosition[siteContent.theme]}
                 offer={siteContent.theme === 'default' ? undefined : siteContent.offers[siteContent.theme]}
@@ -768,6 +771,10 @@ export default function App() {
               <CustomOrderSection key={id}
                 content={siteContent.theme === 'valentines' ? siteContent.valentines.custom : siteContent.custom}
                 valentines={siteContent.theme === 'valentines' ? siteContent.valentines : undefined}
+                fallbackPhotoUrl={siteContent.theme === 'valentines'
+                  ? (bouquets.find(product => /gift|combo|keychain/i.test(product.category) && product.imageUrl)?.imageUrl ||
+                     bouquets.find(product => product.imageUrl)?.imageUrl || '')
+                  : ''}
                 headingScale={siteContent.appearance.headingScale} sizeChart={storeSettings.customSizeFlowers} effects={siteContent.effects} theme={siteContent.theme}
                 mobileOpen={customMobileOpen} onMobileToggle={() => setCustomMobileOpen(current => !current)}
                 onSubmit={async payload => {
