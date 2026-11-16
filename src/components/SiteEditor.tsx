@@ -54,6 +54,7 @@ export default function SiteEditor({
   const deferredCleanup = useRef<string[]>([]);
   const [heroAssetInfo, setHeroAssetInfo] = useState<{ url: string; width: number; height: number } | null>(null);
   const [showPreview, setShowPreview] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -480,21 +481,27 @@ export default function SiteEditor({
               ['theme-detail', Settings2, 'Theme Details'],
               ...(draft.theme === 'valentines' ? [['valentines', Heart, 'Valentine Studio'] as const] : []),
               ['offers', BadgePercent, 'Coupon Offers'],
-              ['blocks', Layers3, 'Sections'],
+              ['blocks', Layers3, 'Page Builder'],
               ['effects', Sparkles, 'Effects'],
               ['branding', Settings2, 'Identity'],
               ['text', Type, 'Text'],
               ['collections', LayoutGrid, 'Collections'],
               ['appearance', Settings2, 'Style'],
-              ['sections', Eye, 'Sections'],
+              ['sections', Eye, 'Arrange'],
               ['seo', Type, 'SEO'],
               ['history', RotateCcw, 'Versions'],
-            ] as const).map(([id, Icon, label]) => (
+            ] as const).filter(([id]) => showAdvanced || !(['offers', 'blocks', 'sections', 'seo', 'history'] as string[]).includes(id)).map(([id, Icon, label]) => (
               <button type="button" key={id} onClick={() => setPanel(id)}
                 className={`flex shrink-0 flex-col items-center gap-1 px-2.5 py-2 text-[10px] font-medium ${panel === id ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'}`}>
                 <Icon className="h-4 w-4"/>{label}
               </button>
             ))}
+            <button type="button" aria-expanded={showAdvanced} onClick={() => {
+              if (showAdvanced && ['offers', 'blocks', 'sections', 'seo', 'history'].includes(panel)) setPanel('themes');
+              setShowAdvanced(current => !current);
+            }} className={`flex shrink-0 flex-col items-center gap-1 border-l border-stone-200 px-3 py-2 text-[10px] font-semibold ${showAdvanced ? 'bg-stone-100 text-stone-900' : 'text-stone-600 hover:bg-stone-100'}`}>
+              <Settings2 className="h-4 w-4"/>{showAdvanced ? 'Fewer tools' : 'More tools'}
+            </button>
           </nav>
           <div className="space-y-5 overflow-y-auto p-5 pb-12 sm:p-6">
             {panel === 'banner' && (
@@ -1024,12 +1031,6 @@ export default function SiteEditor({
                   className="flex w-full items-center justify-between gap-3 rounded-lg border border-stone-300 bg-white px-4 py-3 text-left text-xs font-semibold text-stone-800 hover:bg-stone-50">
                   <span className="flex items-center gap-2"><ImageIcon className="h-4 w-4"/> Change hero background photo & parallax</span>
                   <ChevronRight className="h-4 w-4"/>
-                </button>
-                <button type="button" onClick={() => {
-                  const other = THEME_PRESETS.filter(item => item.id !== draft.theme);
-                  update(prev => applyThemePreset(prev, other[Math.floor(Math.random() * other.length)].id));
-                }} className="w-full border border-stone-300 px-4 py-3 text-xs font-medium hover:bg-stone-50">
-                  Surprise me with a different theme
                 </button>
                 <p className="border-l-2 border-stone-300 pl-3 text-xs leading-6 text-stone-600">
                   Theme changes are only a preview until you click <strong>Publish</strong>. For custom styling, switch to Style.
