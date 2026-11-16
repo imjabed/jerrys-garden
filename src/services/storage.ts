@@ -76,7 +76,8 @@ export const updateBouquetImage = (id: string, imageUrl: string): RibbonBouquet[
 // Customer User Auth
 export const getActiveUser = (): UserAccount | null => {
   const user = getStorageItem<UserAccount | null>(KEYS.USER, null);
-  if (!user) return null;
+  if (!user || typeof user !== 'object' || Array.isArray(user)
+      || typeof user.name !== 'string' || typeof user.email !== 'string') return null;
   const { password, ...safeUser } = user as any;
   return safeUser as UserAccount;
 };
@@ -151,7 +152,18 @@ export const loginUser = (email: string, password?: string): UserAccount | null 
 
 // Cart
 export const getCart = (): CartItem[] => {
-  return getStorageItem<CartItem[]>(KEYS.CART, []);
+  // Old / partial localStorage cart records must never crash the entire storefront.
+  const stored: unknown = getStorageItem(KEYS.CART, []);
+  if (!Array.isArray(stored)) return [];
+  return stored.filter((item): item is CartItem => Boolean(
+    item && typeof item === 'object' && item.bouquet
+      && typeof item.bouquet === 'object'
+      && typeof item.bouquet.id === 'string'
+      && typeof item.bouquet.title === 'string'
+      && Number.isFinite(item.bouquet.price)
+      && Number.isInteger(item.quantity)
+      && item.quantity > 0 && item.quantity <= 20
+  ));
 };
 
 export const setCart = (items: CartItem[]): void => {
@@ -160,9 +172,18 @@ export const setCart = (items: CartItem[]): void => {
 
 // Store Settings
 export const getStoreSettings = (): StoreSettings => {
-  const current = getStorageItem<StoreSettings>(KEYS.SETTINGS, INITIAL_SETTINGS);
-  if (!current.city || current.city.includes('Flower District') || current.phone.includes('+91 98765') || !current.upiId || current.upiId === 'jerrysgarden@okhdfcbank') {
-    const upgraded: StoreSettings = {
+  const stored: unknown = getStorageItem(KEYS.SETTINGS, INITIAL_SETTINGS);
+  const source = stored && typeof stored === 'object' && !Array.isArray(stored)
+    ? stored as Partial<StoreSettings> : {};
+  const current: StoreSettings = { ...INITIAL_SETTINGS, ...source };
+  // Existing local settings may predate fields introduced in the editor.
+  const legacyCity = typeof current.city !== 'string'
+    || !current.city || current.city.includes('Flower District');
+  const legacyPhone = typeof current.phone !== 'string' || current.phone.includes('+91 98765');
+  const legacyUpi = typeof current.upiId !== 'string' || !current.upiId
+    || current.upiId === 'jerrysgarden@okhdfcbank';
+  if (legacyCity || legacyPhone || legacyUpi) {
+    return {
       ...current,
       city: 'Berhampore, Murshidabad',
       address: 'Berhampore, Murshidabad, West Bengal',
@@ -170,8 +191,6 @@ export const getStoreSettings = (): StoreSettings => {
       whatsapp: 'Available on Order Confirmation',
       upiId: 'jerrysgarden@axl',
     };
-    setStorageItem(KEYS.SETTINGS, upgraded);
-    return upgraded;
   }
   return current;
 };
