@@ -4,12 +4,13 @@ import type { PageEffects, ThemeId } from '../../shared/siteEditor';
 type Layer = 'hero' | 'support';
 
 export default function SeasonalEffects({
-  settings, theme, layer = 'hero', photoUrl = '',
+  settings, theme, layer = 'hero', photoUrl = '', imagePosition = 76,
 }: {
   settings: PageEffects;
   theme: ThemeId;
   layer?: Layer;
   photoUrl?: string;
+  imagePosition?: number;
 }) {
   const [reduceMotion, setReduceMotion] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -22,28 +23,54 @@ export default function SeasonalEffects({
   }, []);
 
   const support = layer === 'support';
+  // Scroll-linked image translation, without position:fixed or background-attachment:fixed.
+  // The latter is unreliable on iOS and can cause slow painting on mobile.
   useEffect(() => {
-    if (!settings.parallax || reduceMotion || support || window.matchMedia('(max-width: 680px)').matches) return;
+    const rootNode = root.current;
+    if (!rootNode) return;
+    const editorScroll = rootNode.closest<HTMLElement>('[data-editor-device]');
+    const scrollTarget = editorScroll || window;
+    const isPhonePreview = editorScroll?.dataset.editorDevice === 'phone';
+    const mobile = isPhonePreview || window.matchMedia('(max-width: 680px)').matches;
+    const maxShift = mobile ? 16 : 36;
     let frame = 0;
-    const update = () => {
+    const clear = () => rootNode.style.setProperty('--jb-photo-parallax', '0px');
+    if (support || !photoUrl || !settings.parallax || reduceMotion) {
+      clear();
+      return;
+    }
+    const scroll = () => {
       if (frame) return;
       frame = window.requestAnimationFrame(() => {
         frame = 0;
-        const rect = root.current?.getBoundingClientRect();
-        if (!rect || rect.bottom < 0 || rect.top > innerHeight) return;
-        const delta = Math.max(-18, Math.min(18, -rect.top * settings.parallaxStrength * .14));
-        root.current?.style.setProperty('--jb-photo-parallax', `${delta}px`);
+        const bounds = rootNode.getBoundingClientRect();
+        const containerTop = editorScroll?.getBoundingClientRect().top || 0;
+        const containerBottom = editorScroll?.getBoundingClientRect().bottom || window.innerHeight;
+        if (bounds.bottom < containerTop || bounds.top > containerBottom) return;
+        const distance = containerTop - bounds.top;
+        const shift = Math.max(-maxShift, Math.min(maxShift,
+          distance * settings.parallaxStrength * 0.32));
+        rootNode.style.setProperty('--jb-photo-parallax', `${shift.toFixed(1)}px`);
       });
     };
-    update();
-    window.addEventListener('scroll', update, { passive: true });
-    return () => { window.removeEventListener('scroll', update); if (frame) window.cancelAnimationFrame(frame); };
-  }, [settings.parallax, settings.parallaxStrength, reduceMotion, support]);
-  if (theme === 'default' || (support && settings.illustrationPlacement !== 'homepage')) return null;
+    scroll();
+    scrollTarget.addEventListener('scroll', scroll, { passive: true });
+    window.addEventListener('resize', scroll, { passive: true });
+    return () => {
+      scrollTarget.removeEventListener('scroll', scroll);
+      window.removeEventListener('resize', scroll);
+      if (frame) window.cancelAnimationFrame(frame);
+      clear();
+    };
+  }, [settings.parallax, settings.parallaxStrength, photoUrl, reduceMotion, support]);
+
+  if (support && (theme === 'default' || settings.illustrationPlacement !== 'homepage')) return null;
+  if (!support && theme === 'default' && !photoUrl) return null;
 
   const animated = settings.enabled && settings.artworkMotion && !reduceMotion;
-  const showScene = settings.illustrationEnabled;
-  const showDecoration = showScene && settings.enabled;
+  // Background images are always visible when selected; animation toggles affect
+  // decorative effects only and never remove the published hero photo.
+  const showDecoration = theme !== 'default' && settings.illustrationEnabled && settings.enabled;
   const cdn = (width: number) => photoUrl.replace('/image/upload/', `/image/upload/f_auto,q_auto,w_${width},c_limit/`);
   const showSnow = showDecoration && theme === 'winter' && settings.snowEnabled;
   const winterFlakes = showSnow ? Math.max(6, Math.min(32, Math.round(settings.snowDensity / 3))) : 0;
@@ -51,9 +78,10 @@ export default function SeasonalEffects({
 
   return (
     <div ref={root} aria-hidden="true" className={`jb-photo-atmosphere pointer-events-none absolute inset-0 z-0 overflow-hidden jb-seasonal-${theme}`}>
-      {!support && showScene && Boolean(photoUrl) && (
+      {!support && Boolean(photoUrl) && (
         <img src={cdn(960)} srcSet={`${cdn(640)} 640w, ${cdn(960)} 960w, ${cdn(1280)} 1280w`}
-          sizes="(max-width: 680px) 100vw, 65vw" alt="" draggable={false} fetchPriority="high"
+          sizes="(max-width: 680px) 100vw, 100vw" alt="" draggable={false} fetchPriority="high"
+          style={{ objectPosition: `50% ${Math.max(0, Math.min(100, imagePosition))}%` }}
           className="jb-hero-photo absolute inset-0 h-full w-full object-cover"/>
       )}
       {!support && <div className="jb-photo-readable absolute inset-0"/>}
