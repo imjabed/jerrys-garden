@@ -73,7 +73,7 @@ export default function SeasonalEffects({
             ${settings.artworkMotion && !reducedMotion ? 'jb-seasonal-art-drift' : ''}
             ${showFireworks && settings.artworkMotion && !reducedMotion ? 'jb-seasonal-fireworks' : ''}`}
           style={{
-            opacity: settings.artworkOpacity * strength
+            '--seasonal-art-opacity': settings.artworkOpacity * strength
               * (theme === 'new-year' ? settings.fireworksIntensity / 100 : 1),
             animationDuration: `${22 / Math.max(.25, settings.speed)}s`,
           }}/>

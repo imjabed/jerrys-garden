@@ -70,6 +70,7 @@
 .jb-seasonal-scene { isolation: isolate; contain: paint; }
 .jb-seasonal-art {
   pointer-events: none;
+  opacity: var(--seasonal-art-opacity, .68);
   transform: translate3d(0,var(--seasonal-parallax,0px),0);
   transform-origin: 75% 45%;
   -webkit-mask-image: linear-gradient(to right,transparent 0%,rgba(0,0,0,.55) 26%,black 62%);
@@ -120,7 +121,7 @@
   76% { filter: brightness(1) saturate(1.1); }
 }
 @media (max-width: 640px) {
-  .jb-seasonal-art { right: -30%; top: -2%; width: 110%; opacity: .18 !important; }
+  .jb-seasonal-art { right: -30%; top: -2%; width: 110%; opacity: calc(var(--seasonal-art-opacity, .68) * .38); }
   .jb-seasonal-winter .jb-seasonal-art { right: -25%; width: 120%; }
 }
 @media (prefers-reduced-motion: reduce) {
