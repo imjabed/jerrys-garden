@@ -116,24 +116,27 @@ export default function SeasonalEffects({
         </div>
       )}
       {showDecoration && theme === 'eid' && (
-        <span className={`jb-ornament-lantern absolute right-[6%] top-[6%] ${animated ? 'jb-lantern-sway' : ''}`}>🏮</span>
+        <div className={`jb-ornament-lantern absolute right-[6%] top-[6%] ${animated ? 'jb-lantern-sway' : ''}`}>
+          <svg viewBox="0 0 48 76" width="26" height="46" fill="none" stroke="#DBB66D" strokeWidth="2.1" aria-hidden="true">
+            <path d="M24 0v11M14 13h20l8 19-7 31H13L6 32zM7 33h34M13 63h22M19 66h10M24 13v50"/>
+            <path d="M17 24h14v30H17z" fill="#DBB66D" fillOpacity=".12"/>
+          </svg>
+        </div>
       )}
 
       {showDecoration && theme === 'puja' && (
         <div className="jb-puja-incense absolute bottom-[7%] right-[9%]">
-          <span className="jb-puja-diya">🪔</span>
+          <svg className="jb-puja-diya" viewBox="0 0 64 45" width="56" height="40" fill="none" stroke="#E9AE6E" strokeWidth="2.4" aria-hidden="true">
+            <path d="M10 24Q32 36 54 24L48 39Q32 46 16 39Z" fill="#E9AE6E" fillOpacity=".4"/>
+            <path d="M31 25Q23 12 32 2Q42 16 33 26" fill="#E9AE6E" fillOpacity=".8"/>
+            <path d="M14 40H50"/>
+          </svg>
           {animated && [0,1,2].map(i => (
             <span key={i} className="jb-incense-smoke" style={{ animationDelay: `${i * -1.5}s`, animationDuration: `${4.7 / Math.max(.25, settings.speed)}s` }}/>
           ))}
         </div>
       )}
 
-      {showDecoration && theme === 'winter' && !support && (
-        <div className={`jb-santa-sleigh ${animated ? 'jb-sleigh-flight' : ''}`}
-          style={{ animationDuration: `${20 / Math.max(.25, settings.speed)}s` }}>
-          <span>🦌</span><span>🛷</span><span>🎅</span>
-        </div>
-      )}
       {showSnow && Array.from({ length: support ? Math.min(8, winterFlakes) : winterFlakes }, (_, i) => (
         <span key={i} className={`jb-photo-snowflake ${animated ? 'jb-photo-snowfall' : ''}`}
           style={{
