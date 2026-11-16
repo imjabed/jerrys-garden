@@ -48,3 +48,31 @@ test('seasonal offer banners require an enabled coupon code', () => {
   }));
   assert.doesNotMatch(noOffer, /14% OFF/);
 });
+
+test('Default keeps its product card while rendering a separately editable photo backdrop', () => {
+  const url = 'https://res.cloudinary.com/demo/image/upload/v1/jame_bouquets_themes/default.webp';
+  const html = renderToStaticMarkup(createElement(Hero, {
+    ...defaultProps, theme: 'default', photoUrl: url,
+    imagePosition: 25,
+    effects: { ...DEFAULT_SITE_CONTENT.effects, enabled: false, illustrationEnabled: false },
+  }));
+  assert.match(html, /Featured piece/);
+  assert.match(html, /jb-hero-with-image/);
+  assert.match(html, /f_auto,q_auto/);
+  assert.match(html, /object-position:50% 25%/);
+});
+
+test('Parallax is independent of seasonal decoration and opt-in', () => {
+  const url = 'https://res.cloudinary.com/demo/image/upload/v1/jame_bouquets_themes/eid.webp';
+  const staticHtml = renderToStaticMarkup(createElement(Hero, {
+    ...defaultProps, theme: 'eid', photoUrl: url,
+    effects: { ...DEFAULT_SITE_CONTENT.effects, parallax: false, enabled: false },
+  }));
+  const movingHtml = renderToStaticMarkup(createElement(Hero, {
+    ...defaultProps, theme: 'eid', photoUrl: url,
+    effects: { ...DEFAULT_SITE_CONTENT.effects, parallax: true, enabled: false },
+  }));
+  assert.match(staticHtml, /jb-hero-photo/);
+  assert.doesNotMatch(staticHtml, /jb-hero-photo-parallax/);
+  assert.match(movingHtml, /jb-hero-photo-parallax/);
+});
