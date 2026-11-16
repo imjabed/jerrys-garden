@@ -918,9 +918,10 @@ export default function SiteEditor({
                   )}
                   {draft.themeMedia[photoTheme] && (
                     <button type="button" className="text-xs font-medium text-red-700 underline underline-offset-4"
-                      onClick={() => update(prev => ({
-                        ...prev, themeMedia: { ...prev.themeMedia, [photoTheme]: '' },
-                      }))}>
+                      onClick={() => {
+                        rememberSuperseded(draft.themeMedia[photoTheme], '');
+                        update(prev => ({ ...prev, themeMedia: { ...prev.themeMedia, [photoTheme]: '' } }));
+                      }}>
                       Clear hero background for this theme
                     </button>
                   )}
