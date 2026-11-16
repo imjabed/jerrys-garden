@@ -46,7 +46,7 @@ test('editor stores category images and changes without altering the defaults', 
 
 test('five seasonal theme presets are complete and preserve content when selected', () => {
   assert.deepEqual(THEME_PRESETS.map(t => t.label), [
-    'Default', 'Valentines', 'Durga Puja', 'Eid Celebration', 'Winter / Christmas / New Year',
+    'Default', 'Valentines', 'Durga Puja', 'Winter / Christmas / New Year', 'Eid Celebration',
   ]);
   const saved = sanitizeSiteContent({
     hero: { heading: 'My own carefully written headline' },
