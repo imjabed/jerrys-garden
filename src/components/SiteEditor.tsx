@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
   ArrowLeft, ArrowDown, ArrowUp, Check, ChevronRight, CloudUpload, Download,
   Eye, Image as ImageIcon, LayoutGrid, Monitor, RotateCcw, Save, Settings2,
-  Smartphone, Tablet, Type, UploadCloud, X, Palette, Sparkles, Layers3, Plus, Copy, Trash2, Link2, SlidersHorizontal, BadgePercent, ShoppingBag, Menu,
+  Smartphone, Tablet, Type, UploadCloud, X, Palette, Sparkles, Layers3, Plus, Copy, Trash2, Link2, SlidersHorizontal, BadgePercent, ShoppingBag, Menu, Heart,
 } from 'lucide-react';
 import Hero from './Hero';
 import CollectionShowcase from './CollectionShowcase';
@@ -18,7 +18,7 @@ import { apiGetSiteEditor, apiSaveSiteEditorDraft, apiPublishSiteEditor, apiGetP
 import type { SiteEditorPayload } from '../services/api';
 import { uploadImageToCloudinary } from '../services/cloudinary';
 
-type Panel = 'hero' | 'text' | 'collections' | 'appearance' | 'sections' | 'seo' | 'history' | 'themes' | 'effects' | 'blocks' | 'branding' | 'offers';
+type Panel = 'hero' | 'valentines' | 'text' | 'collections' | 'appearance' | 'sections' | 'seo' | 'history' | 'themes' | 'effects' | 'blocks' | 'branding' | 'offers';
 type Device = 'desktop' | 'tablet' | 'phone';
 const labels: Record<string, string> = {
   hero: 'Hero', collections: 'Collections', shop: 'Shop catalog',
@@ -240,6 +240,28 @@ export default function SiteEditor({
       setError(err?.message || 'Could not upload seasonal photo.');
     } finally { setUploadingKey(null); }
   };
+  const uploadValentinePhoto = async (field: 'heroMobileImageUrl' | 'customImageUrl' | 'footerSceneUrl', file?: File) => {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setError('Choose a JPG, PNG or WebP photo under 5 MB.'); return;
+    }
+    setUploadingKey('val-' + field); setError(''); setNotice('');
+    try {
+      const uploaded = await uploadImageToCloudinary(file, 'jame_bouquets_themes');
+      update(prev => ({ ...prev, valentines: { ...prev.valentines, [field]: uploaded.url } }));
+      setNotice('Uploaded to Cloudinary. Preview your changes and publish when ready.');
+    } catch (err: any) {
+      setError(err?.message || 'Could not upload the Valentine image.');
+    } finally { setUploadingKey(null); }
+  };
+  const updateValentineCopy = (section: 'hero' | 'custom', field: keyof SiteContent['hero'], value: string) =>
+    update(prev => ({ ...prev, valentines: { ...prev.valentines,
+      [section]: { ...prev.valentines[section], [field]: value },
+    } }));
+  const updateValentineColor = (key: keyof SiteContent['valentines']['colors'], value: string) =>
+    update(prev => ({ ...prev, valentines: { ...prev.valentines,
+      colors: { ...prev.valentines.colors, [key]: value },
+    } }));
   const updateOffer = (id: SeasonalThemeId, patch: Partial<SeasonalOffer>) =>
     update(prev => ({ ...prev, offers: { ...prev.offers, [id]: { ...prev.offers[id], ...patch } } }));
   const possibleCategories = useMemo(() => [
@@ -286,6 +308,20 @@ export default function SiteEditor({
     '--site-story-bg': draft.appearance.storyBackground,
     '--site-custom-bg': draft.appearance.customBackground,
     '--site-footer-bg': draft.appearance.footerBackground,
+    '--val-nav-bg': draft.valentines.colors.navBackground,
+    '--val-nav-text': draft.valentines.colors.navText,
+    '--val-nav-accent': draft.valentines.colors.navAccent,
+    '--val-page-bg': draft.valentines.colors.pageBackground,
+    '--val-card-bg': draft.valentines.colors.cardBackground,
+    '--val-hero-text': draft.valentines.colors.heroText,
+    '--val-hero-accent': draft.valentines.colors.heroAccent,
+    '--val-button-bg': draft.valentines.colors.buttonBackground,
+    '--val-button-text': draft.valentines.colors.buttonText,
+    '--val-custom-text': draft.valentines.colors.customText,
+    '--val-footer-bg': draft.valentines.colors.footerBackground,
+    '--val-footer-text': draft.valentines.colors.footerText,
+    '--val-footer-accent': draft.valentines.colors.footerAccent,
+    '--val-silhouette': draft.valentines.colors.silhouette,
     backgroundColor: draft.appearance.background,
     color: draft.appearance.text,
   } as CSSProperties;
@@ -368,6 +404,7 @@ export default function SiteEditor({
           <nav className="flex gap-1 overflow-x-auto border-b border-stone-200 p-3" aria-label="Editor panels">
             {([
               ['hero', ImageIcon, 'Hero Background'],
+              ...(draft.theme === 'valentines' ? [['valentines', Heart, 'Valentine Studio'] as const] : []),
               ['themes', Palette, 'Themes'],
               ['offers', BadgePercent, 'Offers'],
               ['blocks', Layers3, 'Build'],
@@ -387,6 +424,170 @@ export default function SiteEditor({
             ))}
           </nav>
           <div className="space-y-5 overflow-y-auto p-5 pb-12 sm:p-6">
+            {panel === 'valentines' && (
+              <>
+                <div className="space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-rose-700">The Valentine edit</p>
+                  <h2 className="font-serif text-2xl">Valentine luxury studio</h2>
+                  <p className="text-xs leading-6 text-stone-600">
+                    All settings in this panel affect Valentine's theme only.
+                    The Default, Puja, Winter and Eid themes are unchanged.
+                  </p>
+                </div>
+                <div className="rounded-xl border border-rose-200 bg-rose-50/50 p-4">
+                  <h3 className="font-serif text-lg">1. Photographic hero</h3>
+                  <p className="mt-2 text-xs leading-5 text-stone-600">
+                    The full-size desktop backdrop is in Hero Background. Use a real ribbon bouquet
+                    and luxury gifts, not illustrated graphics. For phones, upload a separate portrait crop.
+                  </p>
+                  <button type="button" className="mt-3 w-full border border-rose-300 bg-white px-4 py-3 text-xs font-semibold text-rose-950"
+                    onClick={() => { setPhotoTheme('valentines'); setPanel('hero'); }}>
+                    Edit full-size Valentine hero background
+                  </button>
+                  <div className="mt-4 overflow-hidden rounded-lg border border-stone-200 bg-white">
+                    {draft.valentines.heroMobileImageUrl
+                      ? <img src={draft.valentines.heroMobileImageUrl} alt="Mobile Valentine hero preview"
+                          className="mx-auto h-48 w-full object-cover object-center"/>
+                      : <div className="flex h-32 items-center justify-center px-4 text-center text-xs text-stone-500">
+                          Optional mobile portrait. Without it, the desktop background is cropped for mobile.
+                        </div>}
+                  </div>
+                  <label className="mt-3 flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-rose-300 bg-white px-3 py-3 text-xs font-semibold text-rose-950">
+                    <UploadCloud className="h-4 w-4"/>
+                    {uploadingKey === 'val-heroMobileImageUrl' ? 'Uploading…' : 'Upload mobile hero photo to Cloudinary'}
+                    <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+                      disabled={Boolean(uploadingKey)} onChange={e => {
+                        void uploadValentinePhoto('heroMobileImageUrl', e.target.files?.[0]); e.target.value = '';
+                      }}/>
+                  </label>
+                  {draft.valentines.heroMobileImageUrl && (
+                    <button type="button" className="mt-2 text-xs text-rose-700 underline"
+                      onClick={() => update(prev => ({ ...prev, valentines: { ...prev.valentines, heroMobileImageUrl: '' } }))}>
+                      Use desktop photo on phones
+                    </button>
+                  )}
+                </div>
+                <details open className="rounded-xl border border-stone-200 bg-white p-4">
+                  <summary className="cursor-pointer font-serif text-lg">2. Valentine hero text</summary>
+                  <div className="mt-4 space-y-4">
+                    {(['eyebrow','heading','accentLine','description','button'] as const).map(field =>
+                      input(field === 'accentLine' ? 'Italic highlight' : field, draft.valentines.hero[field],
+                        value => updateValentineCopy('hero', field, value), field === 'description'))}
+                  </div>
+                </details>
+                <details open className="rounded-xl border border-stone-200 bg-white p-4">
+                  <summary className="cursor-pointer font-serif text-lg">3. Custom order photography & copy</summary>
+                  <div className="mt-4 space-y-4">
+                    {draft.valentines.customImageUrl
+                      ? <img src={draft.valentines.customImageUrl} alt="Valentine custom order background"
+                          className="h-40 w-full rounded-md object-cover"
+                          style={{ objectPosition: `50% ${draft.valentines.customImagePosition}%` }}/>
+                      : <div className="flex h-28 items-center justify-center rounded-md bg-rose-950 px-5 text-center text-xs text-rose-100">
+                          Upload a romantic gifting photo, teddy bear, or couple image.
+                        </div>}
+                    <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 border border-stone-300 px-3 py-3 text-xs font-semibold">
+                      <UploadCloud className="h-4 w-4"/>
+                      {uploadingKey === 'val-customImageUrl' ? 'Uploading…' : 'Upload custom-order photo'}
+                      <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+                        disabled={Boolean(uploadingKey)} onChange={e => {
+                          void uploadValentinePhoto('customImageUrl', e.target.files?.[0]); e.target.value = '';
+                        }}/>
+                    </label>
+                    {draft.valentines.customImageUrl && (
+                      <button type="button" className="text-xs text-rose-700 underline"
+                        onClick={() => update(prev => ({ ...prev, valentines: { ...prev.valentines, customImageUrl: '' } }))}>
+                        Remove custom-order background
+                      </button>
+                    )}
+                    <label className="block space-y-2 text-xs">
+                      <span>Photo focal point · {draft.valentines.customImagePosition}% down</span>
+                      <input type="range" min="0" max="100" step="5" className="w-full accent-rose-900"
+                        value={draft.valentines.customImagePosition} onChange={e => update(prev => ({
+                          ...prev, valentines: { ...prev.valentines, customImagePosition: Number(e.target.value) },
+                        }))}/>
+                    </label>
+                    <label className="block space-y-2 text-xs">
+                      <span>Readability overlay · {Math.round(draft.valentines.customOverlay * 100)}%</span>
+                      <input type="range" min=".15" max=".95" step=".05" className="w-full accent-rose-900"
+                        value={draft.valentines.customOverlay} onChange={e => update(prev => ({
+                          ...prev, valentines: { ...prev.valentines, customOverlay: Number(e.target.value) },
+                        }))}/>
+                    </label>
+                    {(['eyebrow','heading','accentLine','description','button'] as const).map(field =>
+                      input(field === 'accentLine' ? 'Italic highlight' : field, draft.valentines.custom[field],
+                        value => updateValentineCopy('custom', field, value), field === 'description'))}
+                  </div>
+                </details>
+                <details open className="rounded-xl border border-stone-200 bg-white p-4">
+                  <summary className="cursor-pointer font-serif text-lg">4. Cinematic footer scene</summary>
+                  <div className="mt-4 space-y-4">
+                    <label className="flex items-center justify-between gap-3 text-xs font-semibold">
+                      <span>Show park couple on footer skyline</span>
+                      <input type="checkbox" checked={draft.valentines.footerSceneEnabled}
+                        onChange={e => update(prev => ({ ...prev, valentines: { ...prev.valentines, footerSceneEnabled: e.target.checked } }))}/>
+                    </label>
+                    <div className="relative h-36 overflow-hidden rounded-md"
+                      style={{ background: 'linear-gradient(#f2b2ad,#fbd9c1)' }}>
+                      <div className="absolute inset-0" style={{
+                        backgroundColor: draft.valentines.colors.silhouette,
+                        maskImage: `url("${draft.valentines.footerSceneUrl || '/valentines/park-couple-silhouette.svg'}")`,
+                        WebkitMaskImage: `url("${draft.valentines.footerSceneUrl || '/valentines/park-couple-silhouette.svg'}")`,
+                        maskSize: 'cover', WebkitMaskSize: 'cover',
+                        maskPosition: 'center bottom', WebkitMaskPosition: 'center bottom',
+                        maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat',
+                      }}/>
+                    </div>
+                    <p className="text-xs leading-5 text-stone-500">
+                      Original one-colour SVG included. You can replace it with a transparent PNG/WebP
+                      silhouette; uploads remain editable and use the same colour as the floor.
+                    </p>
+                    <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 border border-stone-300 px-3 py-3 text-xs font-semibold">
+                      <UploadCloud className="h-4 w-4"/>
+                      {uploadingKey === 'val-footerSceneUrl' ? 'Uploading…' : 'Replace footer silhouette'}
+                      <input type="file" accept="image/png,image/webp" className="sr-only"
+                        disabled={Boolean(uploadingKey)} onChange={e => {
+                          void uploadValentinePhoto('footerSceneUrl', e.target.files?.[0]); e.target.value = '';
+                        }}/>
+                    </label>
+                    {draft.valentines.footerSceneUrl && (
+                      <button type="button" className="text-xs text-rose-700 underline"
+                        onClick={() => update(prev => ({ ...prev, valentines: { ...prev.valentines, footerSceneUrl: '' } }))}>
+                        Restore original park SVG
+                      </button>
+                    )}
+                    {(['footerTagline','footerDescription','footerOrderNote'] as const).map(field =>
+                      input(field.replace(/([A-Z])/g, ' $1'), draft.valentines[field], value => update(prev => ({
+                        ...prev, valentines: { ...prev.valentines, [field]: value },
+                      })), field === 'footerDescription'))}
+                  </div>
+                </details>
+                <details open className="rounded-xl border border-stone-200 bg-white p-4">
+                  <summary className="cursor-pointer font-serif text-lg">5. Luxury colours across all pages</summary>
+                  <p className="mt-3 text-xs leading-5 text-stone-500">
+                    These colours affect Valentine navbar, product pages, category cards,
+                    custom order, footer, buttons and account overlays.
+                  </p>
+                  <div className="mt-4 space-y-1">
+                    {([
+                      ['navBackground', 'Navbar burgundy'], ['navText', 'Navbar text'],
+                      ['navAccent', 'Navbar trim'], ['pageBackground', 'Page background'],
+                      ['cardBackground', 'Product card background'],
+                      ['heroText', 'Hero headline'], ['heroAccent', 'Hero italic headline'],
+                      ['buttonBackground', 'Primary buttons'], ['buttonText', 'Button labels'],
+                      ['customText', 'Custom order headline'], ['footerBackground', 'Footer burgundy'],
+                      ['footerText', 'Footer text'], ['footerAccent', 'Footer details'],
+                      ['silhouette', 'Park silhouette / floor'],
+                    ] as const).map(([key, label]) => colour(label, draft.valentines.colors[key],
+                      value => updateValentineColor(key, value)))}
+                  </div>
+                </details>
+                <button type="button" onClick={() => update(prev => ({
+                  ...prev, valentines: DEFAULT_SITE_CONTENT.valentines,
+                }))} className="w-full border border-stone-300 px-4 py-3 text-xs font-semibold">
+                  Restore original Valentine studio settings
+                </button>
+              </>
+            )}
             {panel === 'hero' && (
               <>
                 <div>
