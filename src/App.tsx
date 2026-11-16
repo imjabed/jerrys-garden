@@ -511,6 +511,8 @@ export default function App() {
     '--jb-nav-bg': siteContent.themeExtras[siteContent.theme].navBackground,
     '--jb-nav-text': siteContent.themeExtras[siteContent.theme].navText,
     '--jb-nav-accent': siteContent.themeExtras[siteContent.theme].navAccent,
+    '--jb-hero-ink': siteContent.themeExtras[siteContent.theme].heroText,
+    '--jb-hero-accent': siteContent.themeExtras[siteContent.theme].heroAccent,
     '--val-nav-bg': siteContent.valentines.colors.navBackground,
     '--val-nav-text': siteContent.valentines.colors.navText,
     '--val-nav-accent': siteContent.valentines.colors.navAccent,
