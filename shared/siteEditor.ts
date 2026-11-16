@@ -5,6 +5,60 @@ export type ThemeId = 'default' | 'valentines' | 'puja' | 'winter' | 'eid';
 export type SeasonalThemeId = Exclude<ThemeId, 'default'>;
 export const SEASONAL_THEME_IDS: SeasonalThemeId[] = ['valentines', 'puja', 'winter', 'eid'];
 export const ALL_THEME_IDS: ThemeId[] = ['default', ...SEASONAL_THEME_IDS];
+export interface ValentinesDesign {
+  hero: { eyebrow: string; heading: string; accentLine: string; description: string; button: string };
+  custom: { eyebrow: string; heading: string; accentLine: string; description: string; button: string };
+  customImageUrl: string;
+  customImagePosition: number;
+  customOverlay: number;
+  footerSceneUrl: string;
+  footerSceneEnabled: boolean;
+  footerTagline: string;
+  footerDescription: string;
+  footerOrderNote: string;
+  colors: {
+    navBackground: string; navText: string; navAccent: string;
+    pageBackground: string; cardBackground: string;
+    heroText: string; heroAccent: string;
+    buttonBackground: string; buttonText: string;
+    customText: string; footerBackground: string;
+    footerText: string; footerAccent: string;
+    silhouette: string;
+  };
+}
+export const DEFAULT_VALENTINES_DESIGN: ValentinesDesign = {
+  hero: {
+    eyebrow: 'JAME BOUQUETS · THE VALENTINE EDIT',
+    heading: 'A love worth keeping.',
+    accentLine: 'Handmade, forever.',
+    description: 'Ribbon bouquets and thoughtful keepsakes, made for the people who make your world extraordinary.',
+    button: 'Discover the Valentine edit',
+  },
+  custom: {
+    eyebrow: 'AN ARRANGEMENT JUST FOR THEM',
+    heading: 'Your story.',
+    accentLine: 'Our craft.',
+    description: 'Choose the colours, the wrapping and the finishing touches. We will make a gift as personal as your love.',
+    button: 'Create your gift',
+  },
+  customImageUrl: '',
+  customImagePosition: 65,
+  customOverlay: .75,
+  footerSceneUrl: '',
+  footerSceneEnabled: true,
+  footerTagline: 'The loveliest moments deserve to last.',
+  footerDescription: 'Everlasting ribbon bouquets, intimate keepsakes and thoughtful gifts — handmade with care in Berhampore.',
+  footerOrderNote: 'A little romance, wrapped by hand.',
+  colors: {
+    navBackground: '#570D1E', navText: '#FFF4ED', navAccent: '#F2B7BD',
+    pageBackground: '#FFF6F2', cardBackground: '#FFF8F5',
+    heroText: '#3D1220', heroAccent: '#B62445',
+    buttonBackground: '#80112E', buttonText: '#FFF7F2',
+    customText: '#FFF4F0', footerBackground: '#4B1024',
+    footerText: '#FBE6E1', footerAccent: '#F3C1B7',
+    silhouette: '#4B1024',
+  },
+};
 export interface SeasonalOffer {
   enabled: boolean;
   percent: number;
@@ -154,6 +208,7 @@ export interface SiteContent {
   themeMedia: Record<ThemeId, string>;
   heroImagePosition: Record<ThemeId, number>;
   offers: Record<SeasonalThemeId, SeasonalOffer>;
+  valentines: ValentinesDesign;
   effects: PageEffects;
   blocks: PageBlock[];
   announcement: { enabled: boolean; text: string; link: string; background: string; textColor: string };
@@ -205,6 +260,7 @@ export const DEFAULT_CATEGORIES = [
 ];
 export const DEFAULT_SITE_CONTENT: SiteContent = {
   theme: 'default',
+  valentines: DEFAULT_VALENTINES_DESIGN,
   themeMedia: { default: '', valentines: '', puja: '', winter: '', eid: '' },
   heroImagePosition: { default: 50, valentines: 76, puja: 76, winter: 76, eid: 76 },
   offers: {
@@ -356,9 +412,39 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
       detail: fieldText(source, 'detail', fallback.detail, 90),
     }];
   })) as SiteContent['offers'];
+  const val = raw.valentines || {};
+  const vd = d.valentines;
+  const valentines: ValentinesDesign = {
+    hero: {
+      eyebrow: fieldText(val.hero, 'eyebrow', vd.hero.eyebrow, 100),
+      heading: fieldText(val.hero, 'heading', vd.hero.heading, 100),
+      accentLine: fieldText(val.hero, 'accentLine', vd.hero.accentLine, 100),
+      description: fieldText(val.hero, 'description', vd.hero.description, 300),
+      button: fieldText(val.hero, 'button', vd.hero.button, 70),
+    },
+    custom: {
+      eyebrow: fieldText(val.custom, 'eyebrow', vd.custom.eyebrow, 100),
+      heading: fieldText(val.custom, 'heading', vd.custom.heading, 100),
+      accentLine: fieldText(val.custom, 'accentLine', vd.custom.accentLine, 100),
+      description: fieldText(val.custom, 'description', vd.custom.description, 300),
+      button: fieldText(val.custom, 'button', vd.custom.button, 70),
+    },
+    customImageUrl: safeEditorImage(val.customImageUrl),
+    customImagePosition: numberRange(val.customImagePosition, vd.customImagePosition, 0, 100),
+    customOverlay: numberRange(val.customOverlay, vd.customOverlay, 0.15, 0.95),
+    footerSceneUrl: safeEditorImage(val.footerSceneUrl),
+    footerSceneEnabled: val.footerSceneEnabled !== false,
+    footerTagline: fieldText(val, 'footerTagline', vd.footerTagline, 120),
+    footerDescription: fieldText(val, 'footerDescription', vd.footerDescription, 300),
+    footerOrderNote: fieldText(val, 'footerOrderNote', vd.footerOrderNote, 150),
+    colors: Object.fromEntries(
+      (Object.keys(vd.colors) as Array<keyof ValentinesDesign['colors']>)
+        .map(key => [key, hex(val.colors?.[key], vd.colors[key])]),
+    ) as ValentinesDesign['colors'],
+  };
   const fx = raw.effects || {};
   return {
-    theme, themeMedia, heroImagePosition, offers,
+    theme, themeMedia, heroImagePosition, offers, valentines,
     blocks,
     announcement: {
       enabled: raw.announcement?.enabled === true,
