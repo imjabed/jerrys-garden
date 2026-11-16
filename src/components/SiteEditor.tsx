@@ -1337,15 +1337,16 @@ export default function SiteEditor({
                 }}>{draft.announcement.text}</div>
               )}
               <div className="jb-nav-surface relative flex items-center justify-between overflow-hidden border-b border-stone-200/30 px-4 py-4">
-                {draft.theme !== 'default' && (
+                {draft.theme === 'valentines' && (
+                  <div className="jb-valentine-preview-trim pointer-events-none absolute inset-0" aria-hidden="true"/>
+                )}
+                {draft.theme !== 'default' && draft.theme !== 'valentines' && (
                   <div className="jb-navbar-festive-details pointer-events-none absolute inset-0" aria-hidden="true">
                     <span className="jb-nav-ornament jb-nav-ornament-a">
-                      {draft.theme === 'valentines' ? '🌹' : draft.theme === 'puja' ? '🌼'
-                        : draft.theme === 'winter' ? '❄' : '☾'}
+                      {draft.theme === 'puja' ? '🌼' : draft.theme === 'winter' ? '❄' : '☾'}
                     </span>
                     <span className="jb-nav-ornament jb-nav-ornament-b">
-                      {draft.theme === 'valentines' ? '♥' : draft.theme === 'puja' ? '🪔'
-                        : draft.theme === 'winter' ? '🎄' : '🏮'}
+                      {draft.theme === 'puja' ? '🪔' : draft.theme === 'winter' ? '🎄' : '🏮'}
                     </span>
                   </div>
                 )}
@@ -1355,9 +1356,12 @@ export default function SiteEditor({
                   : <span className="relative z-10 text-xs text-stone-500">HOME · SHOP · ABOUT</span>}
               </div>
               {draft.sections.order.filter(id => draft.sections.visible[id]).map(id => {
-                if (id === 'hero') return <Hero key={id} content={draft.hero} headingScale={draft.appearance.headingScale}
+                if (id === 'hero') return <Hero key={id}
+                  content={draft.theme === 'valentines' ? draft.valentines.hero : draft.hero}
+                  headingScale={draft.appearance.headingScale}
                   effects={draft.effects} theme={draft.theme}
                   photoUrl={draft.themeMedia[draft.theme]}
+                  mobilePhotoUrl={draft.theme === 'valentines' ? draft.valentines.heroMobileImageUrl : ''}
                   imagePosition={draft.heroImagePosition[draft.theme]}
                   offer={draft.theme === 'default' ? undefined : draft.offers[draft.theme]}
                   onExploreClick={() => setPanel('text')} onFeaturedClick={() => {}} featuredProduct={products.find(p => p.featured) || products[0] || null}/>;
@@ -1378,15 +1382,34 @@ export default function SiteEditor({
                   <p className="font-serif text-2xl">Customer reviews</p>
                   <p className="mt-2 text-xs text-stone-500">Only verified, approved reviews appear on the live site.</p>
                 </section>;
-                if (id === 'custom') return <section key={id} className="jb-custom-surface relative isolate overflow-hidden px-5 py-12">
+                if (id === 'custom') return <section key={id}
+                  className={`jb-custom-surface relative isolate overflow-hidden px-5 py-12 ${draft.theme === 'valentines' ? 'jb-valentine-custom' : ''}`}
+                  style={draft.theme === 'valentines' ? { '--val-custom-overlay': String(draft.valentines.customOverlay) } as CSSProperties : undefined}>
+                  {draft.theme === 'valentines' && (
+                    <div className="jb-val-custom-photo-layer pointer-events-none absolute inset-0" aria-hidden="true">
+                      {draft.valentines.customImageUrl && (
+                        <img src={draft.valentines.customImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover"
+                          style={{ objectPosition: `50% ${draft.valentines.customImagePosition}%` }}/>
+                      )}
+                      <div className="jb-val-custom-photo-shade absolute inset-0"/>
+                    </div>
+                  )}
                   <SeasonalEffects settings={draft.effects} theme={draft.theme} layer="support"/>
                   <div className="relative z-10">
-                  <p className="text-xs uppercase tracking-widest text-stone-500">{draft.custom.eyebrow}</p>
-                  <h2 className="mt-3 font-serif text-3xl">{draft.custom.heading} <em>{draft.custom.accentLine}</em></h2>
-                  <p className="mt-3 max-w-lg text-sm text-stone-600">{draft.custom.description}</p>
-                  <button type="button" className="mt-5 px-5 py-3 text-xs text-white" style={{ backgroundColor: draft.appearance.button }}>
-                    {draft.custom.button}
-                  </button>
+                    <p className="text-xs uppercase tracking-widest text-stone-500">
+                      {draft.theme === 'valentines' ? draft.valentines.custom.eyebrow : draft.custom.eyebrow}
+                    </p>
+                    <h2 className="mt-3 font-serif text-3xl">
+                      {draft.theme === 'valentines' ? draft.valentines.custom.heading : draft.custom.heading}
+                      {' '}<em>{draft.theme === 'valentines' ? draft.valentines.custom.accentLine : draft.custom.accentLine}</em>
+                    </h2>
+                    <p className="mt-3 max-w-lg text-sm text-stone-600">
+                      {draft.theme === 'valentines' ? draft.valentines.custom.description : draft.custom.description}
+                    </p>
+                    <button type="button" className="mt-5 px-5 py-3 text-xs text-white"
+                      style={{ backgroundColor: draft.theme === 'valentines' ? draft.valentines.colors.buttonBackground : draft.appearance.button }}>
+                      {draft.theme === 'valentines' ? draft.valentines.custom.button : draft.custom.button}
+                    </button>
                   </div>
                 </section>;
                 if (id === 'story') return <section key={id} className="jb-story-surface relative isolate overflow-hidden px-5 py-12">
@@ -1408,10 +1431,24 @@ export default function SiteEditor({
                   </div>
                 ) : null;
               })}
-              <div className="jb-footer-surface px-5 py-7 text-xs text-white">
-                <p className="font-serif text-lg">Jame Bouquets</p>
-                <p className="mt-3 opacity-75">{draft.footer.description}</p>
-                <p className="mt-2 opacity-65">{draft.footer.orderNote}</p>
+              <div className={`jb-footer-surface text-xs text-white ${draft.theme === 'valentines' ? 'jb-valentine-footer' : ''}`}>
+                {draft.theme === 'valentines' && draft.valentines.footerSceneEnabled && (
+                  <div className="jb-valentine-scene relative isolate overflow-hidden" aria-hidden="true">
+                    <div className="jb-valentine-sunset absolute inset-0"/>
+                    <div className="jb-valentine-garden absolute inset-0" style={{
+                      maskImage: `url("${draft.valentines.footerSceneUrl || '/valentines/park-couple-silhouette.svg'}")`,
+                      WebkitMaskImage: `url("${draft.valentines.footerSceneUrl || '/valentines/park-couple-silhouette.svg'}")`,
+                    }}/>
+                  </div>
+                )}
+                <div className="px-5 py-7">
+                  {draft.theme === 'valentines' && (
+                    <p className="mb-5 font-serif text-lg italic">{draft.valentines.footerTagline}</p>
+                  )}
+                  <p className="font-serif text-lg">Jame Bouquets</p>
+                  <p className="mt-3 opacity-75">{draft.theme === 'valentines' ? draft.valentines.footerDescription : draft.footer.description}</p>
+                  <p className="mt-2 opacity-65">{draft.theme === 'valentines' ? draft.valentines.footerOrderNote : draft.footer.orderNote}</p>
+                </div>
               </div>
             </div>
           </div>
