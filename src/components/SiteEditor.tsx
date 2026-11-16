@@ -945,7 +945,10 @@ export default function SiteEditor({
                   </label>
                   {photoTheme !== draft.theme && (
                     <button type="button" className="w-full rounded border border-stone-300 px-4 py-3 text-xs font-semibold"
-                      onClick={() => update(prev => applyThemePreset(prev, photoTheme))}>
+                      onClick={() => {
+                        setBannerTheme(photoTheme);
+                        update(prev => applyThemePreset(prev, photoTheme));
+                      }}>
                       Preview {THEME_PRESETS.find(p => p.id === photoTheme)?.label} as active theme
                     </button>
                   )}
@@ -992,7 +995,11 @@ export default function SiteEditor({
                 <div className="grid grid-cols-2 gap-3">
                   {THEME_PRESETS.map(preset => (
                     <button key={preset.id} type="button" aria-pressed={draft.theme === preset.id}
-                      onClick={() => update(prev => applyThemePreset(prev, preset.id))}
+                      onClick={() => {
+                        setPhotoTheme(preset.id);
+                        setBannerTheme(preset.id);
+                        update(prev => applyThemePreset(prev, preset.id));
+                      }}
                       className={`group overflow-hidden rounded-md border-2 text-left shadow-sm transition ${draft.theme === preset.id
                         ? 'border-stone-900 ring-2 ring-stone-900/10' : 'border-stone-200 hover:border-stone-500'}`}>
                       <div className="relative h-40 overflow-hidden" style={{ background: preset.appearance.heroBackground }}>
