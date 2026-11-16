@@ -1360,7 +1360,10 @@ export default function SiteEditor({
                   content={draft.theme === 'valentines' ? draft.valentines.hero : draft.hero}
                   headingScale={draft.appearance.headingScale}
                   effects={draft.effects} theme={draft.theme}
-                  photoUrl={draft.themeMedia[draft.theme]}
+                  photoUrl={draft.theme === 'valentines'
+                    ? (draft.themeMedia.valentines ||
+                        products.find(p => /ribbon bouquet/i.test(p.category) && p.imageUrl)?.imageUrl || '')
+                    : draft.themeMedia[draft.theme]}
                   mobilePhotoUrl={draft.theme === 'valentines' ? draft.valentines.heroMobileImageUrl : ''}
                   imagePosition={draft.heroImagePosition[draft.theme]}
                   offer={draft.theme === 'default' ? undefined : draft.offers[draft.theme]}
@@ -1387,8 +1390,11 @@ export default function SiteEditor({
                   style={draft.theme === 'valentines' ? { '--val-custom-overlay': String(draft.valentines.customOverlay) } as CSSProperties : undefined}>
                   {draft.theme === 'valentines' && (
                     <div className="jb-val-custom-photo-layer pointer-events-none absolute inset-0" aria-hidden="true">
-                      {draft.valentines.customImageUrl && (
-                        <img src={draft.valentines.customImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover"
+                      {(draft.valentines.customImageUrl ||
+                        products.find(p => /gift|combo|keychain/i.test(p.category) && p.imageUrl)?.imageUrl) && (
+                        <img src={draft.valentines.customImageUrl ||
+                            products.find(p => /gift|combo|keychain/i.test(p.category) && p.imageUrl)?.imageUrl || ''}
+                          alt="" className="absolute inset-0 h-full w-full object-cover"
                           style={{ objectPosition: `50% ${draft.valentines.customImagePosition}%` }}/>
                       )}
                       <div className="jb-val-custom-photo-shade absolute inset-0"/>
