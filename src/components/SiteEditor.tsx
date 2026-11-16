@@ -158,8 +158,11 @@ export default function SiteEditor({
     setUploadingKey(block.id); setError('');
     try {
       const result = await uploadImageToCloudinary(file, 'jame_bouquets_collections');
-      if (gallery) updateBlock(block.id, { images: [...block.images, result.url].slice(0, 8) });
-      else updateBlock(block.id, { imageUrl: result.url });
+      if (gallery) updateBlock(block.id, { images: [...new Set([...block.images, result.url])].slice(0, 8) });
+      else {
+        rememberSuperseded(block.imageUrl, result.url);
+        updateBlock(block.id, { imageUrl: result.url });
+      }
       setNotice('Photo uploaded to your draft. Publish when ready.');
     } catch (err: any) { setError(err?.message || 'Could not upload the photo.'); }
     finally { setUploadingKey(null); }
@@ -232,6 +235,7 @@ export default function SiteEditor({
     setUploadingKey(key); setError(''); setNotice('');
     try {
       const response = await uploadImageToCloudinary(file, 'jame_bouquets_collections');
+      rememberSuperseded(draft.collections.cards.find(card => card.categoryKey === key)?.imageUrl, response.url);
       updateCard(key, { imageUrl: response.url });
       setNotice('Photo uploaded. Save and publish to show it to customers.');
     } catch (err: any) { setError(err?.message || 'Could not upload this category photo.'); }
@@ -726,7 +730,7 @@ export default function SiteEditor({
                   </label>
                   {draft.valentines.heroMobileImageUrl && (
                     <button type="button" className="mt-2 text-xs text-rose-700 underline"
-                      onClick={() => update(prev => ({ ...prev, valentines: { ...prev.valentines, heroMobileImageUrl: '' } }))}>
+                      onClick={() => { rememberSuperseded(draft.valentines.heroMobileImageUrl, ''); update(prev => ({ ...prev, valentines: { ...prev.valentines, heroMobileImageUrl: '' } })); }}>
                       Use desktop photo on phones
                     </button>
                   )}
@@ -759,7 +763,7 @@ export default function SiteEditor({
                     </label>
                     {draft.valentines.customImageUrl && (
                       <button type="button" className="text-xs text-rose-700 underline"
-                        onClick={() => update(prev => ({ ...prev, valentines: { ...prev.valentines, customImageUrl: '' } }))}>
+                        onClick={() => { rememberSuperseded(draft.valentines.customImageUrl, ''); update(prev => ({ ...prev, valentines: { ...prev.valentines, customImageUrl: '' } })); }}>
                         Remove custom-order background
                       </button>
                     )}
@@ -815,7 +819,7 @@ export default function SiteEditor({
                     </label>
                     {draft.valentines.footerSceneUrl && (
                       <button type="button" className="text-xs text-rose-700 underline"
-                        onClick={() => update(prev => ({ ...prev, valentines: { ...prev.valentines, footerSceneUrl: '' } }))}>
+                        onClick={() => { rememberSuperseded(draft.valentines.footerSceneUrl, ''); update(prev => ({ ...prev, valentines: { ...prev.valentines, footerSceneUrl: '' } })); }}>
                         Restore original park SVG
                       </button>
                     )}
@@ -1438,7 +1442,7 @@ export default function SiteEditor({
                           }}/>
                       </label>
                       {activeCard.imageUrl && (
-                        <button type="button" className="text-xs text-stone-500 underline" onClick={() => updateCard(activeCard.categoryKey, { imageUrl: '' })}>
+                        <button type="button" className="text-xs text-stone-500 underline" onClick={() => { rememberSuperseded(activeCard.imageUrl, ''); updateCard(activeCard.categoryKey, { imageUrl: '' }); }}>
                           Remove custom cover
                         </button>
                       )}
