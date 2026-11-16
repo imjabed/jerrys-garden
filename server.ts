@@ -8,7 +8,7 @@ import { estimateCustomBouquet, indiaDate, minimumWrappers } from './shared/cust
 import { isValidCustomDeliveryDate, isValidCustomPhone, isValidCustomEmail } from './shared/customOrderValidation.js';
 import { isServiceableCity, isValidOptionalDeliveryDate, SERVICE_CITY } from './shared/orderRules.js';
 import { customerReviewId, reviewerDisplayName, reviewInputError } from './shared/reviewRules.js';
-import { PRODUCT_SIZE_KEYS, isProductSize, isBouquetCategory, isValidProductSizeOption, normalizeProductSizes, productSizeFor, customSizeMap, validateCustomSizeFlowers } from './shared/productSizes.js';
+import { PRODUCT_SIZE_LABELS, PRODUCT_SIZE_KEYS, isProductSize, isBouquetCategory, isValidProductSizeOption, normalizeProductSizes, productSizeFor, customSizeMap, validateCustomSizeFlowers } from './shared/productSizes.js';
 import { DEFAULT_SITE_CONTENT, sanitizeSiteContent } from './shared/siteEditor.js';
 import type { SiteContent } from './shared/siteEditor.js';
 import {
@@ -1358,6 +1358,7 @@ async function startServer() {
       const database = await getMongoDb();
       if (!database) return res.status(503).json({ success: false, error: 'Orders are temporarily unavailable. Please try again in a moment.' });
       const normalizedItems: any[] = [];
+      const quantityByVariant = new Map<string, number>();
       for (const raw of rawItems) {
         const id = String(raw?.bouquet?.id || raw?.productId || '').trim();
         const quantity = Number(raw?.quantity);
@@ -1371,6 +1372,12 @@ async function startServer() {
         if (bouquetProduct && !variant) {
           return res.status(409).json({ success: false, error: `${product.title} is not available in the selected size. Please update your bag.` });
         }
+        const cartKey = id + ':' + (variant?.size || 'ONE');
+        const totalForVariant = (quantityByVariant.get(cartKey) || 0) + quantity;
+        if (totalForVariant > 20) {
+          return res.status(400).json({ success: false, error: 'Maximum 20 pieces per product size per order.' });
+        }
+        quantityByVariant.set(cartKey, totalForVariant);
         const itemSnapshot = variant ? { ...product, flowerCount: variant.flowerCount, price: variant.price } : product;
         normalizedItems.push({ bouquet: itemSnapshot, quantity, selectedSize: variant?.size });
       }
@@ -1415,7 +1422,7 @@ async function startServer() {
       if (!saved) return res.status(503).json({ success: false, error: 'Order could not be saved. Please try again.' });
       if (safeCustomer.email) {
         try {
-          const rows = normalizedItems.map((item: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${String(item.bouquet.title)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">₹${Number(item.bouquet.price) * item.quantity}</td></tr>`).join('');
+          const rows = normalizedItems.map((item: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${String(item.bouquet.title)}${item.selectedSize ? ' (' + PRODUCT_SIZE_LABELS[item.selectedSize as keyof typeof PRODUCT_SIZE_LABELS] + ', ' + item.bouquet.flowerCount + ' flowers)' : ''}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">₹${Number(item.bouquet.price) * item.quantity}</td></tr>`).join('');
           await sendEmailWithAgentMail({
             to: safeCustomer.email,
             subject: `Jame Bouquets — Order Placed ${order.orderNumber}`,
