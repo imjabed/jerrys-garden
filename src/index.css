@@ -440,3 +440,63 @@
     opacity: calc(var(--seasonal-art-opacity, .68) * .20);
   }
 }
+
+
+/* Panoramic seasonal artwork is a first-class scene, not a faint overlay. */
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-seasonal-panorama {
+  opacity: var(--seasonal-panorama-opacity, .9);
+  pointer-events: none;
+  object-position: center bottom;
+  transform: translate3d(0,var(--seasonal-parallax,0px),0);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-seasonal-art {
+  opacity: calc(var(--seasonal-art-opacity, .68) * .72);
+  z-index: 1;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-seasonal-fireworks-art {
+  z-index: 2;
+  pointer-events: none;
+  object-position: center top;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-surface::before {
+  /* One panoramic illustration only: no doubled scenery behind the new layer. */
+  opacity: 0 !important;
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-hero-copy {
+  background: linear-gradient(90deg,
+    color-mix(in srgb,var(--site-hero-bg) 92%,white 8%) 0%,
+    color-mix(in srgb,var(--site-hero-bg) 82%,transparent) 72%,transparent);
+}
+.site-shell[data-site-theme="puja"] .jb-hero-surface,
+.site-shell[data-site-theme="eid"] .jb-hero-surface,
+.site-shell[data-site-theme="valentines"] .jb-hero-surface,
+.site-shell[data-site-theme="winter"] .jb-hero-surface,
+.site-shell[data-site-theme="new-year"] .jb-hero-surface {
+  background-color: var(--site-hero-bg);
+}
+.site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-atelier-section {
+  background-image: linear-gradient(180deg,rgba(255,255,255,.035),transparent 46%);
+}
+@keyframes jb-panorama-breathe {
+  0% { transform: translate3d(0,var(--seasonal-parallax,0px),0) scale(1); }
+  100% { transform: translate3d(0,calc(var(--seasonal-parallax,0px) - 8px),0) scale(1.017); }
+}
+.jb-seasonal-panorama-breathe { animation: jb-panorama-breathe 29s ease-in-out infinite alternate; }
+@keyframes jb-festive-fireworks {
+  from { opacity: .55; filter: brightness(.8); }
+  to { opacity: 1; filter: brightness(1.35); }
+}
+.jb-seasonal-fireworks-active { animation: jb-festive-fireworks 8s ease-in-out infinite alternate; }
+@media (max-width: 640px) {
+  .site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-seasonal-panorama {
+    object-position: 61% bottom;
+    opacity: calc(var(--seasonal-panorama-opacity, .9) * .72);
+  }
+  .site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-seasonal-art {
+    opacity: calc(var(--seasonal-art-opacity, .68) * .25);
+  }
+  .site-shell[data-site-theme]:not([data-site-theme="default"]) .jb-featured-panel { max-width: 350px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jb-seasonal-panorama-breathe,.jb-seasonal-fireworks-active { animation: none !important; }
+}
