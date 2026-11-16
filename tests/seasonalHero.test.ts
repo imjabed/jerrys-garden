@@ -76,3 +76,19 @@ test('Parallax is independent of seasonal decoration and opt-in', () => {
   assert.doesNotMatch(staticHtml, /jb-hero-photo-parallax/);
   assert.match(movingHtml, /jb-hero-photo-parallax/);
 });
+
+
+test('Valentine hero supports independent mobile imagery and luxury copy without emojis', () => {
+  const html = renderToStaticMarkup(createElement(Hero, {
+    ...defaultProps, theme: 'valentines',
+    content: DEFAULT_SITE_CONTENT.valentines.hero,
+    photoUrl: 'https://res.cloudinary.com/demo/image/upload/v1/val-hero.webp',
+    mobilePhotoUrl: 'https://res.cloudinary.com/demo/image/upload/v1/val-mobile.webp',
+    effects: { ...DEFAULT_SITE_CONTENT.effects, enabled: true },
+  }));
+  assert.match(html, /A love worth keeping/);
+  assert.match(html, /val-mobile.webp/);
+  assert.match(html, /media="\(max-width: 700px\)"/);
+  assert.doesNotMatch(html, /Featured piece/);
+  assert.doesNotMatch(html, /🌹|🌸|💕|❤️/u);
+});
