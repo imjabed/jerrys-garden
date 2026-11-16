@@ -506,6 +506,20 @@ export default function App() {
     '--site-story-bg': siteContent.appearance.storyBackground,
     '--site-custom-bg': siteContent.appearance.customBackground,
     '--site-footer-bg': siteContent.appearance.footerBackground,
+    '--val-nav-bg': siteContent.valentines.colors.navBackground,
+    '--val-nav-text': siteContent.valentines.colors.navText,
+    '--val-nav-accent': siteContent.valentines.colors.navAccent,
+    '--val-page-bg': siteContent.valentines.colors.pageBackground,
+    '--val-card-bg': siteContent.valentines.colors.cardBackground,
+    '--val-hero-text': siteContent.valentines.colors.heroText,
+    '--val-hero-accent': siteContent.valentines.colors.heroAccent,
+    '--val-button-bg': siteContent.valentines.colors.buttonBackground,
+    '--val-button-text': siteContent.valentines.colors.buttonText,
+    '--val-custom-text': siteContent.valentines.colors.customText,
+    '--val-footer-bg': siteContent.valentines.colors.footerBackground,
+    '--val-footer-text': siteContent.valentines.colors.footerText,
+    '--val-footer-accent': siteContent.valentines.colors.footerAccent,
+    '--val-silhouette': siteContent.valentines.colors.silhouette,
     backgroundColor: siteContent.appearance.background,
     color: siteContent.appearance.text,
   } as CSSProperties;
@@ -638,7 +652,7 @@ export default function App() {
           {siteContent.sections.order.filter(id => siteContent.sections.visible[id]).map(id => {
             if (id === 'hero') return (
               <Hero key={id}
-                content={siteContent.hero} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects} theme={siteContent.theme}
+                content={siteContent.theme === 'valentines' ? siteContent.valentines.hero : siteContent.hero} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects} theme={siteContent.theme}
                 photoUrl={siteContent.themeMedia[siteContent.theme]}
                 imagePosition={siteContent.heroImagePosition[siteContent.theme]}
                 offer={siteContent.theme === 'default' ? undefined : siteContent.offers[siteContent.theme]}
@@ -750,7 +764,10 @@ export default function App() {
               }}/>
             );
             if (id === 'custom') return (
-              <CustomOrderSection key={id} content={siteContent.custom} headingScale={siteContent.appearance.headingScale} sizeChart={storeSettings.customSizeFlowers} effects={siteContent.effects} theme={siteContent.theme}
+              <CustomOrderSection key={id}
+                content={siteContent.theme === 'valentines' ? siteContent.valentines.custom : siteContent.custom}
+                valentines={siteContent.theme === 'valentines' ? siteContent.valentines : undefined}
+                headingScale={siteContent.appearance.headingScale} sizeChart={storeSettings.customSizeFlowers} effects={siteContent.effects} theme={siteContent.theme}
                 mobileOpen={customMobileOpen} onMobileToggle={() => setCustomMobileOpen(current => !current)}
                 onSubmit={async payload => {
                   const result = await apiSendCustomEnquiry(payload);
@@ -766,6 +783,8 @@ export default function App() {
 
           {/* Boutique Footer */}
           <Footer
+            theme={siteContent.theme}
+            valentines={siteContent.theme === 'valentines' ? siteContent.valentines : undefined}
             storeSettings={storeSettings}
             content={siteContent.footer}
             isOwner={isOwner}
