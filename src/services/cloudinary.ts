@@ -16,6 +16,7 @@ export interface CloudinaryUploadResult {
   publicId?: string;
   width?: number;
   height?: number;
+  reused?: boolean;
 }
 
 /**
@@ -61,6 +62,7 @@ export async function uploadImageToCloudinary(
     publicId: data.public_id,
     width: data.width,
     height: data.height,
+    reused: data.reused === true,
   };
 }
 
