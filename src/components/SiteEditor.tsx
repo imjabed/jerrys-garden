@@ -201,8 +201,8 @@ export default function SiteEditor({
       // Publishing is not complete until the public endpoint can serve the chosen theme.
       // A failed verification must be visible rather than silently leaving an empty page.
       const liveContent = await apiGetPublishedSiteContent();
-      if (liveContent.theme !== published.published.theme) {
-        throw new Error('The backend accepted Publish, but the public website returned a different theme. Refresh and retry.');
+      if (JSON.stringify(liveContent) !== JSON.stringify(sanitizeSiteContent(published.published))) {
+        throw new Error('The backend accepted Publish, but the public website returned different settings. Reload the editor before retrying.');
       }
       onPublished(liveContent);
       setDirty(false);
