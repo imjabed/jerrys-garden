@@ -181,11 +181,45 @@ export async function apiLogoutCustomer() {
   try { await fetch(`${API_URL}/api/customers/logout`, { method: 'POST', headers: jsonHeaders, credentials: 'include' }); } catch { /* ignore */ }
 }
 
+/**
+ * MongoDB may contain older product documents without the fields expected by
+ * current UI components. Normalize public reads without modifying the catalog.
+ */
+export function normalizeCatalogProducts(value: unknown): RibbonBouquet[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item: any): RibbonBouquet[] => {
+    if (!item || typeof item !== 'object' || typeof item.id !== 'string' || !item.id.trim()) return [];
+    const price = Number(item.price);
+    if (!Number.isFinite(price) || price < 0) return [];
+    return [{
+      ...item,
+      id: item.id,
+      title: typeof item.title === 'string' ? item.title : 'Handmade bouquet',
+      category: typeof item.category === 'string' ? item.category : 'Ribbon Bouquets',
+      description: typeof item.description === 'string' ? item.description : '',
+      imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : '',
+      price,
+      originalPrice: Number.isFinite(Number(item.originalPrice)) && Number(item.originalPrice) > 0
+        ? Number(item.originalPrice) : undefined,
+      flowerCount: Number.isFinite(Number(item.flowerCount)) ? Math.max(0, Number(item.flowerCount)) : 0,
+      ribbonColors: Array.isArray(item.ribbonColors)
+        ? item.ribbonColors.filter((color: unknown): color is string => typeof color === 'string') : [],
+      ribbonMaterial: typeof item.ribbonMaterial === 'string' ? item.ribbonMaterial : '',
+      whatsInside: Array.isArray(item.whatsInside)
+        ? item.whatsInside.filter((line: unknown): line is string => typeof line === 'string') : [],
+      sizeOptions: Array.isArray(item.sizeOptions) ? item.sizeOptions : undefined,
+      inStock: item.inStock !== false,
+      featured: item.featured === true,
+      createdAt: typeof item.createdAt === 'string' ? item.createdAt : '',
+    }];
+  });
+}
+
 export async function apiGetBouquets(): Promise<{ connected: boolean; bouquets: RibbonBouquet[] }> {
   try {
     const res = await fetch(`${API_URL}/api/bouquets`);
     const data = await parseResponse<any>(res);
-    return { connected: data.connected ?? false, bouquets: data.bouquets || [] };
+    return { connected: data.connected === true, bouquets: normalizeCatalogProducts(data.bouquets) };
   } catch { return { connected: false, bouquets: [] }; }
 }
 
