@@ -46,6 +46,7 @@ import {
 // Components
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
+import ThemeBanner from './components/ThemeBanner';
 import BouquetCard from './components/BouquetCard';
 import ProductPage from './components/ProductPage';
 import { PRODUCT_SIZE_LABELS, normalizeProductSizes, productSizeFor, isBouquetCategory } from '../shared/productSizes';
@@ -506,6 +507,9 @@ export default function App() {
     '--site-story-bg': siteContent.appearance.storyBackground,
     '--site-custom-bg': siteContent.appearance.customBackground,
     '--site-footer-bg': siteContent.appearance.footerBackground,
+    '--jb-nav-bg': siteContent.themeExtras[siteContent.theme].navBackground,
+    '--jb-nav-text': siteContent.themeExtras[siteContent.theme].navText,
+    '--jb-nav-accent': siteContent.themeExtras[siteContent.theme].navAccent,
     '--val-nav-bg': siteContent.valentines.colors.navBackground,
     '--val-nav-text': siteContent.valentines.colors.navText,
     '--val-nav-accent': siteContent.valentines.colors.navAccent,
@@ -580,19 +584,6 @@ export default function App() {
       ) : (
         /* CUSTOMER SHOP VIEW */
         <>
-          {/* Storefront announcement is part of the published editor configuration. */}
-          {siteContent.announcement.enabled && (
-            <div className="px-5 py-2.5 text-center text-[11px] font-medium tracking-wider"
-              style={{ backgroundColor: siteContent.announcement.background, color: siteContent.announcement.textColor }}>
-              <a href={safeEditorLink(siteContent.announcement.link)}
-                onClick={event => {
-                  if (siteContent.announcement.link === '#shop-section' && productId) { event.preventDefault(); navigateHome(); }
-                }}
-                className="inline-block underline-offset-4 hover:underline">
-                {siteContent.announcement.text}
-              </a>
-            </div>
-          )}
           {/* Header & Navigation */}
           <Navbar
             theme={siteContent.theme}
@@ -651,7 +642,9 @@ export default function App() {
           {/* Shared published homepage layout; the editor controls section order. */}
           {siteContent.sections.order.filter(id => siteContent.sections.visible[id]).map(id => {
             if (id === 'hero') return (
-              <Hero key={id}
+              <div key={id}>
+                <ThemeBanner theme={siteContent.theme} config={siteContent.themeBanners[siteContent.theme]}/>
+                <Hero
                 content={siteContent.theme === 'valentines' ? siteContent.valentines.hero : siteContent.hero} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects} theme={siteContent.theme}
                 photoUrl={siteContent.themeMedia[siteContent.theme]}
                 mobilePhotoUrl={siteContent.theme === 'valentines' ? siteContent.valentines.heroMobileImageUrl : ''}
@@ -660,7 +653,8 @@ export default function App() {
                 onExploreClick={() => scrollToSection('shop-section')}
                 featuredProduct={bouquets.find(product => product.featured && product.inStock && product.imageUrl) || bouquets.find(product => product.inStock && product.imageUrl) || null}
                 onFeaturedClick={navigateToProduct}
-              />
+                />
+              </div>
             );
             if (id === 'collections') return (
               <CollectionShowcase key={id} content={siteContent.collections} products={bouquets} headingScale={siteContent.appearance.headingScale}
@@ -768,10 +762,7 @@ export default function App() {
               <CustomOrderSection key={id}
                 content={siteContent.theme === 'valentines' ? siteContent.valentines.custom : siteContent.custom}
                 valentines={siteContent.theme === 'valentines' ? siteContent.valentines : undefined}
-                fallbackPhotoUrl={siteContent.theme === 'valentines'
-                  ? (bouquets.find(product => /gift|combo|keychain/i.test(product.category) && product.imageUrl)?.imageUrl ||
-                     bouquets.find(product => product.imageUrl)?.imageUrl || '')
-                  : ''}
+                themeExtras={siteContent.themeExtras[siteContent.theme]}
                 headingScale={siteContent.appearance.headingScale} sizeChart={storeSettings.customSizeFlowers} effects={siteContent.effects} theme={siteContent.theme}
                 mobileOpen={customMobileOpen} onMobileToggle={() => setCustomMobileOpen(current => !current)}
                 onSubmit={async payload => {
@@ -790,6 +781,7 @@ export default function App() {
           <Footer
             theme={siteContent.theme}
             valentines={siteContent.theme === 'valentines' ? siteContent.valentines : undefined}
+            themeExtras={siteContent.themeExtras[siteContent.theme]}
             storeSettings={storeSettings}
             content={siteContent.footer}
             isOwner={isOwner}
