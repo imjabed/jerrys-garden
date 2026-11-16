@@ -92,3 +92,19 @@ test('Valentine hero supports independent mobile imagery and luxury copy without
   assert.doesNotMatch(html, /Featured piece/);
   assert.doesNotMatch(html, /🌹|🌸|💕|❤️/u);
 });
+
+test('Valentine hero serves high-resolution Cloudinary imagery on desktop and phones', () => {
+  const html = renderToStaticMarkup(createElement(Hero, {
+    ...defaultProps,
+    theme: 'valentines',
+    photoUrl: 'https://res.cloudinary.com/demo/image/upload/v1/hero.webp',
+    mobilePhotoUrl: 'https://res.cloudinary.com/demo/image/upload/v1/mobile.webp',
+    effects: { ...DEFAULT_SITE_CONTENT.effects, enabled: false },
+  }));
+  assert.match(html, /q_auto:best/);
+  assert.match(html, /w_1920/);
+  assert.match(html, /w_2400/);
+  assert.match(html, /w_3200/);
+  assert.match(html, /mobile\.webp/);
+  assert.doesNotMatch(html, /Featured piece/);
+});
