@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 300" role="img" aria-label="A couple sitting together in a romantic evening park">
+  <title>Romance in the park — Jame Bouquets original silhouette</title>
+  <g fill="#000">
+    <!-- One continuous ground and the gently undulating park floor -->
+    <path d="M0 266 Q68 261 134 265 T280 263 T430 265 T585 262 T735 265 T900 261 T1080 265 T1250 262 T1440 264 V300 H0Z"/>
+    <!-- Grand flowering tree on the left, its branches frame the scene -->
+    <path d="M123 275 Q151 218 158 169 Q173 115 160 54 L177 54 Q187 123 173 178 Q166 217 157 275Z"/>
+    <path d="M166 147 Q140 106 76 90 L80 80 Q148 92 176 125Z"/>
+    <path d="M174 130 Q208 86 256 75 L260 83 Q216 100 178 146Z"/>
+    <path d="M157 86 Q135 43 108 24 L117 19 Q162 52 172 94Z"/>
+    <path d="M191 105 Q242 57 307 50 L308 60 Q253 68 196 117Z"/>
+    <!-- Individual leaf clusters keep the tree botanical rather than cartoonish -->
+    <path d="M20 89 C-8 59 27 28 57 40 C60 5 114 12 120 38 C157 11 197 34 194 61 C226 35 272 52 273 81 C310 71 334 102 317 127 C338 156 298 173 270 156 C247 185 214 173 198 152 C167 177 129 159 124 137 C95 161 65 148 57 127 C27 136 10 116 20 89Z"/>
+    <path d="M91 45 Q115 7 146 14 Q132 49 91 45Z"/>
+    <path d="M270 91 Q307 64 335 85 Q315 107 270 91Z"/>
+    <path d="M35 117 Q7 122 5 143 Q41 143 55 126Z"/>
+    <!-- Far right branches as subtle framing -->
+    <path d="M1440 189 Q1390 146 1364 87 L1354 91 Q1373 168 1437 219Z"/>
+    <path d="M1417 161 Q1382 135 1335 137 L1338 147 Q1394 151 1436 189Z"/>
+    <path d="M1440 119 Q1414 105 1395 72 L1388 78 Q1403 119 1440 145Z"/>
+    <path d="M1304 99 Q1283 65 1317 47 Q1336 13 1375 35 Q1410 14 1435 49 L1440 67 L1440 101 Q1410 123 1383 103 Q1345 123 1304 99Z"/>
+    <!-- Old iron park lamp -->
+    <path d="M487 263 L490 124 L497 124 L501 263Z"/>
+    <path d="M481 125 L508 125 L504 132 L485 132Z"/>
+    <path d="M479 115 L507 115 L500 124 L485 124Z"/>
+    <path d="M486 77 L501 77 L510 87 L504 111 L483 111 L477 87Z" fill-rule="evenodd"/>
+    <path d="M494 55 L498 62 L498 69 L507 75 L481 75 L490 69 L490 62Z"/>
+    <path d="M480 91 L509 91 L506 98 L483 98Z"/>
+    <path d="M475 261 L512 261 L515 268 L472 268Z"/>
+    <!-- Rustic park bench: slats, legs and curled iron side -->
+    <rect x="756" y="217" width="227" height="9" rx="3"/>
+    <rect x="763" y="198" width="216" height="8" rx="3"/>
+    <rect x="763" y="207" width="216" height="7" rx="3"/>
+    <path d="M765 219 Q751 227 754 239 Q759 247 779 242 L781 235 Q763 239 762 232 L778 226Z"/>
+    <path d="M961 220 Q980 230 971 240 Q965 246 949 242 L946 235 Q963 240 965 232 L948 224Z"/>
+    <path d="M781 224 L789 264 L799 264 L792 224Z"/>
+    <path d="M942 224 L933 264 L943 264 L954 224Z"/>
+    <!-- Couple leaning together: heads, hair, jacket and dress -->
+    <circle cx="842" cy="174" r="15"/>
+    <path d="M826 176 Q825 156 841 155 Q858 155 859 173 Q848 165 832 170Z"/>
+    <circle cx="884" cy="174" r="15"/>
+    <path d="M867 170 Q865 150 886 155 Q909 160 900 183 Q900 170 894 170 L891 164 Q882 171 867 170Z"/>
+    <path d="M829 186 Q817 188 813 211 L803 232 Q826 243 861 236 L871 202 Q861 183 850 185 L847 192 L839 196Z"/>
+    <path d="M878 186 Q867 192 868 211 L859 233 Q887 246 913 235 L903 204 Q900 189 892 185Z"/>
+    <path d="M849 192 Q865 196 876 199 L881 208 Q863 203 851 202Z"/>
+    <path d="M819 232 Q823 248 817 265 L831 265 L844 239Z"/>
+    <path d="M845 236 Q854 247 851 264 L864 264 Q871 244 864 234Z"/>
+    <path d="M882 232 Q888 249 875 265 L891 265 Q908 251 902 235Z"/>
+    <path d="M909 228 Q917 245 915 265 L928 265 Q931 246 922 230Z"/>
+    <!-- Small flower in a hand -->
+    <path d="M904 203 Q916 196 923 188 L926 190 Q917 205 909 211Z"/>
+    <path d="M920 186 Q914 180 920 175 Q925 171 929 179 Q934 171 941 175 Q944 184 935 188 Q939 195 931 197 Q924 196 923 190Z"/>
+    <!-- Long grass silhouettes -->
+    <path d="M16 265 L21 242 L26 265 L39 251 L32 266Z M57 267 L62 250 L65 266 L78 254 L75 267Z
+    M337 267 L344 247 L347 267 L360 255 L358 267Z M377 266 L385 244 L390 266 L400 255 L398 266Z
+    M553 266 L562 248 L565 266 L578 256 L574 267Z M623 267 L630 240 L635 266 L648 253 L641 267Z
+    M1079 265 L1088 247 L1091 265 L1105 252 L1100 265Z M1150 267 L1155 246 L1162 267 L1174 252 L1172 267Z
+    M1262 265 L1268 244 L1272 265 L1284 251 L1281 267Z"/>
+  </g>
+</svg>
