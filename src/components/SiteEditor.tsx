@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   ArrowLeft, ArrowDown, ArrowUp, Check, ChevronRight, CloudUpload, Download,
   Eye, Image as ImageIcon, LayoutGrid, Monitor, RotateCcw, Save, Settings2,
   Smartphone, Tablet, Type, UploadCloud, X, Palette, Sparkles, Layers3, Plus, Copy, Trash2, Link2, SlidersHorizontal, BadgePercent, ShoppingBag, Menu, Heart,
 } from 'lucide-react';
 import Hero from './Hero';
+import ThemeBanner from './ThemeBanner';
 import CollectionShowcase from './CollectionShowcase';
 import CustomPageBlock from './CustomPageBlock';
 import SeasonalEffects from './SeasonalEffects';
@@ -14,11 +15,11 @@ import {
   SECTION_IDS, SEASONAL_THEME_IDS, ALL_THEME_IDS, THEME_PRESETS, BLOCK_KINDS, defaultPageBlock, applyThemePreset, sanitizeSiteContent, safeEditorLink,
 } from '../../shared/siteEditor';
 import type { CategoryCardConfig, FontId, SectionId, SiteContent, PageBlock, BlockKind, ThemeId, EffectShape, SeasonalThemeId, SeasonalOffer } from '../../shared/siteEditor';
-import { apiGetSiteEditor, apiSaveSiteEditorDraft, apiPublishSiteEditor, apiGetPublishedSiteContent } from '../services/api';
+import { apiGetSiteEditor, apiSaveSiteEditorDraft, apiPublishSiteEditor, apiGetPublishedSiteContent, apiCleanupUnusedImage } from '../services/api';
 import type { SiteEditorPayload } from '../services/api';
 import { uploadImageToCloudinary } from '../services/cloudinary';
 
-type Panel = 'hero' | 'valentines' | 'text' | 'collections' | 'appearance' | 'sections' | 'seo' | 'history' | 'themes' | 'effects' | 'blocks' | 'branding' | 'offers';
+type Panel = 'hero' | 'banner' | 'theme-detail' | 'valentines' | 'text' | 'collections' | 'appearance' | 'sections' | 'seo' | 'history' | 'themes' | 'effects' | 'blocks' | 'branding' | 'offers';
 type Device = 'desktop' | 'tablet' | 'phone';
 const labels: Record<string, string> = {
   hero: 'Hero', collections: 'Collections', shop: 'Shop catalog',
@@ -43,12 +44,14 @@ export default function SiteEditor({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [panel, setPanel] = useState<Panel>('hero');
+  const [panel, setPanel] = useState<Panel>('themes');
   const [selectedCategory, setSelectedCategory] = useState<string>(DEFAULT_CATEGORIES[0]);
   const [selectedBlock, setSelectedBlock] = useState<string>('');
   const [device, setDevice] = useState<Device>('phone');
   const [offerTheme, setOfferTheme] = useState<SeasonalThemeId>('valentines');
   const [photoTheme, setPhotoTheme] = useState<ThemeId>('default');
+  const [bannerTheme, setBannerTheme] = useState<ThemeId>('default');
+  const deferredCleanup = useRef<string[]>([]);
   const [heroAssetInfo, setHeroAssetInfo] = useState<{ url: string; width: number; height: number } | null>(null);
   const [showPreview, setShowPreview] = useState(true);
 
@@ -61,6 +64,7 @@ export default function SiteEditor({
       setRevision(result.revision);
       setDraft(result.draft);
       setPhotoTheme(result.draft.theme);
+      setBannerTheme(result.draft.theme);
       setLastSaved(result.draft);
       setDirty(false);
     } catch (err: any) { setError(err?.message || 'Could not load the editor.'); }
@@ -199,6 +203,11 @@ export default function SiteEditor({
       onPublished(liveContent);
       setDirty(false);
       setNotice('Published and verified. Open the storefront to see your changes.');
+      // Reference-safe cleanup is best effort and cannot undo a successful publish.
+      const oldPhotos = [...new Set(deferredCleanup.current)];
+      deferredCleanup.current = [];
+      void Promise.allSettled(oldPhotos.map(url => apiCleanupUnusedImage(url)));
+
       // Refresh history opportunistically; a temporary admin read failure must
       // not undo an otherwise successful publish.
       try {
@@ -227,6 +236,13 @@ export default function SiteEditor({
     } catch (err: any) { setError(err?.message || 'Could not upload this category photo.'); }
     finally { setUploadingKey(null); }
   };
+  const rememberSuperseded = (previous: string | undefined, current: string) => {
+    // Never destroy old media on draft changes. Keep originals available to live
+    // pages until publish and all rollback references have expired.
+    if (previous && previous !== current && !deferredCleanup.current.includes(previous)) {
+      deferredCleanup.current.push(previous);
+    }
+  };
   const uploadThemePhoto = async (id: ThemeId, file?: File) => {
     if (!file) return;
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
@@ -235,11 +251,13 @@ export default function SiteEditor({
     setUploadingKey('theme-' + id); setError(''); setNotice('');
     try {
       const upload = await uploadImageToCloudinary(file, 'jame_bouquets_themes');
+      rememberSuperseded(draft.themeMedia[id], upload.url);
       update(prev => ({ ...prev, themeMedia: { ...prev.themeMedia, [id]: upload.url } }));
       if (upload.width && upload.height) {
         setHeroAssetInfo({ url: upload.url, width: upload.width, height: upload.height });
       }
-      setNotice(upload.width && upload.width < 2000 && id === 'valentines'
+      setNotice(upload.reused ? 'This image was already saved in Cloudinary. Reused the existing asset without a duplicate upload.' :
+        upload.width && upload.width < 2000 && id === 'valentines'
         ? 'Uploaded, but this photo may be soft on large screens. For the sharpest Valentine hero, upload an original at least 2400 pixels wide before publishing.'
         : 'Hero background uploaded to Cloudinary. Preview, then Publish to show customers.');
     } catch (err: any) {
@@ -254,8 +272,9 @@ export default function SiteEditor({
     setUploadingKey('val-' + field); setError(''); setNotice('');
     try {
       const uploaded = await uploadImageToCloudinary(file, 'jame_bouquets_themes');
+      rememberSuperseded(draft.valentines[field], uploaded.url);
       update(prev => ({ ...prev, valentines: { ...prev.valentines, [field]: uploaded.url } }));
-      setNotice('Uploaded to Cloudinary. Preview your changes and publish when ready.');
+      setNotice(uploaded.reused ? 'Already in Cloudinary — reused the existing image.' : 'Uploaded to Cloudinary. Preview your changes and publish when ready.');
     } catch (err: any) {
       setError(err?.message || 'Could not upload the Valentine image.');
     } finally { setUploadingKey(null); }
@@ -409,19 +428,21 @@ export default function SiteEditor({
         <aside className="flex flex-col border-r border-stone-200 bg-white xl:max-h-[calc(100vh-73px)]">
           <nav className="flex gap-1 overflow-x-auto border-b border-stone-200 p-3" aria-label="Editor panels">
             {([
-              ['hero', ImageIcon, 'Hero Background'],
-              ...(draft.theme === 'valentines' ? [['valentines', Heart, 'Valentine Studio'] as const] : []),
               ['themes', Palette, 'Themes'],
-              ['offers', BadgePercent, 'Offers'],
-              ['blocks', Layers3, 'Build'],
-              ['effects', Sparkles, 'Motion'],
-              ['branding', Settings2, 'Header/Footer'],
+              ['hero', ImageIcon, 'Hero Photos'],
+              ['banner', BadgePercent, 'Banner'],
+              ['theme-detail', Settings2, 'Theme Details'],
+              ...(draft.theme === 'valentines' ? [['valentines', Heart, 'Valentine Studio'] as const] : []),
+              ['offers', BadgePercent, 'Coupon Offers'],
+              ['blocks', Layers3, 'Sections'],
+              ['effects', Sparkles, 'Effects'],
+              ['branding', Settings2, 'Identity'],
               ['text', Type, 'Text'],
               ['collections', LayoutGrid, 'Collections'],
               ['appearance', Settings2, 'Style'],
               ['sections', Eye, 'Sections'],
               ['seo', Type, 'SEO'],
-              ['history', RotateCcw, 'History'],
+              ['history', RotateCcw, 'Versions'],
             ] as const).map(([id, Icon, label]) => (
               <button type="button" key={id} onClick={() => setPanel(id)}
                 className={`flex shrink-0 flex-col items-center gap-1 px-2.5 py-2 text-[10px] font-medium ${panel === id ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'}`}>
