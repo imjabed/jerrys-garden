@@ -66,9 +66,9 @@ export default function Navbar({
               <path d="M59 24 Q76 33 65 44 Q47 40 59 24Z" fill="#EBA9A8" opacity=".85"/>
             </svg>
           )}
-          {theme === 'puja' && <><span className="jb-nav-ornament jb-nav-ornament-a">🌼</span><span className="jb-nav-ornament jb-nav-ornament-b">🪔</span></>}
-          {theme === 'eid' && <><span className="jb-nav-ornament jb-nav-ornament-a">☾</span><span className="jb-nav-ornament jb-nav-ornament-b">🏮</span></>}
-          {theme === 'winter' && <><span className="jb-nav-ornament jb-nav-ornament-a">❄</span><span className="jb-nav-ornament jb-nav-ornament-b">🎄</span></>}
+          {theme === 'puja' && <><span className="jb-nav-ornament jb-nav-ornament-a">✳</span><span className="jb-nav-ornament jb-nav-ornament-b">✦</span></>}
+          {theme === 'eid' && <><span className="jb-nav-ornament jb-nav-ornament-a">☾</span><span className="jb-nav-ornament jb-nav-ornament-b">✦</span></>}
+          {theme === 'winter' && <><span className="jb-nav-ornament jb-nav-ornament-a">❄</span><span className="jb-nav-ornament jb-nav-ornament-b">✧</span></>}
         </div>
       )}
       <div className="relative max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
