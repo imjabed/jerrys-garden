@@ -654,6 +654,7 @@ export default function App() {
               <Hero key={id}
                 content={siteContent.theme === 'valentines' ? siteContent.valentines.hero : siteContent.hero} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects} theme={siteContent.theme}
                 photoUrl={siteContent.themeMedia[siteContent.theme]}
+                mobilePhotoUrl={siteContent.theme === 'valentines' ? siteContent.valentines.heroMobileImageUrl : ''}
                 imagePosition={siteContent.heroImagePosition[siteContent.theme]}
                 offer={siteContent.theme === 'default' ? undefined : siteContent.offers[siteContent.theme]}
                 onExploreClick={() => scrollToSection('shop-section')}
