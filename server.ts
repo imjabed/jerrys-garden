@@ -405,16 +405,26 @@ async function startServer() {
       if (image.length > 7 * 1024 * 1024) return res.status(413).json({ success: false, error: 'Image is too large. Maximum size is 5 MB.' });
       if (!/^data:image\/(jpeg|jpg|png|webp);base64,/i.test(image)) return res.status(400).json({ success: false, error: 'Only JPEG, PNG and WebP images are allowed.' });
 
+      const managedFolder = folder === 'jame_bouquets_branding' ? 'jame_bouquets_branding'
+        : folder === 'jame_bouquets_collections' ? 'jame_bouquets_collections'
+        : folder === 'jame_bouquets_themes' ? 'jame_bouquets_themes'
+        : 'jerrys_garden_bouquets';
+      const payload = image.split(',')[1] || '';
+      const bytes = Buffer.from(payload, 'base64');
+      if (!bytes.length || bytes.length > 5 * 1024 * 1024) {
+        return res.status(413).json({ success: false, error: 'Invalid image or image exceeds 5 MB.' });
+      }
+      // Content-based IDs make repeated uploads of exactly the same image
+      // idempotent, even if renamed locally or used in several editor slots.
+      // Never overwrite an asset that might be referenced by live pages/history.
+      const digest = crypto.createHash('sha256').update(bytes).digest('hex');
       const uploadResponse = await cloudinary.uploader.upload(image, {
-        // Only allow predefined storage folders; never trust arbitrary folder paths.
-        folder: folder === 'jame_bouquets_branding' ? 'jame_bouquets_branding'
-          : folder === 'jame_bouquets_collections' ? 'jame_bouquets_collections'
-          : folder === 'jame_bouquets_themes' ? 'jame_bouquets_themes'
-          : 'jerrys_garden_bouquets',
+        folder: managedFolder,
+        public_id: `jb_${digest.slice(0, 44)}`,
+        unique_filename: false,
+        overwrite: false,
         resource_type: 'image',
       });
-
-      console.log('Successfully uploaded image to Cloudinary:', uploadResponse.secure_url);
 
       return res.json({
         success: true,
@@ -423,6 +433,7 @@ async function startServer() {
         width: uploadResponse.width,
         height: uploadResponse.height,
         format: uploadResponse.format,
+        reused: uploadResponse.existing === true,
       });
     } catch (error: any) {
       console.error('Cloudinary upload error:', error);
@@ -433,9 +444,11 @@ async function startServer() {
     }
   });
 
-  // Only delete assets uploaded into this project's two managed Cloudinary folders.
-  // External URLs, arbitrary Cloudinary IDs, and shared images are never destroyed.
-  function managedCloudinaryId(imageUrl: unknown, expectedFolder: 'jerrys_garden_bouquets' | 'jame_bouquets_branding' | 'jame_bouquets_collections' | 'jame_bouquets_collections'): string | null {
+  // Managed assets are never deleted while any draft, public page or
+  // rollback version still references them.
+  type ManagedFolder = 'jerrys_garden_bouquets' | 'jame_bouquets_branding'
+    | 'jame_bouquets_collections' | 'jame_bouquets_themes';
+  function managedCloudinaryId(imageUrl: unknown, expectedFolder: ManagedFolder): string | null {
     if (typeof imageUrl !== 'string' || !CLOUDINARY_CLOUD_NAME) return null;
     try {
       const url = new URL(imageUrl);
@@ -455,7 +468,7 @@ async function startServer() {
 
   async function cleanupUnreferencedCloudinaryImage(
     imageUrl: unknown,
-    folder: 'jerrys_garden_bouquets' | 'jame_bouquets_branding'
+    folder: ManagedFolder
   ): Promise<{ status: 'deleted' | 'skipped' | 'failed'; warning?: string }> {
     const publicId = managedCloudinaryId(imageUrl, folder);
     if (!publicId) return { status: 'skipped' };
@@ -479,7 +492,14 @@ async function startServer() {
             managedCloudinaryId(block.imageUrl, folder) === publicId
             || (Array.isArray(block.images)
               && block.images.some((url: string) => managedCloudinaryId(url, folder) === publicId)));
-        return usesCollectionCover || usesPageBlock;
+        const allMedia = [
+          ...Object.values(config?.themeMedia || {}),
+          ...Object.values(config?.valentines || {}).filter((v: any) => typeof v === 'string'),
+          ...Object.values(config?.themeBanners || {}).map((b: any) => b?.imageUrl),
+          ...Object.values(config?.themeExtras || {}).flatMap((p: any) => [p?.customImageUrl, p?.footerSceneUrl]),
+        ];
+        return usesCollectionCover || usesPageBlock
+          || allMedia.some(url => managedCloudinaryId(url, folder) === publicId);
       };
       if (siteContent && (
         usesImage(siteContent.draft) || usesImage(siteContent.published) ||
@@ -497,6 +517,21 @@ async function startServer() {
       return { status: 'failed', warning: 'The old Cloudinary image could not be deleted. Check server logs.' };
     }
   }
+
+  // A safe owner-only cleanup route for assets removed from their editor slot.
+  // A referenced photo (including a rollback) is deliberately retained.
+  app.post('/api/admin/media/cleanup', requireOwner, requireClientHeader, async (req, res) => {
+    const url = req.body?.url;
+    const folders: ManagedFolder[] = [
+      'jame_bouquets_themes', 'jame_bouquets_collections',
+      'jame_bouquets_branding', 'jerrys_garden_bouquets',
+    ];
+    const folder = folders.find(name => Boolean(managedCloudinaryId(url, name)));
+    if (!folder) return res.status(400).json({ success: false, error: 'Not a managed Cloudinary image.' });
+    const result = await cleanupUnreferencedCloudinaryImage(url, folder);
+    if (result.status === 'failed') return res.status(503).json({ success: false, ...result });
+    return res.json({ success: true, ...result });
+  });
 
   // Owner authentication
   app.post('/api/admin/login', requireClientHeader, (req, res) => {
