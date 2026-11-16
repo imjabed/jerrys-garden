@@ -61,6 +61,31 @@ export const DEFAULT_VALENTINES_DESIGN: ValentinesDesign = {
     silhouette: '#4B1024',
   },
 };
+export interface ThemeBanner {
+  enabled: boolean;
+  eyebrow: string;
+  text: string;
+  buttonText: string;
+  link: string;
+  background: string;
+  textColor: string;
+  accentColor: string;
+  imageUrl: string;
+  imageOpacity: number;
+}
+export interface ThemeExtras {
+  customImageUrl: string;
+  customImagePosition: number;
+  customOverlay: number;
+  footerSceneUrl: string;
+  footerSceneEnabled: boolean;
+  footerSceneColor: string;
+  footerTagline: string;
+  navBackground: string;
+  navText: string;
+  navAccent: string;
+}
+export type ThemeCopy = Pick<SiteContent, 'hero' | 'custom' | 'story' | 'footer'>;
 export interface SeasonalOffer {
   enabled: boolean;
   percent: number;
@@ -147,9 +172,27 @@ export const THEME_PRESETS: ThemePreset[] = [
 ];
 export function applyThemePreset(current: SiteContent, id: ThemeId): SiteContent {
   const preset = THEME_PRESETS.find(x => x.id === id) || THEME_PRESETS[0];
+  const themeAppearance = {
+    ...current.themeAppearance, [current.theme]: { ...current.appearance },
+  };
+  const themeCopy = {
+    ...current.themeCopy,
+    [current.theme]: {
+      hero: { ...current.hero }, custom: { ...current.custom },
+      story: { ...current.story }, footer: { ...current.footer },
+    },
+  };
+  const targetStyle = themeAppearance[preset.id] || {
+    ...current.appearance, ...preset.appearance,
+  };
+  const targetCopy = themeCopy[preset.id] || {
+    hero: current.hero, custom: current.custom, story: current.story, footer: current.footer,
+  };
   return {
-    ...current, theme: preset.id,
-    appearance: { ...current.appearance, ...preset.appearance },
+    ...current, theme: preset.id, themeAppearance, themeCopy,
+    appearance: { ...targetStyle },
+    hero: { ...targetCopy.hero }, custom: { ...targetCopy.custom },
+    story: { ...targetCopy.story }, footer: { ...targetCopy.footer },
     collections: { ...current.collections, background: preset.collectionBg, text: preset.collectionText },
     effects: { ...current.effects, shape: preset.effect,
       enabled: preset.id !== 'default',
@@ -211,6 +254,10 @@ export interface SiteContent {
   heroImagePosition: Record<ThemeId, number>;
   offers: Record<SeasonalThemeId, SeasonalOffer>;
   valentines: ValentinesDesign;
+  themeBanners: Record<ThemeId, ThemeBanner>;
+  themeExtras: Record<ThemeId, ThemeExtras>;
+  themeAppearance: Record<ThemeId, SiteContent['appearance']>;
+  themeCopy: Record<ThemeId, ThemeCopy>;
   effects: PageEffects;
   blocks: PageBlock[];
   announcement: { enabled: boolean; text: string; link: string; background: string; textColor: string };
@@ -260,9 +307,68 @@ export const DEFAULT_CATEGORIES = [
   'Ribbon Bouquets', 'Pipecleaner Bouquets', 'Bouquet Keychains',
   'Pipecleaner Keychains', 'Gift Combos',
 ];
+const MASTER_COPY = {
+  hero: {
+    eyebrow: 'Jame Bouquets · Handmade Gifts',
+    heading: 'Beautifully made.', accentLine: 'Forever kept.',
+    description: 'Thoughtful bouquets and little keepsakes, handcrafted for the moments that matter.',
+    button: 'Explore the collection',
+  },
+  custom: {
+    eyebrow: 'Your celebration, your bouquet', heading: 'Made for', accentLine: 'your moment.',
+    description: 'Weddings, anniversaries, birthdays and everything worth celebrating. Choose the details; our team will bring them together.',
+    button: 'Create a Custom Order',
+  },
+  story: {
+    eyebrow: 'The Jame Atelier', heading: 'Small gestures.', accentLine: 'Lasting memories.',
+    description: 'From bouquets to little keychain keepsakes, each piece is carefully made by hand and thoughtfully prepared for gifting.',
+  },
+  footer: {
+    description: 'Handmade bouquets, keepsakes, keychains & gifts. Thoughtfully crafted in Berhampore.',
+    orderNote: 'Order online · We confirm by phone',
+  },
+} satisfies ThemeCopy;
+const defaultThemeAppearance = () => Object.fromEntries(THEME_PRESETS.map(p => [p.id, {
+  ...p.appearance, headingScale: 1, bodyScale: 1,
+}])) as Record<ThemeId, SiteContent['appearance']>;
+const defaultThemeExtras = () => Object.fromEntries(THEME_PRESETS.map(p => [p.id, {
+  customImageUrl: '', customImagePosition: 60, customOverlay: .72,
+  footerSceneUrl: '', footerSceneEnabled: p.id !== 'default',
+  footerSceneColor: p.id === 'winter' ? '#071729' : p.id === 'eid' ? '#072E27'
+    : p.id === 'puja' ? '#691318' : p.id === 'valentines' ? '#4B1024' : '#292524',
+  footerTagline: p.id === 'winter' ? 'A little wonder in every gift.'
+    : p.id === 'eid' ? 'Celebrate generosity. Keep the joy.'
+    : p.id === 'puja' ? 'Handcrafted for the moments we cherish.'
+    : p.id === 'valentines' ? 'The loveliest moments deserve to last.' : '',
+  navBackground: p.id === 'winter' ? '#07192C' : p.id === 'eid' ? '#0C3C30'
+    : p.id === 'puja' ? '#7C151A' : p.id === 'valentines' ? '#570D1E' : '#FAF8F5',
+  navText: p.id === 'default' ? '#292524' : '#FFF8F0',
+  navAccent: p.id === 'winter' ? '#DAB973' : p.id === 'eid' ? '#D8BD79'
+    : p.id === 'puja' ? '#F3C079' : '#F2B7BD',
+}])) as Record<ThemeId, ThemeExtras>;
+const defaultThemeBanners = () => Object.fromEntries(THEME_PRESETS.map(p => [p.id, {
+  enabled: p.id !== 'default',
+  eyebrow: p.id === 'default' ? 'JAME BOUQUETS' : 'A SEASON TO REMEMBER',
+  text: p.id === 'valentines' ? 'A little love in every handmade gift.'
+    : p.id === 'winter' ? 'Made for warm hearts and winter celebrations.'
+    : p.id === 'eid' ? 'Celebrate togetherness with thoughtful gifts.'
+    : p.id === 'puja' ? 'Share the joy of Puja with something handmade.'
+    : 'Thoughtful gifts for extraordinary moments.',
+  buttonText: 'Explore gifts', link: '#shop-section',
+  background: p.id === 'winter' ? '#0E2A41' : p.id === 'eid' ? '#154638'
+    : p.id === 'puja' ? '#901A1A' : p.id === 'valentines' ? '#73112C' : '#292524',
+  textColor: '#FFF8F0', accentColor: '#F3CF9D', imageUrl: '', imageOpacity: .26,
+}])) as Record<ThemeId, ThemeBanner>;
 export const DEFAULT_SITE_CONTENT: SiteContent = {
   theme: 'default',
   valentines: DEFAULT_VALENTINES_DESIGN,
+  themeBanners: defaultThemeBanners(),
+  themeExtras: defaultThemeExtras(),
+  themeAppearance: defaultThemeAppearance(),
+  themeCopy: Object.fromEntries(ALL_THEME_IDS.map(id => [id, {
+    hero: { ...MASTER_COPY.hero }, custom: { ...MASTER_COPY.custom },
+    story: { ...MASTER_COPY.story }, footer: { ...MASTER_COPY.footer },
+  }])) as Record<ThemeId, ThemeCopy>,
   themeMedia: { default: '', valentines: '', puja: '', winter: '', eid: '' },
   heroImagePosition: { default: 50, valentines: 76, puja: 76, winter: 76, eid: 76 },
   offers: {
@@ -445,9 +551,44 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
         .map(key => [key, hex(val.colors?.[key], vd.colors[key])]),
     ) as ValentinesDesign['colors'],
   };
+  const themeBanners = Object.fromEntries(ALL_THEME_IDS.map(id => {
+    const source = raw.themeBanners?.[id];
+    const fallback = d.themeBanners[id];
+    return [id, {
+      enabled: source?.enabled === undefined ? fallback.enabled : source.enabled === true,
+      eyebrow: fieldText(source, 'eyebrow', fallback.eyebrow, 80),
+      text: fieldText(source, 'text', fallback.text, 220),
+      buttonText: fieldText(source, 'buttonText', fallback.buttonText, 70),
+      link: safeEditorLink(source?.link ?? fallback.link),
+      background: hex(source?.background, fallback.background),
+      textColor: hex(source?.textColor, fallback.textColor),
+      accentColor: hex(source?.accentColor, fallback.accentColor),
+      imageUrl: safeEditorImage(source?.imageUrl),
+      imageOpacity: numberRange(source?.imageOpacity, fallback.imageOpacity, 0, 0.75),
+    }];
+  })) as SiteContent['themeBanners'];
+  const themeExtras = Object.fromEntries(ALL_THEME_IDS.map(id => {
+    const source = raw.themeExtras?.[id];
+    const fallback = d.themeExtras[id];
+    return [id, {
+      customImageUrl: safeEditorImage(source?.customImageUrl),
+      customImagePosition: numberRange(source?.customImagePosition, fallback.customImagePosition, 0, 100),
+      customOverlay: numberRange(source?.customOverlay, fallback.customOverlay, .15, .95),
+      footerSceneUrl: safeEditorImage(source?.footerSceneUrl),
+      footerSceneEnabled: source?.footerSceneEnabled === undefined ? fallback.footerSceneEnabled : source.footerSceneEnabled === true,
+      footerSceneColor: hex(source?.footerSceneColor, fallback.footerSceneColor),
+      footerTagline: fieldText(source, 'footerTagline', fallback.footerTagline, 150),
+      navBackground: hex(source?.navBackground, fallback.navBackground),
+      navText: hex(source?.navText, fallback.navText),
+      navAccent: hex(source?.navAccent, fallback.navAccent),
+    }];
+  })) as SiteContent['themeExtras'];
   const fx = raw.effects || {};
-  return {
+  const content: SiteContent = {
     theme, themeMedia, heroImagePosition, offers, valentines,
+    themeBanners, themeExtras,
+    themeAppearance: {} as SiteContent['themeAppearance'],
+    themeCopy: {} as SiteContent['themeCopy'],
     blocks,
     announcement: {
       enabled: raw.announcement?.enabled === true,
@@ -534,4 +675,46 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
     },
     sections: { order, visible },
   };
+  const parseAppearance = (candidate: any, fallback: SiteContent['appearance']): SiteContent['appearance'] => ({
+    headingFont: font(candidate?.headingFont, fallback.headingFont),
+    bodyFont: font(candidate?.bodyFont, fallback.bodyFont),
+    headingScale: numberRange(candidate?.headingScale, fallback.headingScale, .75, 1.4),
+    bodyScale: numberRange(candidate?.bodyScale, fallback.bodyScale, .85, 1.25),
+    background: hex(candidate?.background, fallback.background),
+    text: hex(candidate?.text, fallback.text),
+    accent: hex(candidate?.accent, fallback.accent),
+    button: hex(candidate?.button, fallback.button),
+    buttonText: hex(candidate?.buttonText, fallback.buttonText),
+    heroBackground: hex(candidate?.heroBackground, fallback.heroBackground),
+    storyBackground: hex(candidate?.storyBackground, fallback.storyBackground),
+    customBackground: hex(candidate?.customBackground, fallback.customBackground),
+    footerBackground: hex(candidate?.footerBackground, fallback.footerBackground),
+  });
+  for (const id of ALL_THEME_IDS) {
+    const preset = d.themeAppearance[id];
+    content.themeAppearance[id] = parseAppearance(
+      raw.themeAppearance?.[id], preset,
+    );
+    const source = raw.themeCopy?.[id];
+    const fallback = d.themeCopy[id];
+    content.themeCopy[id] = {
+      hero: Object.fromEntries((Object.keys(fallback.hero) as Array<keyof SiteContent['hero']>)
+        .map(key => [key, fieldText(source?.hero, key, fallback.hero[key], key === 'description' ? 350 : 140)])) as SiteContent['hero'],
+      custom: Object.fromEntries((Object.keys(fallback.custom) as Array<keyof SiteContent['custom']>)
+        .map(key => [key, fieldText(source?.custom, key, fallback.custom[key], key === 'description' ? 350 : 140)])) as SiteContent['custom'],
+      story: Object.fromEntries((Object.keys(fallback.story) as Array<keyof SiteContent['story']>)
+        .map(key => [key, fieldText(source?.story, key, fallback.story[key], key === 'description' ? 350 : 140)])) as SiteContent['story'],
+      footer: {
+        description: fieldText(source?.footer, 'description', fallback.footer.description, 350),
+        orderNote: fieldText(source?.footer, 'orderNote', fallback.footer.orderNote, 130),
+      },
+    };
+  }
+  // Keep the currently active theme's editor edits across reload and preset switches.
+  content.themeAppearance[theme] = content.appearance;
+  content.themeCopy[theme] = {
+    hero: { ...content.hero }, custom: { ...content.custom },
+    story: { ...content.story }, footer: { ...content.footer },
+  };
+  return content;
 }
