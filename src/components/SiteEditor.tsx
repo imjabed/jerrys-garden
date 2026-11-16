@@ -1708,25 +1708,41 @@ export default function SiteEditor({
                   </div>
                 ) : null;
               })}
-              <div className={`jb-footer-surface text-xs text-white ${draft.theme === 'valentines' ? 'jb-valentine-footer' : ''}`}>
-                {draft.theme === 'valentines' && draft.valentines.footerSceneEnabled && (
-                  <div className="jb-valentine-scene relative isolate overflow-hidden" aria-hidden="true">
-                    <div className="jb-valentine-sunset absolute inset-0"/>
-                    <div className="jb-valentine-garden absolute inset-0" style={{
-                      maskImage: `url("${draft.valentines.footerSceneUrl || '/valentines/park-couple-silhouette.svg'}")`,
-                      WebkitMaskImage: `url("${draft.valentines.footerSceneUrl || '/valentines/park-couple-silhouette.svg'}")`,
-                    }}/>
-                  </div>
-                )}
-                <div className="px-5 py-7">
-                  {draft.theme === 'valentines' && (
-                    <p className="mb-5 font-serif text-lg italic">{draft.valentines.footerTagline}</p>
+              {(() => {
+                const id = draft.theme;
+                const extras = draft.themeExtras[id];
+                const val = id === 'valentines';
+                const sceneEnabled = extras.footerSceneEnabled && (!val || draft.valentines.footerSceneEnabled);
+                const presetScene = id === 'valentines' ? '/valentines/park-couple-silhouette.svg'
+                  : id === 'winter' ? '/seasonal/winter-night-silhouette.svg'
+                  : id === 'eid' ? '/seasonal/eid-moonlit-mosque.svg'
+                  : id === 'puja' ? '/seasonal/puja-bengali-pandal.svg' : '';
+                const scene = val ? (draft.valentines.footerSceneUrl || extras.footerSceneUrl || presetScene)
+                  : (extras.footerSceneUrl || presetScene);
+                return <footer className="jb-footer-surface text-xs text-white">
+                  {sceneEnabled && scene && (
+                    <div className={`jb-festival-scene relative overflow-hidden jb-footer-scene-${id}`} aria-hidden="true">
+                      <div className="jb-festival-sky absolute inset-0"/>
+                      <div className="jb-festival-silhouette absolute inset-0" style={{
+                        backgroundColor: val ? draft.valentines.colors.silhouette : extras.footerSceneColor,
+                        maskImage: `url("${scene}")`, WebkitMaskImage: `url("${scene}")`,
+                      }}/>
+                    </div>
                   )}
-                  <p className="font-serif text-lg">Jame Bouquets</p>
-                  <p className="mt-3 opacity-75">{draft.theme === 'valentines' ? draft.valentines.footerDescription : draft.footer.description}</p>
-                  <p className="mt-2 opacity-65">{draft.theme === 'valentines' ? draft.valentines.footerOrderNote : draft.footer.orderNote}</p>
-                </div>
-              </div>
+                  <div className="px-5 py-7">
+                    {(val ? draft.valentines.footerTagline : extras.footerTagline) && (
+                      <p className="mb-4 font-serif text-lg italic">
+                        {val ? draft.valentines.footerTagline : extras.footerTagline}
+                      </p>
+                    )}
+                    <p className="font-serif text-lg">Jame Bouquets</p>
+                    <p className="mt-3 opacity-75">{val ? draft.valentines.footerDescription : draft.footer.description}</p>
+                    <p className="mt-2 opacity-65">{val ? draft.valentines.footerOrderNote : draft.footer.orderNote}</p>
+                    <button type="button" className="mt-3 border-b border-white/50 pb-1 text-[10px] font-semibold"
+                      onClick={() => setPanel(val ? 'valentines' : 'theme-detail')}>Edit footer scene</button>
+                  </div>
+                </footer>;
+              })()}
             </div>
           </div>
           <p className="mt-4 text-center text-xs text-stone-500">Preview sizes are approximate. Verify the published design on a real phone before launch.</p>
