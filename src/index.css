@@ -788,3 +788,389 @@
 @media(prefers-reduced-motion:reduce) {
   .jb-hero-photo.jb-hero-photo-parallax { transform:none !important; }
 }
+
+
+/* =======================================================================
+   JAME BOUQUETS — VALENTINE MAISON
+   A restrained burgundy/pearl luxury treatment.
+   Strictly scoped: no impact on Default, Puja, Winter or Eid.
+   All colour tokens are controlled by Admin → Valentine Studio.
+   ======================================================================= */
+.site-shell[data-site-theme="valentines"] {
+  --site-background: var(--val-page-bg, #FFF6F2);
+  --site-text: var(--val-hero-text, #3D1220);
+  --site-accent: var(--val-hero-accent, #B62445);
+  --site-button: var(--val-button-bg, #80112E);
+  --site-button-text: var(--val-button-text, #FFF7F2);
+  --site-custom-bg: #6D102B;
+  --site-footer-bg: var(--val-footer-bg, #4B1024);
+  background: var(--val-page-bg, #FFF6F2) !important;
+  color: var(--val-hero-text, #3D1220);
+}
+.site-shell[data-site-theme="valentines"] .jb-nav-surface {
+  background: linear-gradient(105deg,
+    color-mix(in srgb,var(--val-nav-bg) 90%,#17030A) 0%,
+    var(--val-nav-bg) 48%,
+    color-mix(in srgb,var(--val-nav-bg) 87%,#260610) 100%) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--val-nav-accent) 58%, transparent) !important;
+  box-shadow: 0 7px 25px rgba(50,5,21,.18) !important;
+  color: var(--val-nav-text);
+}
+.site-shell[data-site-theme="valentines"] .jb-nav-brand .font-serif,
+.site-shell[data-site-theme="valentines"] .jb-nav-brand .text-stone-900,
+.site-shell[data-site-theme="valentines"] .jb-nav-brand p {
+  color: var(--val-nav-text) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-nav-brand .bg-rose-50 {
+  color: var(--val-nav-accent) !important;
+  border-color: color-mix(in srgb,var(--val-nav-accent) 50%,transparent) !important;
+  background: rgba(255,247,243,.08) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-nav-inner nav button,
+.site-shell[data-site-theme="valentines"] .jb-nav-actions > div > button,
+.site-shell[data-site-theme="valentines"] #cart-btn,
+.site-shell[data-site-theme="valentines"] #quick-track-btn,
+.site-shell[data-site-theme="valentines"] #search-toggle-btn,
+.site-shell[data-site-theme="valentines"] #mobile-menu-toggle,
+.site-shell[data-site-theme="valentines"] #sign-in-btn {
+  color: var(--val-nav-text) !important;
+  border-color: color-mix(in srgb,var(--val-nav-accent) 45%,transparent);
+}
+.site-shell[data-site-theme="valentines"] .jb-nav-inner nav button:hover,
+.site-shell[data-site-theme="valentines"] #cart-btn:hover,
+.site-shell[data-site-theme="valentines"] #mobile-menu-toggle:hover,
+.site-shell[data-site-theme="valentines"] #search-toggle-btn:hover {
+  color: var(--val-nav-accent) !important;
+  background: rgba(255,246,241,.07);
+}
+.site-shell[data-site-theme="valentines"] .jb-nav-actions .bg-stone-100:not(input),
+.site-shell[data-site-theme="valentines"] #user-menu-btn {
+  color: var(--val-nav-text) !important;
+  background: rgba(255,246,241,.13) !important;
+}
+.site-shell[data-site-theme="valentines"] #user-menu-btn .bg-rose-200 {
+  background: var(--val-nav-accent); color: var(--val-nav-bg);
+}
+.site-shell[data-site-theme="valentines"] .jb-mobile-menu {
+  background: var(--val-nav-bg) !important;
+  color: var(--val-nav-text) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-mobile-menu > button,
+.site-shell[data-site-theme="valentines"] .jb-mobile-menu a {
+  color: var(--val-nav-text) !important;
+  border-color: rgba(255,229,219,.25) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-mobile-menu > button:hover {
+  color: var(--val-nav-accent) !important;
+  background: rgba(255,241,235,.05) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-nav-surface .jb-navbar-festive-details {
+  opacity: 1;
+}
+.jb-valentine-nav-ribbon {
+  position: absolute; height: 55px; width: 165px;
+  top: -12px; right: 12%; opacity: .28;
+  transform: rotate(-4deg);
+}
+.site-shell[data-site-theme="valentines"] .jb-valentine-preview-trim {
+  border-bottom: 1px solid var(--val-nav-accent);
+  background: linear-gradient(90deg,transparent 40%,rgba(255,240,236,.09) 100%);
+}
+
+/* Hero: photorealistic, editorial typography, not a playful animation layer. */
+.site-shell[data-site-theme="valentines"] .jb-hero-seasonal {
+  background-color: #F9E8E3;
+  min-height: 590px;
+}
+.site-shell[data-site-theme="valentines"] .jb-hero-seasonal-layout {
+  min-height: 640px !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-hero-seasonal .jb-hero-seasonal-copy {
+  max-width: 620px;
+  padding: 26px 0 !important;
+  background: none !important;
+  backdrop-filter: none !important;
+  text-shadow: none;
+}
+.site-shell[data-site-theme="valentines"] .jb-hero-seasonal .site-editable-heading {
+  color: var(--val-hero-text) !important;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+  max-width: 680px;
+}
+.site-shell[data-site-theme="valentines"] .jb-hero-seasonal .site-editable-heading em,
+.site-shell[data-site-theme="valentines"] .jb-hero-seasonal .site-editable-heading span.italic {
+  color: var(--val-hero-accent) !important;
+  letter-spacing: -.045em;
+}
+.site-shell[data-site-theme="valentines"] .jb-hero-seasonal .jb-hero-copy > p:first-child {
+  color: color-mix(in srgb,var(--val-hero-text) 83%,transparent) !important;
+  font-weight: 700;
+  letter-spacing: .22em;
+}
+.site-shell[data-site-theme="valentines"] .jb-hero-seasonal .site-body-copy {
+  color: var(--val-hero-text) !important;
+  opacity: .92;
+  max-width: 370px;
+  font-weight: 500;
+  line-height: 1.75;
+}
+.site-shell[data-site-theme="valentines"] .jb-hero-seasonal .jb-photo-readable {
+  background: linear-gradient(90deg,
+    rgba(255,245,240,.94) 0%, rgba(255,243,236,.84) 27%,
+    rgba(255,236,229,.52) 45%, rgba(255,240,234,.07) 70%, transparent 100%);
+}
+.site-shell[data-site-theme="valentines"] .jb-hero-seasonal .site-outline-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb,var(--val-button-bg) 85%,transparent) !important;
+  border-radius: 3px;
+  background: var(--val-button-bg) !important;
+  color: var(--val-button-text) !important;
+  min-height: 50px;
+  padding: 13px 22px !important;
+  font-size: .71rem;
+  letter-spacing: .13em;
+  box-shadow: 0 10px 26px rgba(96,16,42,.13);
+}
+.site-shell[data-site-theme="valentines"] .jb-hero-seasonal .site-outline-button:hover {
+  background: color-mix(in srgb,var(--val-button-bg) 87%,black) !important;
+  color: var(--val-button-text) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-hero-seasonal .site-outline-button svg {
+  color: var(--val-button-text) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-seasonal-offer {
+  background: rgba(255,248,245,.91);
+  border-color: color-mix(in srgb,var(--val-hero-accent) 40%,transparent);
+  border-left: 3px solid var(--val-hero-accent);
+  box-shadow: 0 14px 30px rgba(60,15,27,.1);
+}
+
+/* Valentine section hierarchy and product detail pages share the same palette. */
+.site-shell[data-site-theme="valentines"] .jb-atelier-section {
+  background: var(--val-nav-bg) !important;
+  border-top: 1px solid color-mix(in srgb,var(--val-nav-accent) 45%,transparent);
+  border-bottom: 1px solid color-mix(in srgb,var(--val-nav-accent) 30%,transparent);
+}
+.site-shell[data-site-theme="valentines"] .jb-atelier-content {
+  background: linear-gradient(115deg,var(--val-nav-bg),color-mix(in srgb,var(--val-nav-bg) 75%,black)) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-atelier-heading,
+.site-shell[data-site-theme="valentines"] .jb-collection-card {
+  color: var(--val-nav-text) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-collection-card {
+  border-color: color-mix(in srgb,var(--val-nav-accent) 45%,transparent) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-shop-section {
+  background: var(--val-page-bg) !important;
+  color: var(--val-hero-text) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-product-card {
+  background: var(--val-card-bg) !important;
+  border: 1px solid #F0D5D8;
+  box-shadow: 0 10px 26px rgba(76,15,34,.065) !important;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.site-shell[data-site-theme="valentines"] .jb-product-card .jb-view-product,
+.site-shell[data-site-theme="valentines"] .jb-order-submit,
+.site-shell[data-site-theme="valentines"] .site-primary-button {
+  background: var(--val-button-bg) !important;
+  color: var(--val-button-text) !important;
+  border-color: var(--val-button-bg) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-story-surface {
+  background: #F9E5E4 !important;
+  color: var(--val-hero-text);
+}
+.site-shell[data-site-theme="valentines"] #product-page {
+  background: var(--val-page-bg) !important;
+  color: var(--val-hero-text) !important;
+}
+.site-shell[data-site-theme="valentines"] #product-page .bg-white,
+.site-shell[data-site-theme="valentines"] #product-page .bg-\[\#FAF8F5\] {
+  background: var(--val-card-bg) !important;
+}
+.site-shell[data-site-theme="valentines"] #product-page .bg-stone-900 {
+  background: var(--val-button-bg) !important;
+  color: var(--val-button-text) !important;
+}
+.site-shell[data-site-theme="valentines"] #product-page .border-stone-900 {
+  border-color: var(--val-button-bg) !important;
+}
+.site-shell[data-site-theme="valentines"] :is(.jb-price-card, .jb-order-form-shell) {
+  border-color: #E9D4CF !important;
+  box-shadow: 0 16px 40px rgba(57,7,25,.12);
+}
+/* Any route that displays the full-screen customer checkout / sign-in dialog
+   receives the same quiet cream / burgundy accents. */
+.site-shell[data-site-theme="valentines"] [role="dialog"] .bg-stone-900,
+.site-shell[data-site-theme="valentines"] [aria-modal="true"] .bg-stone-900 {
+  background: var(--val-button-bg) !important;
+}
+.site-shell[data-site-theme="valentines"] [role="dialog"] input:focus,
+.site-shell[data-site-theme="valentines"] [role="dialog"] select:focus {
+  outline-color: var(--val-hero-accent);
+  border-color: var(--val-hero-accent);
+}
+
+/* Custom order: separate cinematic gifting photograph with a readable burgundy veil. */
+.site-shell[data-site-theme="valentines"] .jb-valentine-custom {
+  background: var(--val-nav-bg) !important;
+  color: var(--val-custom-text) !important;
+  border-color: color-mix(in srgb,var(--val-footer-accent) 38%,transparent) !important;
+}
+.jb-valentine-custom .jb-val-custom-photo-layer {
+  z-index: 0; overflow: hidden; background: var(--val-nav-bg);
+}
+.jb-valentine-custom .jb-val-custom-photo-shade {
+  background: linear-gradient(90deg,
+    rgba(63,8,26,.93) 0%,
+    rgba(66,10,30,var(--val-custom-overlay, .75)) 48%,
+    rgba(59,9,27,.44) 100%);
+}
+.site-shell[data-site-theme="valentines"] .jb-valentine-custom #custom-order-content > div:first-child > p,
+.site-shell[data-site-theme="valentines"] .jb-valentine-custom > div.relative > div.lg\:hidden > p,
+.site-shell[data-site-theme="valentines"] .jb-valentine-custom .site-editable-heading,
+.site-shell[data-site-theme="valentines"] .jb-valentine-custom .site-body-copy {
+  color: var(--val-custom-text) !important;
+  opacity: 1 !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-valentine-custom .jb-price-card .text-stone-500,
+.site-shell[data-site-theme="valentines"] .jb-valentine-custom .jb-price-card p,
+.site-shell[data-site-theme="valentines"] .jb-valentine-custom .jb-order-form-shell p {
+  color: #5A3B40 !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-valentine-custom .jb-price-card,
+.site-shell[data-site-theme="valentines"] .jb-valentine-custom .jb-order-form-shell {
+  background: rgba(255,250,246,.96) !important;
+  backdrop-filter: blur(5px);
+  color: #3C2330 !important;
+  border-radius: 7px;
+}
+.site-shell[data-site-theme="valentines"] .jb-valentine-custom .jb-order-form-shell .font-serif,
+.site-shell[data-site-theme="valentines"] .jb-valentine-custom .jb-price-card .font-serif {
+  color: #3C2330 !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-valentine-custom .site-primary-button {
+  border-radius: 4px;
+}
+
+/* The single-colour landscape joins the footer at the same floor line. */
+.site-shell[data-site-theme="valentines"] .jb-valentine-footer {
+  background: var(--val-footer-bg) !important;
+  border-top: none !important;
+  color: var(--val-footer-text);
+}
+.jb-valentine-scene {
+  height: clamp(155px, 19vw, 285px);
+  overflow: hidden;
+  background: linear-gradient(180deg,#E9AAA8 0%,#F8CFC0 60%,#F0A8A9 100%);
+  border-top: 1px solid #F9D7D0;
+}
+.jb-valentine-sunset {
+  z-index: 0;
+  background:
+    radial-gradient(circle at 59% 68%,
+      rgba(255,250,219,.96) 0 6.8%,rgba(255,241,213,.36) 7.1%,
+      transparent 22%),
+    radial-gradient(ellipse at 56% 100%, rgba(255,213,186,.9), transparent 60%);
+}
+.jb-valentine-garden {
+  z-index: 1;
+  background: var(--val-silhouette, #4B1024);
+  mask-position: center bottom; mask-size: cover; mask-repeat: no-repeat;
+  -webkit-mask-position: center bottom; -webkit-mask-size: cover; -webkit-mask-repeat: no-repeat;
+  transform-origin: center bottom;
+}
+.jb-valentine-scene-film {
+  z-index: 2;
+  background: linear-gradient(90deg,rgba(58,8,23,.035),transparent 40%,rgba(58,8,23,.05));
+  pointer-events: none;
+}
+.site-shell[data-site-theme="valentines"] .jb-valentine-footer-tagline {
+  color: var(--val-footer-accent);
+}
+.site-shell[data-site-theme="valentines"] .jb-valentine-footer h4,
+.site-shell[data-site-theme="valentines"] .jb-valentine-footer .text-white,
+.site-shell[data-site-theme="valentines"] .jb-valentine-footer .font-serif {
+  color: var(--val-footer-text) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-valentine-footer .text-stone-400,
+.site-shell[data-site-theme="valentines"] .jb-valentine-footer .text-stone-500,
+.site-shell[data-site-theme="valentines"] .jb-valentine-footer .text-stone-300 {
+  color: color-mix(in srgb,var(--val-footer-text) 78%,transparent) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-valentine-footer a:hover,
+.site-shell[data-site-theme="valentines"] .jb-valentine-footer button:hover {
+  color: var(--val-footer-accent) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-valentine-footer nav a {
+  border: 1px solid color-mix(in srgb,var(--val-footer-accent) 50%,transparent) !important;
+  border-radius: 999px;
+  color: var(--val-footer-text) !important;
+  background: rgba(255,245,235,.04);
+}
+.site-shell[data-site-theme="valentines"] .jb-valentine-footer nav a:hover {
+  background: rgba(255,236,230,.11);
+}
+
+/* Compact, touch-friendly Valentine layout with no floating emoji decorations. */
+@media(max-width:700px){
+  .jb-valentine-nav-ribbon { right:-24px; top:-8px; width:120px; opacity:.16; }
+  .site-shell[data-site-theme="valentines"] .jb-hero-seasonal-layout {
+    min-height: clamp(590px,86svh,785px) !important;
+    padding: 44px 20px 28px !important;
+    align-items: flex-start !important;
+  }
+  .site-shell[data-site-theme="valentines"] .jb-hero-seasonal .jb-hero-seasonal-copy {
+    padding: 0 !important;
+    max-width: min(100%,340px) !important;
+  }
+  .site-shell[data-site-theme="valentines"] .jb-hero-seasonal .jb-photo-readable {
+    background: linear-gradient(180deg,
+      rgba(255,246,241,.94) 0%, rgba(255,245,238,.82) 31%,
+      rgba(255,244,235,.29) 55%, transparent 82%);
+  }
+  .site-shell[data-site-theme="valentines"] .jb-hero-seasonal .site-editable-heading {
+    font-size: clamp(2.45rem,9.2vw,3.5rem) !important;
+  }
+  .site-shell[data-site-theme="valentines"] .jb-hero-seasonal .site-outline-button {
+    padding: 12px 16px !important;
+    min-height: 48px;
+    max-width: 100%;
+    font-size: 10px;
+  }
+  .site-shell[data-site-theme="valentines"] .jb-valentine-custom {
+    padding-top: 48px;
+    padding-bottom: 56px;
+  }
+  .jb-valentine-custom .jb-val-custom-photo-shade {
+    background: linear-gradient(180deg,
+      rgba(65,8,26,.89) 0%,rgba(65,8,26,.66) 50%,rgba(65,8,26,.78) 100%);
+  }
+  .jb-valentine-scene { height: 180px; }
+  .jb-valentine-garden { -webkit-mask-position: 58% bottom; mask-position: 58% bottom; }
+  .site-shell[data-site-theme="valentines"] .jb-valentine-footer-tagline {
+    padding-top: 28px; font-size: 1.1rem;
+  }
+}
+
+/* Preview is a narrow scroller even on a desktop screen. */
+.site-shell[data-site-theme="valentines"][data-editor-device="phone"] .jb-hero-seasonal .jb-photo-readable {
+  background: linear-gradient(180deg,
+    rgba(255,246,241,.94) 0%,rgba(255,245,238,.82) 31%,
+    rgba(255,244,235,.29) 55%,transparent 82%);
+}
+.site-shell[data-site-theme="valentines"][data-editor-device="phone"] .jb-hero-seasonal .jb-hero-seasonal-copy {
+  max-width: 320px !important;
+}
+@media(prefers-reduced-motion:reduce){
+  .site-shell[data-site-theme="valentines"] .jb-valentine-garden,
+  .site-shell[data-site-theme="valentines"] .jb-valentine-nav-ribbon {
+    animation: none !important;
+  }
+}
