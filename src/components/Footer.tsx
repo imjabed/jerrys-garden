@@ -3,7 +3,7 @@ import Logo from './Logo';
 import WhatsAppIcon from './WhatsAppIcon';
 import { StoreSettings } from '../types';
 import type { PolicyType } from './StorePolicies';
-import type { SiteContent } from '../../shared/siteEditor';
+import type { SiteContent, ThemeId, ValentinesDesign } from '../../shared/siteEditor';
 import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
 
 interface FooterProps {
@@ -15,6 +15,8 @@ interface FooterProps {
   onNavigateToShop: () => void;
   onOpenPolicy: (policy: PolicyType) => void;
   content?: SiteContent['footer'];
+  theme?: ThemeId;
+  valentines?: ValentinesDesign;
 }
 
 export default function Footer({
@@ -25,10 +27,30 @@ export default function Footer({
   onNavigateToShop,
   onOpenPolicy,
   content = DEFAULT_SITE_CONTENT.footer,
+  theme = 'default', valentines,
 }: FooterProps) {
+  const valentineMode = theme === 'valentines' && Boolean(valentines);
+  const footerContent = valentineMode && valentines
+    ? { description: valentines.footerDescription, orderNote: valentines.footerOrderNote }
+    : content;
   return (
-    <footer className="jb-footer-surface text-stone-300 border-t border-stone-800 pt-16 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <footer className={`jb-footer-surface text-stone-300 border-t border-stone-800 pb-12 ${valentineMode ? 'jb-valentine-footer' : 'pt-16'}`}>
+      {valentineMode && valentines?.footerSceneEnabled && (
+        <div className="jb-valentine-scene relative isolate overflow-hidden" aria-hidden="true">
+          <div className="jb-valentine-sunset absolute inset-0"/>
+          <div className="jb-valentine-garden absolute inset-0" style={{
+            maskImage: `url("${valentines.footerSceneUrl || '/valentines/park-couple-silhouette.svg'}")`,
+            WebkitMaskImage: `url("${valentines.footerSceneUrl || '/valentines/park-couple-silhouette.svg'}")`,
+          }}/>
+          <div className="jb-valentine-scene-film absolute inset-0"/>
+        </div>
+      )}
+      {valentineMode && valentines?.footerTagline && (
+        <p className="jb-valentine-footer-tagline mx-auto max-w-3xl px-6 pt-10 text-center font-serif text-lg italic tracking-wide sm:text-2xl">
+          {valentines.footerTagline}
+        </p>
+      )}
+      <div className={`relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${valentineMode ? 'pt-12 sm:pt-16' : ''}`}>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-stone-800">
           
@@ -39,10 +61,10 @@ export default function Footer({
             </div>
             
             <p className="text-xs text-stone-400 leading-relaxed">
-              {content.description}
+              {footerContent.description}
             </p>
 
-            <p className="text-[11px] tracking-wide text-stone-400">{content.orderNote}</p>
+            <p className="text-[11px] tracking-wide text-stone-400">{footerContent.orderNote}</p>
             <nav aria-label="Connect with Jame Bouquets" className="flex items-center gap-3 pt-3">
               <a href="https://www.instagram.com/jamebouquets" target="_blank" rel="noopener noreferrer"
                 aria-label="Follow Jame Bouquets on Instagram" title="Instagram"
