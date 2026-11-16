@@ -1174,3 +1174,48 @@
     animation: none !important;
   }
 }
+
+
+/* Consistent Valentine treatment for shopping bag, checkout, tracking, auth and policies. */
+.site-shell[data-site-theme="valentines"] .jb-customer-panel {
+  background-color: var(--val-card-bg, #FFF8F5) !important;
+  border: 1px solid #E6CBD0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 26px 90px rgba(43,4,20,.28) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-customer-panel .bg-gradient-to-r {
+  background: linear-gradient(105deg,#F9E5E3 0%,#FFF8F5 58%,#F9EDEC 100%) !important;
+  border-color: #E7C9CD !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-customer-panel .bg-stone-900,
+.site-shell[data-site-theme="valentines"] .jb-customer-panel .bg-rose-700 {
+  background: var(--val-button-bg) !important;
+  color: var(--val-button-text) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-customer-panel .text-rose-600,
+.site-shell[data-site-theme="valentines"] .jb-customer-panel .text-rose-700 {
+  color: var(--val-hero-accent) !important;
+}
+.site-shell[data-site-theme="valentines"] .jb-customer-panel button:focus-visible,
+.site-shell[data-site-theme="valentines"] .jb-customer-panel input:focus-visible {
+  outline: 2px solid var(--val-hero-accent);
+  outline-offset: 2px;
+}
+.site-shell[data-site-theme="valentines"] [aria-labelledby="customer-reviews-heading"] {
+  background: #F8EAE6 !important;
+  border-color: #ECD5D4 !important;
+}
+.site-shell[data-site-theme="valentines"] [aria-labelledby="customer-reviews-heading"] article {
+  background: var(--val-card-bg) !important;
+  border-color: #E8D4D3 !important;
+}
+@keyframes jb-valentine-cinema {
+  from { opacity: .83; filter: brightness(.98); }
+  to { opacity: 1; filter: brightness(1.04); }
+}
+.site-shell[data-site-theme="valentines"] .jb-valentine-sunset {
+  animation: jb-valentine-cinema 17s ease-in-out infinite alternate;
+}
+@media(prefers-reduced-motion:reduce){
+  .site-shell[data-site-theme="valentines"] .jb-valentine-sunset { animation: none; }
+}
