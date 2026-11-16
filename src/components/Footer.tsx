@@ -37,7 +37,7 @@ export default function Footer({
     eid: '/seasonal/eid-moonlit-mosque.svg',
     puja: '/seasonal/puja-bengali-pandal.svg',
   };
-  const sceneEnabled = themeExtras?.footerSceneEnabled && (!valentineMode || valentines?.footerSceneEnabled !== false);
+  const sceneEnabled = (themeExtras?.footerSceneEnabled ?? valentineMode) && (!valentineMode || valentines?.footerSceneEnabled !== false);
   const sceneUrl = valentineMode
     ? (valentines?.footerSceneUrl || themeExtras?.footerSceneUrl || skylineSource.valentines)
     : (themeExtras?.footerSceneUrl || skylineSource[theme]);
