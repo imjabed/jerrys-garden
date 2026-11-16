@@ -463,9 +463,9 @@ export default function SiteEditor({
                       ...prev, effects: { ...prev.effects, artworkOpacity: Number(e.target.value) },
                     }))}/>
                 </label>
-                {draft.theme === 'winter' && (
+                {(draft.theme === 'winter' || draft.theme === 'new-year') && (
                   <div className="space-y-4 border-t border-stone-200 pt-4">
-                    <h3 className="font-serif text-lg">Winter: deep snowfall</h3>
+                    <h3 className="font-serif text-lg">Festive snowfall</h3>
                     <label className="flex items-center gap-3 text-xs">
                       <input type="checkbox" checked={draft.effects.snowEnabled}
                         onChange={e => update(prev => ({ ...prev, effects: { ...prev.effects, snowEnabled: e.target.checked } }))}/>

@@ -54,7 +54,7 @@ export default function SeasonalEffects({
 
   if (!visible || theme === 'default') return null;
   const scene = artwork[theme];
-  const showSnow = theme === 'winter' && settings.snowEnabled;
+  const showSnow = (theme === 'winter' || theme === 'new-year') && settings.snowEnabled;
   const showFireworks = theme === 'new-year' && settings.fireworksEnabled;
   const artVisible = settings.illustrationEnabled && Boolean(scene)
     && (theme !== 'new-year' || settings.fireworksEnabled);
