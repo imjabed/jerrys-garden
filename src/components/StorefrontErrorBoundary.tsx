@@ -7,13 +7,12 @@ export default class StorefrontErrorBoundary extends Component<Props, State> {
   declare readonly props: Readonly<Props>;
   state: State = { failed: false, diagnostic: '' };
 
-  static getDerivedStateFromError(): State {
-    return { failed: true, diagnostic: '' };
+  static getDerivedStateFromError(error: Error): State {
+    return { failed: true, diagnostic: `${error.name}: ${error.message}`.slice(0, 600) };
   }
 
   componentDidCatch(error: Error, details: ErrorInfo) {
     console.error('[Storefront] A page failed to render', error, details.componentStack);
-    this.setState({ diagnostic: `${error.name}: ${error.message}\n${details.componentStack || ''}`.slice(0, 1600) });
   }
 
   render() {
