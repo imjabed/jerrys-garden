@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
   ArrowLeft, ArrowDown, ArrowUp, Check, ChevronRight, CloudUpload, Download,
   Eye, Image as ImageIcon, LayoutGrid, Monitor, RotateCcw, Save, Settings2,
-  Smartphone, Tablet, Type, UploadCloud, X, Palette, Sparkles, Layers3, Plus, Copy, Trash2, Link2, SlidersHorizontal,
+  Smartphone, Tablet, Type, UploadCloud, X, Palette, Sparkles, Layers3, Plus, Copy, Trash2, Link2, SlidersHorizontal, BadgePercent,
 } from 'lucide-react';
 import Hero from './Hero';
 import CollectionShowcase from './CollectionShowcase';
@@ -11,14 +11,14 @@ import SeasonalEffects from './SeasonalEffects';
 import type { RibbonBouquet } from '../types';
 import {
   DEFAULT_SITE_CONTENT, DEFAULT_CATEGORIES, FONT_LABELS, FONT_STACKS,
-  SECTION_IDS, THEME_PRESETS, THEME_ARTWORK, BLOCK_KINDS, defaultPageBlock, applyThemePreset, sanitizeSiteContent, safeEditorLink,
+  SECTION_IDS, SEASONAL_THEME_IDS, THEME_PRESETS, BLOCK_KINDS, defaultPageBlock, applyThemePreset, sanitizeSiteContent, safeEditorLink,
 } from '../../shared/siteEditor';
-import type { CategoryCardConfig, FontId, SectionId, SiteContent, PageBlock, BlockKind, ThemeId, EffectShape } from '../../shared/siteEditor';
+import type { CategoryCardConfig, FontId, SectionId, SiteContent, PageBlock, BlockKind, ThemeId, EffectShape, SeasonalThemeId, SeasonalOffer } from '../../shared/siteEditor';
 import { apiGetSiteEditor, apiSaveSiteEditorDraft, apiPublishSiteEditor, apiGetPublishedSiteContent } from '../services/api';
 import type { SiteEditorPayload } from '../services/api';
 import { uploadImageToCloudinary } from '../services/cloudinary';
 
-type Panel = 'text' | 'collections' | 'appearance' | 'sections' | 'seo' | 'history' | 'themes' | 'effects' | 'blocks' | 'branding';
+type Panel = 'text' | 'collections' | 'appearance' | 'sections' | 'seo' | 'history' | 'themes' | 'effects' | 'blocks' | 'branding' | 'offers';
 type Device = 'desktop' | 'tablet' | 'phone';
 const labels: Record<string, string> = {
   hero: 'Hero', collections: 'Collections', shop: 'Shop catalog',
@@ -46,7 +46,8 @@ export default function SiteEditor({
   const [panel, setPanel] = useState<Panel>('collections');
   const [selectedCategory, setSelectedCategory] = useState<string>(DEFAULT_CATEGORIES[0]);
   const [selectedBlock, setSelectedBlock] = useState<string>('');
-  const [device, setDevice] = useState<Device>('desktop');
+  const [device, setDevice] = useState<Device>('phone');
+  const [offerTheme, setOfferTheme] = useState<SeasonalThemeId>('valentines');
   const [showPreview, setShowPreview] = useState(true);
 
   const load = async () => {
@@ -223,6 +224,22 @@ export default function SiteEditor({
     } catch (err: any) { setError(err?.message || 'Could not upload this category photo.'); }
     finally { setUploadingKey(null); }
   };
+  const uploadThemePhoto = async (id: SeasonalThemeId, file?: File) => {
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setError('Please choose a JPG, PNG or WebP image under 5 MB.'); return;
+    }
+    setUploadingKey('theme-' + id); setError(''); setNotice('');
+    try {
+      const upload = await uploadImageToCloudinary(file, 'jame_bouquets_themes');
+      update(prev => ({ ...prev, themeMedia: { ...prev.themeMedia, [id]: upload.url } }));
+      setNotice('Seasonal photo uploaded to Cloudinary. Publish to show it to customers.');
+    } catch (err: any) {
+      setError(err?.message || 'Could not upload seasonal photo.');
+    } finally { setUploadingKey(null); }
+  };
+  const updateOffer = (id: SeasonalThemeId, patch: Partial<SeasonalOffer>) =>
+    update(prev => ({ ...prev, offers: { ...prev.offers, [id]: { ...prev.offers[id], ...patch } } }));
   const possibleCategories = useMemo(() => [
     ...new Set([...DEFAULT_CATEGORIES, ...products.map(product => product.category).filter(Boolean)]),
   ], [products]);
@@ -349,6 +366,7 @@ export default function SiteEditor({
           <nav className="flex gap-1 overflow-x-auto border-b border-stone-200 p-3" aria-label="Editor panels">
             {([
               ['themes', Palette, 'Themes'],
+              ['offers', BadgePercent, 'Offers'],
               ['blocks', Layers3, 'Build'],
               ['effects', Sparkles, 'Motion'],
               ['branding', Settings2, 'Header/Footer'],
@@ -379,9 +397,9 @@ export default function SiteEditor({
                       className={`group overflow-hidden rounded-md border-2 text-left shadow-sm transition ${draft.theme === preset.id
                         ? 'border-stone-900 ring-2 ring-stone-900/10' : 'border-stone-200 hover:border-stone-500'}`}>
                       <div className="relative h-40 overflow-hidden" style={{ background: preset.appearance.heroBackground }}>
-                        {THEME_ARTWORK[preset.id] && (
-                          <img src={THEME_ARTWORK[preset.id] || ''} loading="lazy" alt=""
-                            className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-85"/>
+                        {preset.id !== 'default' && draft.themeMedia[preset.id] && (
+                          <img src={draft.themeMedia[preset.id]} loading="lazy" alt=""
+                            className="pointer-events-none absolute inset-0 h-full w-full object-cover object-bottom opacity-85"/>
                         )}
                         <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between border-b border-white/50 bg-white/65 px-2 py-1.5">
                           <span className="font-serif text-[9px] font-semibold" style={{ color: preset.appearance.text }}>JAME BOUQUETS</span>
@@ -415,6 +433,43 @@ export default function SiteEditor({
                     </button>
                   ))}
                 </div>
+                <div className="border-t border-stone-200 pt-5 space-y-4">
+                  <div>
+                    <h3 className="font-serif text-xl">Seasonal hero photography</h3>
+                    <p className="mt-2 text-xs leading-5 text-stone-500">
+                      Upload the four previously generated ribbon-bouquet scenes. Photos are securely saved to
+                      your Cloudinary account. The image fills the seasonal hero; the featured product card
+                      appears only in Default. Portrait 9:16 works best on phones.
+                    </p>
+                  </div>
+                  {SEASONAL_THEME_IDS.map(id => (
+                    <div key={id} className="rounded-lg border border-stone-200 bg-white p-3">
+                      <p className="mb-2 text-sm font-semibold">{THEME_PRESETS.find(p => p.id === id)?.label}</p>
+                      {draft.themeMedia[id] ? (
+                        <img alt={`${id} uploaded seasonal hero`} src={draft.themeMedia[id]}
+                          className="mx-auto h-48 w-full rounded object-cover object-bottom"/>
+                      ) : (
+                        <div className="flex h-28 items-center justify-center rounded bg-stone-100 px-4 text-center text-xs text-stone-500">
+                          No photo uploaded — seasonal colours remain as fallback
+                        </div>
+                      )}
+                      <label className="mt-3 flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded border border-stone-300 px-3 py-2 text-xs font-medium">
+                        <UploadCloud className="h-4 w-4"/>
+                        {uploadingKey === 'theme-' + id ? 'Uploading…' : 'Upload photo to Cloudinary'}
+                        <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+                          disabled={Boolean(uploadingKey)} onChange={e => {
+                            void uploadThemePhoto(id, e.target.files?.[0]); e.target.value = '';
+                          }}/>
+                      </label>
+                      {draft.themeMedia[id] && (
+                        <button type="button" className="mt-2 text-xs text-red-700 underline"
+                          onClick={() => update(prev => ({ ...prev, themeMedia: { ...prev.themeMedia, [id]: '' } }))}>
+                          Remove photo from this theme
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
                 <button type="button" onClick={() => {
                   const other = THEME_PRESETS.filter(item => item.id !== draft.theme);
                   update(prev => applyThemePreset(prev, other[Math.floor(Math.random() * other.length)].id));
@@ -426,28 +481,69 @@ export default function SiteEditor({
                 </p>
               </>
             )}
+            {panel === 'offers' && (
+              <>
+                <h2 className="font-serif text-2xl">Seasonal offer banners</h2>
+                <p className="text-xs leading-6 text-stone-600">
+                  One independently editable percentage-off banner per seasonal theme.
+                  Banners are OFF until you enable them with a coupon code.
+                </p>
+                {option('Theme to edit', offerTheme, SEASONAL_THEME_IDS.map(id => ({
+                  id, label: THEME_PRESETS.find(theme => theme.id === id)?.label || id,
+                })), value => setOfferTheme(value as SeasonalThemeId))}
+                <div className="space-y-4 rounded-lg border border-stone-200 bg-white p-4">
+                  <label className="flex items-center gap-3 text-xs font-semibold">
+                    <input type="checkbox" checked={draft.offers[offerTheme].enabled}
+                      disabled={!draft.offers[offerTheme].code}
+                      onChange={e => updateOffer(offerTheme, { enabled: e.target.checked })}/>
+                    Show {THEME_PRESETS.find(theme => theme.id === offerTheme)?.label} banner
+                  </label>
+                  <label className="block space-y-2 text-xs">
+                    <span className="font-medium">Percentage OFF · {draft.offers[offerTheme].percent}%</span>
+                    <input className="w-full accent-stone-900" type="range" min="1" max="70"
+                      value={draft.offers[offerTheme].percent} onChange={e =>
+                        updateOffer(offerTheme, { percent: Number(e.target.value) })}/>
+                  </label>
+                  {input('Offer headline', draft.offers[offerTheme].headline,
+                    v => updateOffer(offerTheme, { headline: v }))}
+                  {input('Offer details', draft.offers[offerTheme].detail,
+                    v => updateOffer(offerTheme, { detail: v }))}
+                  {input('Coupon code', draft.offers[offerTheme].code,
+                    v => updateOffer(offerTheme, { code: v.toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0,24) }))}
+                  <p className="text-[11px] leading-5 text-amber-800">
+                    Important: this banner does NOT change prices. Create and enable the matching
+                    percentage coupon with the same code in Admin → Coupons before publishing a promotion.
+                    Only advertise discounts you actually honor at checkout.
+                  </p>
+                  <button type="button" className="w-full border border-stone-300 p-3 text-xs"
+                    onClick={() => updateOffer(offerTheme, { enabled: false })}>
+                    Disable this promotion
+                  </button>
+                </div>
+              </>
+            )}
             {panel === 'effects' && (
               <>
                 <div>
-                  <h2 className="font-serif text-2xl">Seasonal illustrations & atmosphere</h2>
+                  <h2 className="font-serif text-2xl">Seasonal photography & atmosphere</h2>
                   <p className="mt-2 text-xs leading-6 text-stone-500">
-                    Bespoke illustrated scenes instead of generic glowing dots: a romantic couple,
-                    champagne fireworks, marigold diya, Eid lanterns and deep winter snowfall.
-                    The artwork always follows the selected theme.
+                    Gentle depth-style decorations over genuine seasonal bouquet photography:
+                    Santa's sleigh and soft snow in Winter, moonlight in Eid, diya smoke in Puja,
+                    and drifting blossoms in Valentines. Reduced-motion preferences are respected.
                   </p>
                 </div>
                 <div className="rounded border border-stone-200 bg-[#FAF8F5] p-4">
                   <p className="text-sm font-semibold">Current theme: {THEME_PRESETS.find(p => p.id === draft.theme)?.label}</p>
                   <p className="mt-1 text-[11px] text-stone-500">
                     {draft.theme === 'default' ? 'Default stays clean with no seasonal decorations.' :
-                      'Theme illustrations remain behind your headings and product photos.'}
+                      'Seasonal photo and light animation are shown behind the hero heading. The product card stays hidden.'}
                   </p>
                   <button type="button" className="mt-2 text-xs font-medium underline underline-offset-4"
                     onClick={() => setPanel('themes')}>Change seasonal theme</button>
                 </div>
                 {([
                   ['enabled', 'Seasonal atmosphere', 'Master on/off for all seasonal graphics'],
-                  ['illustrationEnabled', 'Theme illustration', 'Show the unique artwork for the selected theme'],
+                  ['illustrationEnabled', 'Seasonal photo and accents', 'Show the uploaded photograph and decorative accents for this theme'],
                   ['artworkMotion', 'Gentle artwork motion', 'Minimal movement instead of flashy effects'],
                   ['parallax', 'Scroll parallax', 'A subtle depth shift as the page scrolls'],
                   ['hoverLift', 'Product-card hover lift', 'Small lift on desktop when the pointer moves over a product'],
@@ -463,20 +559,20 @@ export default function SiteEditor({
                       }))}/>
                   </label>
                 ))}
-                {option('Illustration placement', draft.effects.illustrationPlacement, [
+                {option('Decorative effects placement', draft.effects.illustrationPlacement, [
                   { id: 'hero', label: 'Hero only — recommended' },
                   { id: 'homepage', label: 'Hero + story + custom-order sections' },
                 ], value => update(prev => ({ ...prev, effects: {
                   ...prev.effects, illustrationPlacement: value as 'hero' | 'homepage',
                 } })))}
                 <label className="block space-y-2 text-xs text-stone-700">
-                  <span className="flex justify-between"><span>Illustration visibility</span><span>{Math.round(draft.effects.artworkOpacity * 100)}%</span></span>
+                  <span className="flex justify-between"><span>Decorative accent visibility</span><span>{Math.round(draft.effects.artworkOpacity * 100)}%</span></span>
                   <input type="range" min=".1" max="1" step=".05" className="w-full accent-stone-900"
                     value={draft.effects.artworkOpacity} onChange={e => update(prev => ({
                       ...prev, effects: { ...prev.effects, artworkOpacity: Number(e.target.value) },
                     }))}/>
                 </label>
-                {(draft.theme === 'winter' || draft.theme === 'new-year') && (
+                {draft.theme === 'winter' && (
                   <div className="space-y-4 border-t border-stone-200 pt-4">
                     <h3 className="font-serif text-lg">Festive snowfall</h3>
                     <label className="flex items-center gap-3 text-xs">
@@ -491,24 +587,7 @@ export default function SiteEditor({
                           ...prev, effects: { ...prev.effects, snowDensity: Number(e.target.value) },
                         }))}/>
                     </label>
-                    <p className="text-[11px] text-stone-500">Set 80–100% for the extra-snowy winter atmosphere.</p>
-                  </div>
-                )}
-                {draft.theme === 'new-year' && (
-                  <div className="space-y-4 border-t border-stone-200 pt-4">
-                    <h3 className="font-serif text-lg">New Year: fireworks</h3>
-                    <label className="flex items-center gap-3 text-xs">
-                      <input type="checkbox" checked={draft.effects.fireworksEnabled}
-                        onChange={e => update(prev => ({ ...prev, effects: { ...prev.effects, fireworksEnabled: e.target.checked } }))}/>
-                      Show champagne firework artwork
-                    </label>
-                    <label className="block space-y-2 text-xs">
-                      <span className="flex justify-between"><span>Fireworks brightness</span><span>{draft.effects.fireworksIntensity}%</span></span>
-                      <input type="range" min="0" max="100" step="5" className="w-full accent-stone-900"
-                        value={draft.effects.fireworksIntensity} onChange={e => update(prev => ({
-                          ...prev, effects: { ...prev.effects, fireworksIntensity: Number(e.target.value) },
-                        }))}/>
-                    </label>
+                    <p className="text-[11px] text-stone-500">Snow uses a capped number of light animated elements to protect phone performance.</p>
                   </div>
                 )}
                 <label className="block space-y-2 border-t border-stone-200 pt-4 text-xs">
@@ -976,19 +1055,21 @@ export default function SiteEditor({
           <div className="mx-auto overflow-hidden border border-stone-300 bg-white shadow-xl transition-[max-width] duration-300"
             style={{ maxWidth: previewWidths[device] }}>
             <div className="max-h-[calc(100vh-175px)] min-h-[420px] overflow-y-auto site-shell"
-              style={previewStyle} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'} data-festive-decor={draft.effects.enabled && draft.effects.illustrationEnabled ? 'on' : 'off'} data-illustration-placement={draft.effects.illustrationPlacement}>
+              style={previewStyle} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'} data-festive-decor={draft.effects.enabled && draft.effects.illustrationEnabled ? 'on' : 'off'} data-illustration-placement={draft.effects.illustrationPlacement} data-editor-device={device}>
               {draft.announcement.enabled && (
                 <div className="px-3 py-2 text-center text-[11px]" style={{
                   backgroundColor: draft.announcement.background, color: draft.announcement.textColor,
                 }}>{draft.announcement.text}</div>
               )}
-              <div className="jb-nav-surface flex items-center justify-between border-b border-stone-200/30 px-5 py-4">
-                <span className="font-serif text-lg">Jame Bouquets</span>
+              <div className="jb-nav-surface relative flex items-center justify-between overflow-hidden border-b border-stone-200/30 px-5 py-4">
+                <span className="relative z-10 font-serif text-lg">Jame Bouquets</span>
                 <span className="text-xs text-stone-500">HOME · SHOP · ABOUT</span>
               </div>
               {draft.sections.order.filter(id => draft.sections.visible[id]).map(id => {
                 if (id === 'hero') return <Hero key={id} content={draft.hero} headingScale={draft.appearance.headingScale}
                   effects={draft.effects} theme={draft.theme}
+                  photoUrl={draft.theme === 'default' ? '' : draft.themeMedia[draft.theme]}
+                  offer={draft.theme === 'default' ? undefined : draft.offers[draft.theme]}
                   onExploreClick={() => setPanel('text')} onFeaturedClick={() => {}} featuredProduct={products.find(p => p.featured) || products[0] || null}/>;
                 if (id === 'collections') return <CollectionShowcase key={id} content={draft.collections} headingScale={draft.appearance.headingScale}
                   products={products} onCategoryClick={key => { setSelectedCategory(key); setPanel('collections'); }}/>;
