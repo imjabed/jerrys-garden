@@ -581,6 +581,7 @@ export default function App() {
           )}
           {/* Header & Navigation */}
           <Navbar
+            theme={siteContent.theme}
             cartCount={cart.reduce((sum, it) => sum + it.quantity, 0)}
             onOpenCart={() => setCartDrawerOpen(true)}
             onOpenTracking={() => {
@@ -638,6 +639,8 @@ export default function App() {
             if (id === 'hero') return (
               <Hero key={id}
                 content={siteContent.hero} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects} theme={siteContent.theme}
+                photoUrl={siteContent.theme === 'default' ? '' : siteContent.themeMedia[siteContent.theme]}
+                offer={siteContent.theme === 'default' ? undefined : siteContent.offers[siteContent.theme]}
                 onExploreClick={() => scrollToSection('shop-section')}
                 featuredProduct={bouquets.find(product => product.featured && product.inStock && product.imageUrl) || bouquets.find(product => product.inStock && product.imageUrl) || null}
                 onFeaturedClick={navigateToProduct}
