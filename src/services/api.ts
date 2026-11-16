@@ -345,7 +345,29 @@ export async function apiGetSettings(): Promise<{ connected: boolean; settings: 
   try {
     const res = await fetch(`${API_URL}/api/settings`);
     const data = await parseResponse<any>(res);
-    return { connected: data.connected ?? false, settings: data.settings || null };
+    if (!data.connected || !data.settings || typeof data.settings !== 'object') {
+      return { connected: false, settings: null };
+    }
+    // Store settings migrated from older releases may have missing or null fields.
+    const s = data.settings;
+    const safeString = (value: unknown, fallback: string) =>
+      typeof value === 'string' ? value : fallback;
+    const settings: StoreSettings = {
+      storeName: safeString(s.storeName, 'Jame Bouquets'),
+      tagline: safeString(s.tagline, 'Everlasting, by hand.'),
+      ownerEmail: safeString(s.ownerEmail, ''),
+      upiId: safeString(s.upiId, ''),
+      upiName: safeString(s.upiName, ''),
+      phone: safeString(s.phone, 'Contact on Order Confirmation'),
+      whatsapp: safeString(s.whatsapp, 'Available on Order Confirmation'),
+      city: safeString(s.city, 'Berhampore, Murshidabad'),
+      address: safeString(s.address, 'Berhampore, Murshidabad, West Bengal'),
+      logoUrl: safeString(s.logoUrl, ''),
+      deliveryFee: Number.isFinite(Number(s.deliveryFee)) ? Number(s.deliveryFee) : 0,
+      freeDeliveryThreshold: Number.isFinite(Number(s.freeDeliveryThreshold)) ? Number(s.freeDeliveryThreshold) : 0,
+      customSizeFlowers: s.customSizeFlowers,
+    };
+    return { connected: true, settings };
   } catch { return { connected: false, settings: null }; }
 }
 
