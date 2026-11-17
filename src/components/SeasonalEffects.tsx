@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { PageEffects, ThemeId, CropPosition } from '../../shared/siteEditor';
+import { optimizedCloudinaryUrl } from '../services/visualCrop';
 
 type Layer = 'hero' | 'support';
 
@@ -75,10 +76,8 @@ export default function SeasonalEffects({
   // Background images are always visible when selected; animation toggles affect
   // decorative effects only and never remove the published hero photo.
   const showDecoration = theme !== 'default' && settings.illustrationEnabled && settings.enabled;
-  const cdn = (url: string, width: number) => url.replace(
-    '/image/upload/',
-    `/image/upload/f_auto,${theme === 'valentines' ? 'q_auto:best' : 'q_auto'},w_${width},c_limit/`,
-  );
+  const cdn = (url: string, width: number) =>
+    optimizedCloudinaryUrl(url, width, theme === 'valentines');
   // Valentine's photograph is full-bleed on desktop. The previous 1280px
   // maximum made images soft on large monitors even with a good original.
   // c_limit keeps Cloudinary from pointlessly upscaling a small source.
