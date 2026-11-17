@@ -41,3 +41,14 @@ export function computeVisualCrop(
     height: cropHeight,
   };
 }
+
+/** Apply delivery optimizations *after* the stored crop transform.
+ * Applying w_ before c_crop would move the crop onto a resized coordinate system.
+ */
+export function optimizedCloudinaryUrl(url: string, width: number, bestQuality = false): string {
+  if (!url || !url.includes('/image/upload/')) return url;
+  const transform = `f_auto,${bestQuality ? 'q_auto:best' : 'q_auto'},w_${Math.max(100, Math.round(width))},c_limit`;
+  const crop = url.match(/\/image\/upload\/c_crop,x_\d+,y_\d+,w_\d+,h_\d+\//);
+  if (crop) return url.replace(crop[0], crop[0] + transform + '/');
+  return url.replace('/image/upload/', '/image/upload/' + transform + '/');
+}
