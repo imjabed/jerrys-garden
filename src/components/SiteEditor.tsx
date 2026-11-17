@@ -63,6 +63,8 @@ export default function SiteEditor({
   const [textSlot, setTextSlot] = useState<TextSlot>('hero.heading');
   const [focusedPreview, setFocusedPreview] = useState<string | null>(null);
   const [previewMenuOpen, setPreviewMenuOpen] = useState(false);
+  const [previewFailed, setPreviewFailed] = useState(false);
+  const [previewRecovery, setPreviewRecovery] = useState(0);
   const inspectorRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
@@ -193,7 +195,10 @@ export default function SiteEditor({
     finally { setBusy(false); }
   };
   const publish = async () => {
-    if (busy) return;
+    if (busy || previewFailed) {
+      if (previewFailed) setError('The design preview has a rendering error. Correct the settings and retry the preview before publishing.');
+      return;
+    }
     setBusy(true); setError(''); setNotice('');
     try {
       let rev = revision;
@@ -603,7 +608,7 @@ export default function SiteEditor({
           className="flex items-center gap-2 border border-stone-300 px-4 py-2.5 text-xs font-semibold text-stone-800 hover:bg-stone-50 disabled:opacity-40">
           <Save className="h-4 w-4"/> Save draft
         </button>
-        <button type="button" onClick={() => void publish()} disabled={busy}
+        <button type="button" onClick={() => void publish()} disabled={busy || previewFailed}
           className="flex items-center gap-2 bg-stone-900 px-4 py-2.5 text-xs font-semibold text-white hover:bg-stone-700 disabled:opacity-40">
           <Check className="h-4 w-4"/>{busy ? 'Publishing…' : 'Publish'}
         </button>
@@ -2069,7 +2074,16 @@ export default function SiteEditor({
               ))}
             </div>
           </div>
-          <StudioErrorBoundary label="Visual preview">
+          <StudioErrorBoundary key={previewRecovery} label="Visual preview"
+            onError={() => {
+              setPreviewFailed(true);
+              setError('Visual preview failed. Publishing is blocked until Retry preview succeeds.');
+            }}
+            onRetry={() => {
+              setPreviewFailed(false);
+              setError('');
+              setPreviewRecovery(n => n + 1);
+            }}>
           <div className="mx-auto overflow-hidden border border-stone-300 bg-white shadow-xl transition-[max-width] duration-300"
             style={{ maxWidth: previewWidths[device] }}>
             <div className="max-h-[calc(100vh-175px)] min-h-[420px] overflow-y-auto site-shell"
