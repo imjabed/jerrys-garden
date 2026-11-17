@@ -107,7 +107,12 @@ export default function VisualCropDialog({task,onClose}: {task:CropTask;onClose:
           <div className="flex justify-center rounded-lg bg-stone-100 p-3">
             <div ref={preview} role="img" aria-label="Interactive image crop preview"
               className="relative w-full max-w-[580px] touch-none select-none overflow-hidden rounded-md border border-stone-300 bg-stone-200"
-              style={{aspectRatio:String(task.ratio),maxHeight:'min(52dvh,440px)',cursor:'grab'}}
+              style={{
+                aspectRatio: String(task.ratio),
+                width: task.ratio < 1 ? `min(70vw, ${Math.round(52*task.ratio)}dvh, 245px)` : '100%',
+                maxHeight: 'min(52dvh,440px)',
+                cursor:'grab',
+              }}
               onPointerDown={onPointerDown} onPointerMove={onPointerMove}
               onPointerUp={()=>{gesture.current=null;}}
               onPointerCancel={()=>{gesture.current=null;}}>
