@@ -1846,10 +1846,14 @@ export default function SiteEditor({
                 style={{backgroundColor:draft.themeExtras[draft.theme].navBackground, color:draft.themeExtras[draft.theme].navText}}>
                 {draft.themeExtras[draft.theme].navImageUrl && (
                   <div className="pointer-events-none absolute inset-0">
-                    <img src={draft.themeExtras[draft.theme].navImageUrl} alt=""
+                    <img src={device === 'phone'
+                        ? draft.themeExtras[draft.theme].navMobileImageUrl || draft.themeExtras[draft.theme].navImageUrl
+                        : draft.themeExtras[draft.theme].navImageUrl} alt=""
                       className="h-full w-full object-cover" style={{
                         opacity:draft.themeExtras[draft.theme].navImageOpacity,
-                        objectPosition:`${draft.themeExtras[draft.theme].navImageCrop.x}% ${draft.themeExtras[draft.theme].navImageCrop.y}%`,
+                        objectPosition: device === 'phone'
+                          ? `${draft.themeExtras[draft.theme].navMobileCrop.x}% ${draft.themeExtras[draft.theme].navMobileCrop.y}%`
+                          : `${draft.themeExtras[draft.theme].navImageCrop.x}% ${draft.themeExtras[draft.theme].navImageCrop.y}%`,
                       }}/>
                     <div className="jb-nav-photo-scrim absolute inset-0"/>
                   </div>
@@ -1975,8 +1979,12 @@ export default function SiteEditor({
                     <div className={`jb-festival-scene relative overflow-hidden jb-footer-scene-${id}`} aria-hidden="true">
                       <div className="jb-festival-sky absolute inset-0"/>
                       {extras.footerMode === 'image' ? (
-                        <img src={extras.footerImageUrl} alt="" className="jb-festival-real-image absolute inset-0 h-full w-full object-contain object-bottom"
-                          style={{objectPosition:`${extras.footerImageCrop.x}% ${extras.footerImageCrop.y}%`}}/>
+                        <img src={device === 'phone'
+                            ? extras.footerMobileImageUrl || extras.footerImageUrl : extras.footerImageUrl}
+                          alt="" className="jb-festival-real-image absolute inset-0 h-full w-full object-contain object-bottom"
+                          style={{objectPosition: device === 'phone'
+                            ? `${extras.footerMobileCrop.x}% ${extras.footerMobileCrop.y}%`
+                            : `${extras.footerImageCrop.x}% ${extras.footerImageCrop.y}%`}}/>
                       ) : (
                         <div className="jb-festival-silhouette absolute inset-0" style={{
                           backgroundColor: val ? draft.valentines.colors.silhouette : extras.footerSceneColor,
