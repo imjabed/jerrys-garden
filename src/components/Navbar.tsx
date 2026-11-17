@@ -3,11 +3,12 @@ import { ShoppingBag, Search, Compass, ShieldCheck, User as UserIcon, Menu, X, I
 import Logo from './Logo';
 import WhatsAppIcon from './WhatsAppIcon';
 import { UserAccount, StoreSettings } from '../types';
-import type { ThemeId, ThemeExtras } from '../../shared/siteEditor';
+import type { ThemeId, ThemeExtras, NavigationLabels } from '../../shared/siteEditor';
 
 interface NavbarProps {
   theme?: ThemeId;
   themeExtras?: ThemeExtras;
+  navigationLabels?: NavigationLabels;
   storeSettings: StoreSettings;
   cartCount: number;
   onOpenCart: () => void;
@@ -28,6 +29,7 @@ interface NavbarProps {
 export default function Navbar({
   theme = 'default',
   themeExtras,
+  navigationLabels,
   storeSettings,
   cartCount,
   onOpenCart,
@@ -103,13 +105,13 @@ export default function Navbar({
               onClick={onNavigateToShop}
               className="hover:text-rose-600 transition-colors py-2"
             >
-              Shop Products
+              {navigationLabels?.shop || 'Shop Products'}
             </button>
             <button
               onClick={onNavigateToBuilder}
               className="hover:text-rose-700 transition-colors py-2"
             >
-              Custom Orders
+              {navigationLabels?.custom || 'Custom Orders'}
             </button>
             <button
               id="nav-track-btn"
@@ -117,14 +119,14 @@ export default function Navbar({
               className="hover:text-rose-600 transition-colors py-2 flex items-center gap-1.5"
             >
               <Package className="w-4 h-4 text-stone-400" />
-              <span>Track Order</span>
+              <span>{navigationLabels?.track || 'Track Order'}</span>
             </button>
             <button
               id="nav-story-btn"
               onClick={onNavigateToStory}
               className="hover:text-rose-600 transition-colors py-2"
             >
-              Our Craft
+              {navigationLabels?.story || 'Our Craft'}
             </button>
           </nav>
 
@@ -173,7 +175,7 @@ export default function Navbar({
               className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-stone-700 hover:text-rose-600 px-3 py-2 rounded-lg hover:bg-stone-100 transition-colors border border-stone-200"
             >
               <Compass className="w-4 h-4 text-rose-500" />
-              <span>Track Order</span>
+              <span>{navigationLabels?.track || 'Track Order'}</span>
             </button>
 
             {/* Cart Button with Count Badge */}
@@ -245,7 +247,7 @@ export default function Navbar({
                 className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-stone-700 hover:text-stone-900 px-3 py-2 rounded-lg border border-stone-200 hover:border-stone-300 transition-colors"
               >
                 <UserIcon className="w-4 h-4 text-stone-500" />
-                <span>Sign In</span>
+                <span>{navigationLabels?.signIn || 'Sign In'}</span>
               </button>
             )}
 
@@ -287,7 +289,7 @@ export default function Navbar({
             }}
             className="block w-full text-left py-2 text-sm font-medium text-stone-800 hover:text-rose-600 border-b border-stone-100"
           >
-            Shop Products
+            {navigationLabels?.shop || 'Shop Products'}
           </button>
           <button
             onClick={() => {
@@ -296,7 +298,7 @@ export default function Navbar({
             }}
             className="block w-full text-left py-2 text-sm font-medium text-stone-800 hover:text-rose-600 border-b border-stone-100"
           >
-            Custom Event Bouquets
+            {navigationLabels?.custom || 'Custom Event Bouquets'}
           </button>
           <button
             onClick={() => {
@@ -305,7 +307,7 @@ export default function Navbar({
             }}
             className="block w-full text-left py-2 text-sm font-medium text-stone-800 hover:text-rose-600 border-b border-stone-100"
           >
-            📦 Track My Order
+            {navigationLabels?.track || 'Track My Order'}
           </button>
           <button
             onClick={() => {
@@ -314,7 +316,7 @@ export default function Navbar({
             }}
             className="block w-full text-left py-2 text-sm font-medium text-stone-800 hover:text-rose-600 border-b border-stone-100"
           >
-            Our Craft
+            {navigationLabels?.story || 'Our Craft'}
           </button>
 
           <div className="flex items-center gap-3 border-t border-stone-100 pt-4" aria-label="Jame Bouquets social media">
@@ -340,7 +342,7 @@ export default function Navbar({
               }}
               className="block w-full text-center py-2.5 text-xs font-medium bg-rose-50 text-rose-800 rounded-lg"
             >
-              Sign In / Join
+              {navigationLabels?.signIn || 'Sign In'} / Join
             </button>
           )}
 
