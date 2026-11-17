@@ -112,9 +112,35 @@ export default function SiteEditor({
       key, label, original: source, currentUrl, ratio,
       onSave: (cropped, base) => {
         apply(cropped);
-        update(prev => ({
-          ...prev, originalImages: { ...prev.originalImages, [key]: base },
-        }));
+        update(prev => {
+          const next: SiteContent = {
+            ...prev, originalImages: {...prev.originalImages,[key]:base},
+          };
+          // Existing object-position values must not crop a carefully selected
+          // crop again on the published website.
+          if (key.startsWith('hero:')) {
+            const [,mode,theme] = key.split(':') as [string,'desktop'|'mobile',ThemeId];
+            return {...next,heroCrop:{
+              ...next.heroCrop,[theme]:{...next.heroCrop[theme],[mode]:{x:50,y:50}},
+            }};
+          }
+          if (key.startsWith('detail:')) {
+            const [,theme,field] = key.split(':') as [string,ThemeId,string];
+            const extras=next.themeExtras[theme];
+            const centred={x:50,y:50};
+            const updated={
+              ...extras,
+              ...(field==='navImageUrl'?{navImageCrop:centred}:{}),
+              ...(field==='navMobileImageUrl'?{navMobileCrop:centred}:{}),
+              ...(field==='customImageUrl'?{customCrop:{...extras.customCrop,desktop:centred}}:{}),
+              ...(field==='customMobileImageUrl'?{customCrop:{...extras.customCrop,mobile:centred}}:{}),
+              ...(field==='footerImageUrl'?{footerImageCrop:centred}:{}),
+              ...(field==='footerMobileImageUrl'?{footerMobileCrop:centred}:{}),
+            };
+            return {...next,themeExtras:{...next.themeExtras,[theme]:updated}};
+          }
+          return next;
+        });
         setNotice('Crop saved to draft. Use Save draft, then Publish to update the live website.');
       },
     });
