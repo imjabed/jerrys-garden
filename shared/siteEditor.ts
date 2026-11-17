@@ -321,6 +321,8 @@ export interface NavigationLabels {
 export interface SiteContent {
   theme: ThemeId;
   navigationLabels: Record<ThemeId, NavigationLabels>;
+  /** Immutable source URLs for non-destructive visual recropping. */
+  originalImages: Record<string, string>;
   themeMedia: Record<ThemeId, string>;
   themeMobileMedia: Record<ThemeId, string>;
   heroCrop: Record<ThemeId, { desktop: CropPosition; mobile: CropPosition }>;
@@ -457,6 +459,7 @@ const defaultThemeBanners = () => Object.fromEntries(THEME_PRESETS.map(p => [p.i
 }])) as Record<ThemeId, ThemeBanner>;
 export const DEFAULT_SITE_CONTENT: SiteContent = {
   theme: 'default',
+  originalImages: {},
   valentines: DEFAULT_VALENTINES_DESIGN,
   themeBanners: defaultThemeBanners(),
   themeExtras: defaultThemeExtras(),
@@ -781,6 +784,17 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
   const fx = raw.effects || {};
   const content: SiteContent = {
     theme, themeMedia, themeMobileMedia, heroCrop, textPresentations, winterAssetsReady: true,
+    originalImages: Object.fromEntries(
+      Object.entries(
+        raw.originalImages && typeof raw.originalImages === 'object' && !Array.isArray(raw.originalImages)
+          ? raw.originalImages : {},
+      ).filter(([key, url]) =>
+        key.length <= 120 &&
+        typeof url === 'string' &&
+        /^https:\\/\\/res\\.cloudinary\\.com\\/[\\w-]+\\/image\\/upload\\//.test(url) &&
+        url.length <= 800,
+      ).slice(0, 100),
+    ) as Record<string, string>,
     navigationLabels: Object.fromEntries(ALL_THEME_IDS.map(id => [
       id, Object.fromEntries(
         (Object.keys(d.navigationLabels[id]) as Array<keyof NavigationLabels>).map(key => [
