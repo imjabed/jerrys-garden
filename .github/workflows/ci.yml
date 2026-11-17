@@ -27,3 +27,19 @@ jobs:
         run: npm run test
       - name: Build frontend and server
         run: npm run build
+      - name: Install Chromium browser test runner
+        run: |
+          npm install --no-save --no-audit --no-fund @playwright/test@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Test website editor in Chromium (mock backend)
+        run: npx playwright test
+      - name: Upload browser screenshots and traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-browser-test-debug
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+
