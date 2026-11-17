@@ -753,7 +753,7 @@ export default function SiteEditor({
                       onChange={value => updateBanner(bannerTheme, { [bannerTextField]: value })}
                       presentation={draft.themeBanners[bannerTheme].typography[bannerTextField]}
                       onPresentationChange={value => updateBannerTypography(bannerTheme, bannerTextField, value)}
-                      maxLength={bannerTextField === 'text' ? 700 : bannerTextField === 'eyebrow' ? 160 : 130}/>
+                      maxLength={bannerTextField === 'text' ? 1800 : bannerTextField === 'eyebrow' ? 160 : 130}/>
                     {colour('Colour for this text element', draft.themeBanners[bannerTheme].textColors[bannerTextField],
                       value => updateBannerTextColor(bannerTheme, bannerTextField, value))}
                     <p className="mt-2 text-[11px] leading-5 text-stone-500">
