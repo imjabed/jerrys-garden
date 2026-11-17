@@ -431,7 +431,9 @@ const defaultThemeBanners = () => Object.fromEntries(THEME_PRESETS.map(p => [p.i
   typography: defaultBannerTypography(),
   textColors: { eyebrow: '#F3CF9D', text: '#FFF8F0', buttonText: '#F3CF9D' },
   align: 'center', verticalPadding: 16,
-  buttonVariant: 'link', buttonBackground: '#F3CF9D',
+  buttonVariant: 'link', buttonBackground: p.id === 'winter' ? '#071729'
+    : p.id === 'eid' ? '#072E27' : p.id === 'puja' ? '#651020'
+    : p.id === 'valentines' ? '#4B1024' : '#292524',
 }])) as Record<ThemeId, ThemeBanner>;
 export const DEFAULT_SITE_CONTENT: SiteContent = {
   theme: 'default',
