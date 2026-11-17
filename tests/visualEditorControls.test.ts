@@ -49,8 +49,8 @@ test('Hero accent can be explicitly normal or italic in real storefront output',
   };
   const normal = renderToStaticMarkup(createElement(Hero, { ...base, textPresentations: plainStyle }));
   const italic = renderToStaticMarkup(createElement(Hero, { ...base, textPresentations: italicStyle }));
-  assert.match(normal, /font-style:normal[^>]*>Bouquets/);
-  assert.match(italic, /font-style:italic[^>]*>Bouquets/);
+  assert.match(normal, /font-style:normal[^>]*><span>Bouquets<\/span>/);
+  assert.match(italic, /font-style:italic[^>]*><span>Bouquets<\/span>/);
   assert.doesNotMatch(normal, /class="italic"/);
 });
 
