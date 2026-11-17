@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
   ArrowLeft, ArrowDown, ArrowUp, Check, ChevronRight, CloudUpload, Download,
   Eye, Image as ImageIcon, LayoutGrid, Monitor, RotateCcw, Save, Settings2,
-  Smartphone, Tablet, Type, UploadCloud, X, Palette, Sparkles, Layers3, Plus, Copy, Trash2, Link2, SlidersHorizontal, BadgePercent, ShoppingBag, Menu, Heart,
+  Smartphone, Tablet, Type, UploadCloud, X, Palette, Sparkles, Layers3, Plus, Copy, Trash2, Link2, SlidersHorizontal, BadgePercent, ShoppingBag, Menu, Heart, BookOpen,
 } from 'lucide-react';
 import Hero from './Hero';
 import ThemeBanner from './ThemeBanner';
@@ -22,7 +22,7 @@ import { apiGetSiteEditor, apiSaveSiteEditorDraft, apiPublishSiteEditor, apiGetP
 import type { SiteEditorPayload } from '../services/api';
 import { uploadImageToCloudinary } from '../services/cloudinary';
 
-type Panel = 'hero' | 'banner' | 'theme-detail' | 'valentines' | 'text' | 'collections' | 'appearance' | 'sections' | 'seo' | 'history' | 'themes' | 'effects' | 'blocks' | 'branding' | 'offers';
+type Panel = 'guide' | 'hero' | 'banner' | 'theme-detail' | 'valentines' | 'text' | 'collections' | 'appearance' | 'sections' | 'seo' | 'history' | 'themes' | 'effects' | 'blocks' | 'branding' | 'offers';
 type Device = 'desktop' | 'tablet' | 'phone';
 const labels: Record<string, string> = {
   hero: 'Hero', collections: 'Collections', shop: 'Shop catalog',
@@ -590,6 +590,7 @@ export default function SiteEditor({
           <nav className="grid w-full min-w-0 grid-cols-2 gap-2 border-b border-stone-200 p-3 sm:grid-cols-3" aria-label="Editor panels">
             {([
               ['themes', Palette, 'Themes'],
+              ['guide', BookOpen, 'Editor Guide'],
               ['hero', ImageIcon, 'Hero Photos'],
               ['banner', BadgePercent, 'Banner'],
               ['theme-detail', Settings2, 'Theme Details'],
@@ -651,6 +652,51 @@ export default function SiteEditor({
                   ))}
                 </div>
               </div>
+            )}
+            {panel === 'guide' && (
+              <>
+                <h2 className="font-serif text-2xl">Your website editor</h2>
+                <p className="text-xs leading-6 text-stone-600">
+                  You can manage your shop without changing code. Select a section directly in the
+                  browser preview, choose a quick action, preview phone/tablet/desktop, then save a
+                  draft. Only publishing changes the customer-facing website.
+                </p>
+                <div className="space-y-3 rounded-lg border border-stone-200 bg-stone-50 p-4 text-xs leading-6">
+                  <h3 className="font-semibold text-sm">Available now</h3>
+                  <ul className="list-disc space-y-1 pl-5 text-stone-700">
+                    <li>Click-to-edit sections and individual text lines, plus collection-card selection.</li>
+                    <li>Bold, italic, line breaks, text colour, font family, font size, alignment, character spacing, line height and case.</li>
+                    <li>Bold/italic toggle OFF on a second click; whole-field controls; undo, redo and reset style.</li>
+                    <li>Theme colours, banners, logo/contact settings, separate desktop/mobile photos and cropping.</li>
+                    <li>Page sections: reorder, show/hide, duplicate or remove custom blocks.</li>
+                    <li>Effects, parallax, animations, coupon displays, SEO and historical draft versions.</li>
+                    <li>Phone, tablet and desktop previews; save draft, publish and export configuration.</li>
+                  </ul>
+                </div>
+                <div className="space-y-3 rounded-lg border border-stone-200 bg-white p-4 text-xs leading-6">
+                  <h3 className="font-semibold text-sm">Editing text</h3>
+                  <p>Select a word and click <strong>B</strong> or <em>I</em>. Click again to remove the formatting.
+                    With no selection, the same buttons toggle the entire text element, including
+                    a naturally italic decorative heading. Use <strong>Reset element style</strong>
+                    to restore defaults and <strong>Clear inline formatting</strong> to remove manual emphasis.</p>
+                  <p>Keyboard shortcuts: Ctrl+B, Ctrl+I, Ctrl+Z and Ctrl+Y (Cmd keys on Mac).</p>
+                  <button type="button" onClick={() => { setPanel('text'); setTextSlot('hero.accentLine'); }}
+                    className="border border-stone-300 bg-stone-50 px-4 py-2 text-xs font-semibold">
+                    Try editing the Hero accent line
+                  </button>
+                </div>
+                <div className="space-y-2 rounded-lg border border-stone-200 bg-white p-4 text-xs leading-6">
+                  <h3 className="font-semibold text-sm">Next editor upgrades</h3>
+                  <p>Fine-grained section sizing and spacing; reusable component presets;
+                    additional mobile-only typography options; graphical drag-and-drop layout;
+                    expanded page-template editing; and accessibility/SEO checks.
+                    These require controlled development rather than exposing unrestricted code execution.</p>
+                </div>
+                <button type="button" onClick={() => setPanel('history')}
+                  className="w-full border border-stone-300 px-4 py-3 text-xs font-semibold">
+                  Open version history & backup tools
+                </button>
+              </>
             )}
             {panel === 'banner' && (
               <>
