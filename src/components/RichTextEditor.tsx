@@ -2,6 +2,7 @@ import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import { FONT_LABELS, type FontId, type TextPresentation } from '../../shared/siteEditor';
 import { clearInlineEmphasis, toggleEmphasis, type EmphasisMark } from '../services/textFormatting';
 import RichText from './RichText';
+import { wrapInlineStyle, type InlineStyle } from '../services/inlineStyles';
 
 const fonts = ['inherit', ...Object.keys(FONT_LABELS)] as Array<FontId | 'inherit'>;
 const defaultAppearance: TextPresentation = {
@@ -22,6 +23,31 @@ export default function RichTextEditor({
 }) {
   const textarea = useRef<HTMLTextAreaElement>(null);
   const editorId = useId();
+  const selectedRange = useRef({start:0,end:0});
+  const [selectedSize, setSelectedSize] = useState(28);
+  const [selectedColor, setSelectedColor] = useState('#d5a45b');
+  const [selectedFont, setSelectedFont] = useState<FontId>('playfair');
+  const [selectedStyleMode, setSelectedStyleMode] = useState<'size'|'color'|'font'|'all'>('all');
+  const styleSelectedWords = () => {
+    const node = textarea.current;
+    const start = selectedRange.current.start;
+    const end = selectedRange.current.end;
+    const chosen: InlineStyle = selectedStyleMode === 'size' ? {size:selectedSize}
+      : selectedStyleMode === 'color' ? {color:selectedColor}
+      : selectedStyleMode === 'font' ? {font:selectedFont}
+      : {size:selectedSize,color:selectedColor,font:selectedFont};
+    if (start === end) {
+      // No selection means the owner is editing the whole element.
+      onPresentationChange({ ...presentation, ...chosen });
+      return;
+    }
+    const edit = wrapInlineStyle(value,start,end,chosen);
+    if (edit.changed) {
+      commit(edit.value);
+      selectedRange.current = {start:edit.start,end:edit.end};
+      restoreCursor(edit.start,edit.end);
+    }
+  };
   const history = useRef<string[]>([value]);
   const historyIndex = useRef(0);
   const [historyVersion, setHistoryVersion] = useState(0);
@@ -114,6 +140,9 @@ export default function RichTextEditor({
           className={toolbar}>Clear inline formatting</button>
       </div>
       <textarea id={editorId} ref={textarea} rows={5}
+        onSelect={e => {
+          selectedRange.current = {start:e.currentTarget.selectionStart,end:e.currentTarget.selectionEnd};
+        }}
         value={value} maxLength={maxLength}
         onKeyDown={onKeyDown}
         onChange={e => commit(e.target.value)}
@@ -123,6 +152,44 @@ export default function RichTextEditor({
         Select words to toggle bold/italic. With no selection, B and I toggle the whole element.
         Click again to undo. Ctrl+B / Ctrl+I / Ctrl+Z / Ctrl+Y are supported.
       </p>
+    </div>
+    <div className="rounded-lg border border-stone-300 bg-stone-50 p-3 space-y-3">
+      <p className="font-semibold text-xs text-stone-900">Style selected words only</p>
+      <p className="text-[11px] leading-5 text-stone-600">
+        Select any phrase in the text box above. The chosen font, colour or size affects only
+        those words; surrounding words keep their existing style. No selection means the entire element.
+        Reapply the same setting to the same selection to remove it.
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="text-xs">Apply
+          <select className="mt-1 w-full border border-stone-300 bg-white p-2"
+            value={selectedStyleMode} onChange={e=>setSelectedStyleMode(e.target.value as typeof selectedStyleMode)}>
+            <option value="all">Size + colour + font</option>
+            <option value="size">Size only</option>
+            <option value="color">Colour only</option>
+            <option value="font">Font only</option>
+          </select>
+        </label>
+        <label className="text-xs">Font size (px)
+          <input className="mt-1 w-full border border-stone-300 bg-white p-2" type="number"
+            min="8" max="96" value={selectedSize}
+            onChange={e=>setSelectedSize(Math.max(8,Math.min(96,Number(e.target.value)||28)))}/>
+        </label>
+        <label className="text-xs">Selected font
+          <select className="mt-1 w-full border border-stone-300 bg-white p-2"
+            value={selectedFont} onChange={e=>setSelectedFont(e.target.value as FontId)}>
+            {Object.entries(FONT_LABELS).map(([id,name])=><option value={id} key={id}>{name}</option>)}
+          </select>
+        </label>
+        <label className="text-xs">Selected colour
+          <input className="mt-1 h-10 w-full cursor-pointer border border-stone-300 bg-white p-1"
+            type="color" value={selectedColor} onChange={e=>setSelectedColor(e.target.value)}/>
+        </label>
+      </div>
+      <button type="button" onMouseDown={e=>e.preventDefault()} onClick={styleSelectedWords}
+        className="w-full rounded bg-stone-900 px-4 py-3 text-xs font-semibold text-white hover:bg-stone-700">
+        Apply to selected text
+      </button>
     </div>
     <div className="grid grid-cols-2 gap-3">
       <label className="space-y-1 text-xs text-stone-700">
