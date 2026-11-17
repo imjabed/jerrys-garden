@@ -10,6 +10,7 @@ import CollectionShowcase from './CollectionShowcase';
 import CustomPageBlock from './CustomPageBlock';
 import SeasonalEffects from './SeasonalEffects';
 import RichText from './RichText';
+import StudioErrorBoundary from './StudioErrorBoundary';
 import RichTextEditor from './RichTextEditor';
 import ImageCropControls from './ImageCropControls';
 import type { RibbonBouquet } from '../types';
@@ -2062,6 +2063,7 @@ export default function SiteEditor({
               ))}
             </div>
           </div>
+          <StudioErrorBoundary label="Visual preview">
           <div className="mx-auto overflow-hidden border border-stone-300 bg-white shadow-xl transition-[max-width] duration-300"
             style={{ maxWidth: previewWidths[device] }}>
             <div className="max-h-[calc(100vh-175px)] min-h-[420px] overflow-y-auto site-shell"
@@ -2273,6 +2275,7 @@ export default function SiteEditor({
               })()}
             </div>
           </div>
+          </StudioErrorBoundary>
           <p className="mt-4 text-center text-xs text-stone-500">Preview sizes are approximate. Verify the published design on a real phone before launch.</p>
         </main>
       </div>
