@@ -170,7 +170,7 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
       <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <div className="mb-0 lg:hidden">
           <p className="text-[10px] uppercase tracking-[0.3em] text-stone-500"><RichText value={content.eyebrow} presentation={textPresentations?.['custom.eyebrow']}/></p>
-          <h2 className="site-editable-heading mt-3 font-serif text-stone-900" style={{ fontSize: `${1.85 * headingScale}rem` }}><RichText value={content.heading} presentation={textPresentations?.['custom.heading']}/><span className="italic" style={{ color: 'var(--site-accent, #9E777C)' }}><RichText value={content.accentLine} presentation={textPresentations?.['custom.accentLine']}/></span></h2>
+          <h2 className="site-editable-heading mt-3 font-serif text-stone-900" style={{ fontSize: `${1.85 * headingScale}rem` }}><RichText value={content.heading} presentation={textPresentations?.['custom.heading']}/><span className="jb-accent-copy" style={{ color: 'var(--site-accent, #9E777C)' }}><RichText value={content.accentLine} presentation={textPresentations?.['custom.accentLine']}/></span></h2>
           <p className="site-body-copy mt-3 leading-6 text-stone-600"><RichText value={content.description} presentation={textPresentations?.['custom.description']}/></p>
           <button
             type="button"
@@ -179,14 +179,14 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
             aria-controls="custom-order-content"
             className="site-primary-button mt-6 flex w-full items-center justify-center gap-3 px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em]"
           >
-            {mobileOpen ? 'Close Custom Order' : content.button} <ArrowRight className={`h-4 w-4 transition-transform ${mobileOpen ? '-rotate-90' : ''}`}/>
+            {mobileOpen ? 'Close Custom Order' : <RichText value={content.button} presentation={textPresentations?.['custom.button']} inline/>} <ArrowRight className={`h-4 w-4 transition-transform ${mobileOpen ? '-rotate-90' : ''}`}/>
           </button>
         </div>
         <div id="custom-order-content" className={`${mobileOpen ? 'grid mt-8' : 'hidden'} items-start gap-12 lg:mt-0 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] lg:gap-20`}>
           <div className="hidden lg:block lg:sticky lg:top-28">
             <p className="text-[10px] uppercase tracking-[0.32em] text-stone-500"><RichText value={content.eyebrow} presentation={textPresentations?.['custom.eyebrow']}/></p>
             <h2 className="site-editable-heading mt-5 font-serif leading-[1.1] tracking-tight text-stone-900" style={{ fontSize: `clamp(${2.8 * headingScale}rem, ${4.6 * headingScale}vw, ${3.8 * headingScale}rem)` }}>
-              <RichText value={content.heading} presentation={textPresentations?.['custom.heading']}/><span className="italic" style={{ color: "var(--site-accent, #9E777C)" }}><RichText value={content.accentLine} presentation={textPresentations?.['custom.accentLine']}/></span>
+              <RichText value={content.heading} presentation={textPresentations?.['custom.heading']}/><span className="jb-accent-copy" style={{ color: "var(--site-accent, #9E777C)" }}><RichText value={content.accentLine} presentation={textPresentations?.['custom.accentLine']}/></span>
             </h2>
             <p className="site-body-copy mt-6 max-w-sm leading-7 text-stone-600">
               <RichText value={content.description} presentation={textPresentations?.['custom.description']}/>
