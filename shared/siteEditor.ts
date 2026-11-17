@@ -690,7 +690,7 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
       enabled: source?.enabled === undefined ? fallback.enabled : source.enabled === true,
       // Allow empty copy to intentionally hide the eyebrow or action, and keep line breaks.
       eyebrow: typeof source?.eyebrow === 'string' ? source.eyebrow.slice(0, 160) : fallback.eyebrow,
-      text: typeof source?.text === 'string' ? source.text.slice(0, 700) : fallback.text,
+      text: typeof source?.text === 'string' ? source.text.slice(0, 1800) : fallback.text,
       buttonText: typeof source?.buttonText === 'string' ? source.buttonText.slice(0, 130) : fallback.buttonText,
       link: safeEditorLink(source?.link ?? fallback.link),
       background: hex(source?.background, fallback.background),
