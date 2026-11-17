@@ -23,7 +23,7 @@ export default function ThemeBanner({ theme, config }: Props) {
       ? 'rounded-md border px-4 py-2.5'
       : 'border-b border-current pb-0.5';
   const buttonStyle: CSSProperties = {
-    color: buttonVariant === 'filled' ? config.background : (config.textColors?.buttonText || config.accentColor),
+    color: config.textColors?.buttonText || config.accentColor,
     backgroundColor: buttonVariant === 'filled' ? (config.buttonBackground || config.accentColor) : undefined,
     borderColor: buttonVariant === 'outline' ? (config.textColors?.buttonText || config.accentColor) : undefined,
   };
