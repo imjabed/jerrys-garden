@@ -1360,3 +1360,80 @@
 @media (prefers-reduced-motion:reduce) {
   .jb-festival-scene *, .jb-theme-banner * { animation:none !important; }
 }
+
+
+/* ===============================================================
+   WINTER 2026 — high-resolution responsive photographs and studio
+   =============================================================== */
+
+/* The Navbar Cloudinary image remains behind accessible navigation controls. */
+.site-shell .jb-nav-surface .jb-nav-photo-scrim {
+  background: linear-gradient(90deg,
+    color-mix(in srgb,var(--jb-nav-bg, #07192C) 82%,transparent),
+    color-mix(in srgb,var(--jb-nav-bg, #07192C) 46%,transparent) 55%,
+    color-mix(in srgb,var(--jb-nav-bg, #07192C) 70%,transparent));
+}
+.site-shell[data-site-theme="winter"] .jb-nav-surface {
+  background: var(--jb-nav-bg, #07192C) !important;
+  border-bottom-color: var(--jb-nav-accent, #DAB973) !important;
+}
+.site-shell[data-site-theme="winter"] .jb-nav-surface .jb-nav-brand,
+.site-shell[data-site-theme="winter"] .jb-nav-surface .jb-nav-actions,
+.site-shell[data-site-theme="winter"] .jb-nav-surface .jb-nav-inner > nav {
+  position: relative;
+  z-index: 3;
+}
+.site-shell[data-site-theme="winter"] .jb-nav-surface .jb-nav-inner button,
+.site-shell[data-site-theme="winter"] .jb-nav-surface .jb-nav-inner .font-serif,
+.site-shell[data-site-theme="winter"] .jb-nav-surface .jb-nav-inner p {
+  color: var(--jb-nav-text, #FFF8F0) !important;
+}
+.site-shell[data-site-theme="winter"] .jb-nav-surface .jb-navbar-festive-details {
+  opacity: .35; z-index: 1;
+}
+/* Both desktop and mobile images are full-bleed. Changing position never
+   rewrites/compresses the original Cloudinary file. */
+.site-shell .jb-hero-photo {
+  object-position: var(--jb-photo-crop-desktop, 50% 50%) !important;
+}
+.site-shell .jb-custom-photo {
+  object-position: var(--jb-custom-desktop-crop, 50% 50%) !important;
+}
+@media (max-width:680px) {
+  .site-shell .jb-hero-photo {
+    object-position: var(--jb-photo-crop-mobile, 50% 50%) !important;
+  }
+  .site-shell .jb-custom-photo {
+    object-position: var(--jb-custom-mobile-crop, 50% 50%) !important;
+  }
+}
+.site-shell[data-editor-device="phone"] .jb-hero-photo,
+.site-shell[data-editor-device="tablet"] .jb-hero-photo {
+  object-position: var(--jb-photo-crop-mobile, 50% 50%) !important;
+}
+.site-shell[data-editor-device="phone"] .jb-custom-photo,
+.site-shell[data-editor-device="tablet"] .jb-custom-photo {
+  object-position: var(--jb-custom-mobile-crop, 50% 50%) !important;
+}
+.site-shell .jb-festival-real-image {
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,.12));
+}
+.site-shell[data-site-theme="winter"] .jb-festival-scene {
+  height: clamp(220px,28vw,390px);
+}
+.site-shell[data-site-theme="winter"] .jb-footer-surface {
+  background: var(--site-footer-bg, #071729) !important;
+}
+@media (max-width:680px) {
+  .site-shell[data-site-theme="winter"] .jb-festival-scene { height:220px; }
+  .site-shell[data-site-theme="winter"] .jb-festival-real-image {
+    object-position: center bottom;
+  }
+}
+/* Focus-visible styles for admin users working with a keyboard. */
+.jb-studio-panel-nav button:focus-visible {
+  outline: 2px solid #1D4E6E;
+  outline-offset: 2px;
+}
