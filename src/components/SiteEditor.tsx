@@ -360,7 +360,10 @@ export default function SiteEditor({
         field === 'heroMobileImageUrl' ? 9/16 : field === 'footerSceneUrl' ? 16/5 : 16/9,
         cropped => {
           rememberSuperseded(draft.valentines[field],cropped);
-          update(prev => ({ ...prev,valentines:{...prev.valentines,[field]:cropped} }));
+          update(prev => ({ ...prev,valentines:{
+            ...prev.valentines,[field]:cropped,
+            ...(field==='customImageUrl'?{customImagePosition:50}:{}),
+          } }));
         });
       setNotice('Valentine photo uploaded. Crop before saving your draft.');
     } catch (err: any) {
@@ -1242,6 +1245,16 @@ export default function SiteEditor({
                       }}/>
                   </label>
                   {draft.valentines.heroMobileImageUrl && (
+                    <button type="button" className="mt-2 w-full rounded border border-rose-300 bg-white px-3 py-3 text-xs font-semibold"
+                      onClick={() => editExistingCrop(
+                        'valentines:heroMobileImageUrl','Valentine mobile hero',
+                        draft.valentines.heroMobileImageUrl,9/16,
+                        cropped => update(prev => ({...prev,valentines:{
+                          ...prev.valentines,heroMobileImageUrl:cropped,
+                        }})),
+                      )}>Edit / Re-crop Valentine mobile hero</button>
+                  )}
+                  {draft.valentines.heroMobileImageUrl && (
                     <button type="button" className="mt-2 text-xs text-rose-700 underline"
                       onClick={() => { rememberSuperseded(draft.valentines.heroMobileImageUrl, ''); update(prev => ({ ...prev, valentines: { ...prev.valentines, heroMobileImageUrl: '' } })); }}>
                       Use desktop photo on phones
@@ -1275,18 +1288,22 @@ export default function SiteEditor({
                         }}/>
                     </label>
                     {draft.valentines.customImageUrl && (
+                      <button type="button" className="w-full rounded border border-rose-300 bg-white px-3 py-3 text-xs font-semibold"
+                        onClick={() => editExistingCrop(
+                          'valentines:customImageUrl','Valentine custom-order background',
+                          draft.valentines.customImageUrl,16/9,
+                          cropped => update(prev => ({...prev,valentines:{
+                            ...prev.valentines,customImageUrl:cropped,customImagePosition:50,
+                          }})),
+                        )}>Edit / Re-crop custom-order photo</button>
+                    )}
+                    {draft.valentines.customImageUrl && (
                       <button type="button" className="text-xs text-rose-700 underline"
                         onClick={() => { rememberSuperseded(draft.valentines.customImageUrl, ''); update(prev => ({ ...prev, valentines: { ...prev.valentines, customImageUrl: '' } })); }}>
                         Remove custom-order background
                       </button>
                     )}
-                    <label className="block space-y-2 text-xs">
-                      <span>Photo focal point · {draft.valentines.customImagePosition}% down</span>
-                      <input type="range" min="0" max="100" step="5" className="w-full accent-rose-900"
-                        value={draft.valentines.customImagePosition} onChange={e => update(prev => ({
-                          ...prev, valentines: { ...prev.valentines, customImagePosition: Number(e.target.value) },
-                        }))}/>
-                    </label>
+                    <p className="text-[11px] text-stone-500">Use Edit / Re-crop to reframe the background visually.</p>
                     <label className="block space-y-2 text-xs">
                       <span>Readability overlay · {Math.round(draft.valentines.customOverlay * 100)}%</span>
                       <input type="range" min=".15" max=".95" step=".05" className="w-full accent-rose-900"
