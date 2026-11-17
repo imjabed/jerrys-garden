@@ -58,6 +58,11 @@ async function openMockedStudio(page: Page, path = '/admin/editor') {
     }
     if (path === '/api/site-content') payload={success:true,content:state.published};
     if (path === '/api/admin/media/cleanup') payload={success:true,status:'skipped'};
+    if (path === '/api/upload-image') payload = {
+      success:true, reused:true, width:1200, height:700,
+      url:'https://res.cloudinary.com/ajq29txd/image/upload/v1794900853/editor_test_photo.png',
+      public_id:'jame_bouquets_themes/editor_test_photo',
+    };
     if (path === '/api/admin/settings' || path === '/api/settings')
       payload={success:true,connected:true,settings:{storeName:'Jame Bouquets',logoUrl:'',phone:'',whatsapp:''}};
     if (path === '/api/admin/products' || path === '/api/bouquets' || path === '/api/products')
@@ -161,5 +166,52 @@ test('Owner dashboard sections and Website Editor link remain navigable', async 
   // Enter the same owner editor from its real dashboard action.
   await page.getByRole('button',{name:'Website Editor'}).click();
   await expect(page.getByText('Visual preview')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('All five banners accept background changes without a render error', async ({page})=>{
+  const {errors,state}=await openMockedStudio(page);
+  await page.getByRole('button',{name:'Banner',exact:true}).click();
+  const selector=page.getByRole('combobox',{name:'Theme banner'});
+  const expected:Record<string,string>={};
+  for (const [i,theme] of ['default','valentines','puja','winter','eid'].entries()) {
+    await selector.selectOption(theme);
+    const hex='#'+(i+1).toString(16).padStart(2,'0')+'7799';
+    await page.getByLabel('Background colour').fill(hex);
+    expected[theme]=hex;
+    await expect(page.locator('.jb-theme-banner').first()).toHaveCSS(
+      'background-color',`rgb(${i+1}, 119, 153)`,
+    );
+    await expect(page.getByText('Campaign banner editor')).toBeVisible();
+  }
+  await page.getByRole('button',{name:'Save draft'}).click();
+  await expect(page.getByText('Draft saved. Your live website has not changed.')).toBeVisible();
+  for (const [theme,color] of Object.entries(expected)) {
+    expect(state.draft.themeBanners[theme as keyof typeof state.draft.themeBanners].background.toLowerCase()).toBe(color);
+  }
+  expect(errors).toEqual([]);
+});
+
+test('Banner background photo upload and hero crop changes survive saving', async ({page})=>{
+  const {errors,state}=await openMockedStudio(page);
+  await page.getByRole('button',{name:'Banner',exact:true}).click();
+  await page.getByRole('combobox',{name:'Theme banner'}).selectOption('winter');
+  const uploader=page.locator('label').filter({hasText:'Upload / replace banner background image'})
+    .locator('input[type="file"]');
+  await uploader.setInputFiles({
+    name:'banner.png', mimeType:'image/png',
+    buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/ZWsAAAAASUVORK5CYII=','base64'),
+  });
+  await expect(page.getByText('Existing Cloudinary photo reused.')).toBeVisible();
+  await page.getByRole('button',{name:'Hero Photos'}).click();
+  await page.getByRole('combobox',{name:'Background to edit'}).selectOption('winter');
+  const horizontal=page.getByRole('slider',{name:'Desktop · Left/Right/Up/Down crop: horizontal position'});
+  await horizontal.focus();
+  await horizontal.press('End');
+  await expect(horizontal).toHaveValue('100');
+  await page.getByRole('button',{name:'Save draft'}).click();
+  await expect(page.getByText('Draft saved. Your live website has not changed.')).toBeVisible();
+  expect(state.draft.themeBanners.winter.imageUrl).toContain('editor_test_photo.png');
+  expect(state.draft.heroCrop.winter.desktop.x).toBe(100);
   expect(errors).toEqual([]);
 });
