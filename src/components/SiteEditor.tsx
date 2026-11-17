@@ -61,6 +61,7 @@ export default function SiteEditor({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [textSlot, setTextSlot] = useState<TextSlot>('hero.heading');
   const [focusedPreview, setFocusedPreview] = useState<string | null>(null);
+  const [previewMenuOpen, setPreviewMenuOpen] = useState(false);
   const inspectorRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
@@ -397,6 +398,7 @@ export default function SiteEditor({
       custom: 'text', story: 'text', footer: 'branding', block: 'blocks',
     };
     setFocusedPreview(section);
+    if (section !== 'header') setPreviewMenuOpen(false);
     if (slot) {
       setTextSlot(slot);
       setPanel('text');
@@ -417,6 +419,16 @@ export default function SiteEditor({
   };
   const onPreviewClick = (event: import('react').MouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
+    if (target.closest('[data-preview-menu-control]')) return;
+    const bannerField = target.closest<HTMLElement>('[data-banner-field]')?.dataset.bannerField;
+    if (bannerField && ['eyebrow','text','buttonText'].includes(bannerField)) {
+      event.preventDefault();
+      event.stopPropagation();
+      setBannerTheme(draft.theme);
+      setBannerTextField(bannerField as BannerCopyField);
+      focusPreview('banner');
+      return;
+    }
     const text = target.closest<HTMLElement>('[data-editor-slot]');
     const category = target.closest<HTMLElement>('[data-editor-category]');
     const element = target.closest<HTMLElement>('[data-editor-section]');
@@ -2060,13 +2072,46 @@ export default function SiteEditor({
                   </div>
                 )}
                 <span className="relative z-10 font-serif text-base sm:text-lg">Jame Bouquets</span>
-                {device === 'phone'
-                  ? <span className="relative z-10 flex items-center gap-3 text-stone-700" aria-label="Cart and menu preview"><ShoppingBag className="h-4 w-4"/><Menu className="h-5 w-5"/></span>
-                  : <span className="relative z-10 text-xs text-stone-500">HOME · SHOP · ABOUT</span>}
+                {device !== 'desktop'
+                  ? <div className="relative z-10 flex items-center gap-3" aria-label="Cart and menu preview">
+                      <button type="button" data-preview-menu-control aria-label="Edit cart icon"
+                        className="p-2" onClick={() => focusPreview('header')}>
+                        <ShoppingBag className="h-4 w-4" style={{color:draft.themeExtras[draft.theme].navText}}/>
+                      </button>
+                      <button type="button" data-preview-menu-control
+                        aria-label={previewMenuOpen ? 'Close preview navigation' : 'Open preview navigation'}
+                        aria-expanded={previewMenuOpen}
+                        onClick={() => setPreviewMenuOpen(v=>!v)}
+                        className="rounded-md border border-white/20 p-2" style={{color:draft.themeExtras[draft.theme].navText}}>
+                        {previewMenuOpen ? <X className="h-5 w-5"/> : <Menu className="h-5 w-5"/>}
+                      </button>
+                    </div>
+                  : <span className="relative z-10 text-xs" style={{color:draft.themeExtras[draft.theme].navText}}>
+                      HOME · SHOP · ABOUT
+                    </span>}
               </div>
+              {previewMenuOpen && device !== 'desktop' && (
+                <div data-preview-menu-control className="jb-editor-preview-menu">
+                  {([
+                    ['Shop Products', 'shop'],
+                    ['Custom Event Bouquets', 'custom'],
+                    ['Track My Order', 'header'],
+                    ['Our Craft', 'story'],
+                    ['Account / Sign In', 'header'],
+                  ] as const).map(([title, section]) => (
+                    <button type="button" key={title} onClick={() => {
+                      setPreviewMenuOpen(false);
+                      focusPreview(section);
+                    }}>{title}</button>
+                  ))}
+                  <p className="mt-3 px-2 text-[11px] opacity-80" style={{color:draft.themeExtras[draft.theme].navText}}>
+                    Design preview. Menu links select their sections for editing.
+                  </p>
+                </div>
+              )}
               {draft.sections.order.filter(id => draft.sections.visible[id]).map(id => {
                 if (id === 'hero') return <div key={id}>
-                  <div data-editor-section="banner"><ThemeBanner theme={draft.theme} config={draft.themeBanners[draft.theme]}/></div>
+                  <div data-editor-section="banner"><ThemeBanner theme={draft.theme} config={draft.themeBanners[draft.theme]} editorPreview/></div>
                   <div data-editor-section="hero"><Hero
                   content={draft.theme === 'valentines' ? draft.valentines.hero : draft.hero}
                   headingScale={draft.appearance.headingScale}
