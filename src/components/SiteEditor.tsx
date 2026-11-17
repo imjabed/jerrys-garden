@@ -418,6 +418,7 @@ export default function SiteEditor({
   const onPreviewClick = (event: import('react').MouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
     const text = target.closest<HTMLElement>('[data-editor-slot]');
+    const category = target.closest<HTMLElement>('[data-editor-category]');
     const element = target.closest<HTMLElement>('[data-editor-section]');
     const section = element?.dataset.editorSection;
     const slot = text?.dataset.editorSlot;
@@ -428,6 +429,9 @@ export default function SiteEditor({
     event.stopPropagation();
     if (section === 'block' && element?.dataset.editorBlock) {
       setSelectedBlock(element.dataset.editorBlock);
+    }
+    if (category?.dataset.editorCategory) {
+      setSelectedCategory(category.dataset.editorCategory);
     }
     focusPreview(section || 'hero', slot && TEXT_SLOTS.some(s => s.id === slot) ? slot as TextSlot : undefined);
   };
@@ -1998,7 +2002,7 @@ export default function SiteEditor({
                   </div>
                 </div>;
                 if (id === 'collections') return <div key={id} data-editor-section="collections"><CollectionShowcase content={draft.collections} headingScale={draft.appearance.headingScale}
-                  products={products} onCategoryClick={key => { setSelectedCategory(key); setPanel('collections'); }}/></div>;
+                  products={products} editorPreview onCategoryClick={key => { setSelectedCategory(key); setPanel('collections'); }}/></div>;
                 if (id === 'shop') return <section key={id} data-editor-section="shop" className="jb-shop-section relative isolate px-5 py-10">
                   <p className="text-[10px] uppercase tracking-widest text-stone-500"><RichText value={draft.shop.eyebrow} presentation={draft.textPresentations[draft.theme]['shop.eyebrow']} editorSlot="shop.eyebrow"/></p>
                   <h2 className="mt-2 font-serif text-3xl"><RichText value={draft.shop.heading} presentation={draft.textPresentations[draft.theme]['shop.heading']} editorSlot="shop.heading"/></h2>
