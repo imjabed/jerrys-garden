@@ -215,3 +215,49 @@ test('Banner background photo upload and hero crop changes survive saving', asyn
   expect(state.draft.heroCrop.winter.desktop.x).toBe(100);
   expect(errors).toEqual([]);
 });
+
+test('Docked DevTools-width editor keeps preview in viewport after banner image selection', async ({page}) => {
+  await page.setViewportSize({width:1040,height:850});
+  const {errors}=await openMockedStudio(page);
+  const preview=page.getByText('Visual preview',{exact:true});
+  await expect(preview).toBeInViewport();
+  await page.getByRole('button',{name:'Banner',exact:true}).click();
+  await page.getByRole('combobox',{name:'Theme banner'}).selectOption('winter');
+  const photo=page.locator('label').filter({hasText:'Upload / replace banner background image'}).locator('input[type="file"]');
+  await photo.setInputFiles({
+    name:'winter-sale.png',mimeType:'image/png',
+    buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/ZWsAAAAASUVORK5CYII=','base64'),
+  });
+  await expect(page.getByText('Existing Cloudinary photo reused.')).toBeVisible();
+  await expect(preview).toBeInViewport();
+  await expect(page.getByRole('button',{name:'Save draft'})).toBeVisible();
+  await expect(page.getByText('Campaign banner editor')).toBeVisible();
+  const layout=await page.evaluate(() => {
+    const shell=document.querySelector('.grid.flex-1, .grid.min-h-0.min-w-0.flex-1');
+    const panes=shell?.querySelectorAll(':scope > aside, :scope > main');
+    const a=panes?.[0]?.getBoundingClientRect();
+    const b=panes?.[1]?.getBoundingClientRect();
+    return {rootHeight:document.documentElement.scrollHeight,viewport:innerHeight,
+      side:a?{left:a.left,right:a.right,top:a.top}:null,
+      preview:b?{left:b.left,right:b.right,top:b.top}:null};
+  });
+  expect(layout.side).toBeTruthy();
+  expect(layout.preview).toBeTruthy();
+  expect(layout.preview!.left).toBeGreaterThanOrEqual(layout.side!.right-2);
+  expect(layout.rootHeight).toBeLessThan(layout.viewport+180);
+  expect(errors).toEqual([]);
+});
+
+test('Small-screen editor keeps image selection and preview accessible without blank document',async ({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  const {errors}=await openMockedStudio(page);
+  await page.getByRole('button',{name:'Banner',exact:true}).click();
+  await page.getByRole('combobox',{name:'Theme banner'}).selectOption('winter');
+  await page.getByLabel('Background colour').fill('#10345a');
+  await expect(page.getByText('Visual preview',{exact:true})).toBeVisible();
+  const doc=await page.evaluate(()=>({hasRoot:!!document.querySelector('#root')?.firstElementChild,
+    hasText:!!document.body.textContent?.includes('Jame Bouquets Studio')}));
+  expect(doc.hasRoot).toBe(true);
+  expect(doc.hasText).toBe(true);
+  expect(errors).toEqual([]);
+});
