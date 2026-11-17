@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react';
+import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import { FONT_LABELS, type FontId, type TextPresentation } from '../../shared/siteEditor';
 import { clearInlineEmphasis, toggleEmphasis, type EmphasisMark } from '../services/textFormatting';
 import RichText from './RichText';
@@ -81,7 +81,7 @@ export default function RichTextEditor({
     ...defaultAppearance,
     italic: ['accent', 'accent line'].some(word => label.toLowerCase().includes(word)),
   });
-  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (!(e.ctrlKey || e.metaKey)) return;
     const key = e.key.toLowerCase();
     if (key === 'b' || key === 'i') {
