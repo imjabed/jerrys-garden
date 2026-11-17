@@ -9,8 +9,9 @@ interface Props {
   onCategoryClick: (category: string) => void;
   compact?: boolean;
   headingScale?: number;
+  editorPreview?: boolean;
 }
-export default function CollectionShowcase({ content, products, onCategoryClick, compact = false, headingScale = 1 }: Props) {
+export default function CollectionShowcase({ content, products, onCategoryClick, compact = false, headingScale = 1, editorPreview = false }: Props) {
   const cards = content.cards.filter(card => card.visible);
   if (!cards.length) return null;
   const sizes = compact ? 'min-h-36 sm:min-h-44' : 'min-h-[190px] sm:min-h-[250px] lg:min-h-[290px]';
@@ -31,7 +32,7 @@ export default function CollectionShowcase({ content, products, onCategoryClick,
             const catalogueImage = products.find(product => product.category === card.categoryKey && product.imageUrl)?.imageUrl;
             const imageUrl = card.imageUrl || catalogueImage || '';
             return (
-              <button key={card.categoryKey} type="button" onClick={() => onCategoryClick(card.categoryKey)}
+              <button key={card.categoryKey} type="button" data-editor-category={editorPreview ? card.categoryKey : undefined} onClick={() => onCategoryClick(card.categoryKey)}
                 className={`jb-collection-card group relative isolate overflow-hidden border border-white/20 text-left transition-transform duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white hover:-translate-y-1 ${sizes}`}
                 style={{ background: 'var(--jb-card-dark, #201C17)', color: content.text }}
                 aria-label={`View ${card.title} collection`}>
