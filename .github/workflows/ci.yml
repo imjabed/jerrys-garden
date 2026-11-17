@@ -21,16 +21,16 @@ jobs:
           node-version: '22'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Install browser test package
+        run: npm install --no-save --no-audit --no-fund @playwright/test@1.58.2
       - name: Typecheck
         run: npm run lint
       - name: Test custom order validation
         run: npm run test
       - name: Build frontend and server
         run: npm run build
-      - name: Install Chromium browser test runner
-        run: |
-          npm install --no-save --no-audit --no-fund @playwright/test@1.58.2
-          npx playwright install --with-deps chromium
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
       - name: Test website editor in Chromium (mock backend)
         run: npx playwright test
       - name: Upload browser screenshots and traces on failure
