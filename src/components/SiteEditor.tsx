@@ -2143,7 +2143,7 @@ export default function SiteEditor({
                   </div>
                 </div>;
                 if (id === 'collections') return <div key={id} data-editor-section="collections"><CollectionShowcase content={draft.collections} headingScale={draft.appearance.headingScale}
-                  products={products} editorPreview onCategoryClick={key => { setSelectedCategory(key); setPanel('collections'); }}/></div>;
+                  products={products} textPresentations={draft.textPresentations[draft.theme]} editorPreview onCategoryClick={key => { setSelectedCategory(key); setPanel('collections'); }}/></div>;
                 if (id === 'shop') return <section key={id} data-editor-section="shop" className="jb-shop-section relative isolate px-5 py-10">
                   <p className="text-[10px] uppercase tracking-widest text-stone-500"><RichText value={draft.shop.eyebrow} presentation={draft.textPresentations[draft.theme]['shop.eyebrow']} editorSlot="shop.eyebrow"/></p>
                   <h2 className="mt-2 font-serif text-3xl"><RichText value={draft.shop.heading} presentation={draft.textPresentations[draft.theme]['shop.heading']} editorSlot="shop.heading"/></h2>
