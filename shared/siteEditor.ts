@@ -560,7 +560,7 @@ const crop = (raw: any, fallback: CropPosition): CropPosition => ({
   x: numberRange(raw?.x, fallback.x, 0, 100),
   y: numberRange(raw?.y, fallback.y, 0, 100),
 });
-const fieldText = (obj: any, key: string, fallback: string, max = 140) => copyText(obj?.[key], fallback, max);
+const fieldText = (obj: any, key: string, fallback: string, max = 700) => copyText(obj?.[key], fallback, max);
 
 export function sanitizeSiteContent(value: unknown): SiteContent {
   const raw: any = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -670,18 +670,18 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
   const vd = d.valentines;
   const valentines: ValentinesDesign = {
     hero: {
-      eyebrow: fieldText(val.hero, 'eyebrow', vd.hero.eyebrow, 100),
-      heading: fieldText(val.hero, 'heading', vd.hero.heading, 100),
-      accentLine: fieldText(val.hero, 'accentLine', vd.hero.accentLine, 100),
-      description: fieldText(val.hero, 'description', vd.hero.description, 300),
-      button: fieldText(val.hero, 'button', vd.hero.button, 70),
+      eyebrow: fieldText(val.hero, 'eyebrow', vd.hero.eyebrow, 700),
+      heading: fieldText(val.hero, 'heading', vd.hero.heading, 700),
+      accentLine: fieldText(val.hero, 'accentLine', vd.hero.accentLine, 700),
+      description: fieldText(val.hero, 'description', vd.hero.description, 1000),
+      button: fieldText(val.hero, 'button', vd.hero.button, 350),
     },
     custom: {
-      eyebrow: fieldText(val.custom, 'eyebrow', vd.custom.eyebrow, 100),
-      heading: fieldText(val.custom, 'heading', vd.custom.heading, 100),
-      accentLine: fieldText(val.custom, 'accentLine', vd.custom.accentLine, 100),
-      description: fieldText(val.custom, 'description', vd.custom.description, 300),
-      button: fieldText(val.custom, 'button', vd.custom.button, 70),
+      eyebrow: fieldText(val.custom, 'eyebrow', vd.custom.eyebrow, 700),
+      heading: fieldText(val.custom, 'heading', vd.custom.heading, 700),
+      accentLine: fieldText(val.custom, 'accentLine', vd.custom.accentLine, 700),
+      description: fieldText(val.custom, 'description', vd.custom.description, 1000),
+      button: fieldText(val.custom, 'button', vd.custom.button, 350),
     },
     heroMobileImageUrl: safeEditorImage(val.heroMobileImageUrl),
     customImageUrl: safeEditorImage(val.customImageUrl),
@@ -690,8 +690,8 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
     footerSceneUrl: safeEditorImage(val.footerSceneUrl),
     footerSceneEnabled: val.footerSceneEnabled !== false,
     footerTagline: fieldText(val, 'footerTagline', vd.footerTagline, 120),
-    footerDescription: fieldText(val, 'footerDescription', vd.footerDescription, 300),
-    footerOrderNote: fieldText(val, 'footerOrderNote', vd.footerOrderNote, 150),
+    footerDescription: fieldText(val, 'footerDescription', vd.footerDescription, 1000),
+    footerOrderNote: fieldText(val, 'footerOrderNote', vd.footerOrderNote, 700),
     colors: Object.fromEntries(
       (Object.keys(vd.colors) as Array<keyof ValentinesDesign['colors']>)
         .map(key => [key, hex(val.colors?.[key], vd.colors[key])]),
@@ -800,7 +800,7 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
       background: hex(raw.announcement?.background, d.announcement.background),
       textColor: hex(raw.announcement?.textColor, d.announcement.textColor),
     },
-    footer: { description: fieldText(raw.footer, 'description', d.footer.description, 350), orderNote: fieldText(raw.footer, 'orderNote', d.footer.orderNote, 130) },
+    footer: { description: fieldText(raw.footer, 'description', d.footer.description, 1000), orderNote: fieldText(raw.footer, 'orderNote', d.footer.orderNote, 700) },
     effects: {
       enabled: fx.enabled === true,
       glow: false,
@@ -902,14 +902,14 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
     const fallback = d.themeCopy[id];
     content.themeCopy[id] = {
       hero: Object.fromEntries((Object.keys(fallback.hero) as Array<keyof SiteContent['hero']>)
-        .map(key => [key, fieldText(source?.hero, key, fallback.hero[key], key === 'description' ? 350 : 140)])) as SiteContent['hero'],
+        .map(key => [key, fieldText(source?.hero, key, fallback.hero[key], key === 'description' ? 1000 : 700)])) as SiteContent['hero'],
       custom: Object.fromEntries((Object.keys(fallback.custom) as Array<keyof SiteContent['custom']>)
-        .map(key => [key, fieldText(source?.custom, key, fallback.custom[key], key === 'description' ? 350 : 140)])) as SiteContent['custom'],
+        .map(key => [key, fieldText(source?.custom, key, fallback.custom[key], key === 'description' ? 1000 : 700)])) as SiteContent['custom'],
       story: Object.fromEntries((Object.keys(fallback.story) as Array<keyof SiteContent['story']>)
-        .map(key => [key, fieldText(source?.story, key, fallback.story[key], key === 'description' ? 350 : 140)])) as SiteContent['story'],
+        .map(key => [key, fieldText(source?.story, key, fallback.story[key], key === 'description' ? 1000 : 700)])) as SiteContent['story'],
       footer: {
-        description: fieldText(source?.footer, 'description', fallback.footer.description, 350),
-        orderNote: fieldText(source?.footer, 'orderNote', fallback.footer.orderNote, 130),
+        description: fieldText(source?.footer, 'description', fallback.footer.description, 1000),
+        orderNote: fieldText(source?.footer, 'orderNote', fallback.footer.orderNote, 700),
       },
     };
   }
