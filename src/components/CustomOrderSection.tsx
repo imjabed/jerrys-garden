@@ -5,6 +5,8 @@ import { customSizeMap, PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS } from '../../sha
 import type { ProductSizeKey } from '../../shared/productSizes';
 import type { SiteContent, ThemeId, PageEffects, ValentinesDesign, ThemeExtras } from '../../shared/siteEditor';
 import SeasonalEffects from './SeasonalEffects';
+import RichText from './RichText';
+import type { TextSlot, TextPresentation } from '../../shared/siteEditor';
 import {
   estimateCustomBouquet, indiaDate, leadDays, minimumWrappers,
   type WrapperType,
@@ -22,6 +24,7 @@ interface CustomOrderSectionProps {
   effects?: PageEffects;
   valentines?: ValentinesDesign;
   themeExtras?: ThemeExtras;
+  textPresentations?: Record<TextSlot, TextPresentation>;
 }
 export interface CustomEnquiryPayload {
   size: ProductSizeKey;
@@ -44,13 +47,15 @@ export interface CustomEnquiryPayload {
 
 const occasions = ['Wedding', 'Anniversary', 'Birthday', 'Event', 'Other'];
 
-export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggle, content = DEFAULT_SITE_CONTENT.custom, headingScale = 1, sizeChart, theme = 'default', effects = DEFAULT_SITE_CONTENT.effects, valentines, themeExtras }: CustomOrderSectionProps) {
+export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggle, content = DEFAULT_SITE_CONTENT.custom, headingScale = 1, sizeChart, theme = 'default', effects = DEFAULT_SITE_CONTENT.effects, valentines, themeExtras, textPresentations }: CustomOrderSectionProps) {
   // Images are optional decorations. Missing or failed Cloudinary photos must not
   // change the order form's calculations or cause a render crash.
   const customPhoto = valentines
     ? (typeof valentines.customImageUrl === 'string' ? valentines.customImageUrl : '')
     : (typeof themeExtras?.customImageUrl === 'string' ? themeExtras.customImageUrl : '');
+  const mobilePhoto = !valentines ? (themeExtras?.customMobileImageUrl || '') : '';
   const photoPosition = valentines ? valentines.customImagePosition : (themeExtras?.customImagePosition ?? 60);
+  const customCrop = themeExtras?.customCrop;
   const photoOverlay = valentines ? valentines.customOverlay : (themeExtras?.customOverlay ?? .72);
   const [occasion, setOccasion] = useState('Wedding');
   const [size, setSize] = useState<ProductSizeKey>('S');
@@ -72,6 +77,7 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [confirmed, setConfirmed] = useState<string | null>(null);
+  const [contactStep, setContactStep] = useState(false);
 
   useEffect(() => {
     setWrappers(current => Math.max(current, minimumWrappers(flowers)));
@@ -86,9 +92,23 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
     setWrappers(minimumWrappers(sizes[next]));
   };
 
+  const continueToContact = () => {
+    if (flowers < 25 || flowers > 100 || flowers % 5 !== 0 || wrappers < minWrappers) {
+      setError('Please review your bouquet size and wrapper quantity.'); return;
+    }
+    if (!flowerColors.trim() || !wrapperColor.trim()) {
+      setError('Enter flower and wrapper colours to continue.'); return;
+    }
+    if (!deliveryDate || leadDays(deliveryDate) < 7) {
+      setError('Choose a delivery date at least seven days from today.'); return;
+    }
+    setError('');
+    setContactStep(true);
+  };
+
   async function send(e: FormEvent) {
     e.preventDefault();
-    if (sending) return;
+    if (sending || !contactStep) return;
     if (flowers < 25 || flowers > 100 || flowers % 5 !== 0 || wrappers < minWrappers) {
       setError('Please review the flower and wrapper quantities.');
       return;
@@ -130,14 +150,18 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
       style={{ '--val-custom-overlay': String(photoOverlay), '--jb-custom-overlay': String(photoOverlay) } as CSSProperties}>
       {themeExtras && (theme !== 'default' || customPhoto) && (
         <div className="jb-val-custom-photo-layer pointer-events-none absolute inset-0" aria-hidden="true">
-          {customPhoto && (
-            <img className="absolute inset-0 h-full w-full object-cover"
-              src={customPhoto.includes('/image/upload/')
-                ? customPhoto.replace('/image/upload/', '/image/upload/f_auto,q_auto,w_1600,c_limit/')
-                : customPhoto}
-              alt="" loading="lazy" decoding="async"
-              onError={event => { event.currentTarget.style.visibility = 'hidden'; }}
-              style={{ objectPosition: `50% ${Math.max(0, Math.min(100, photoPosition))}%` }}/>
+          {(customPhoto || mobilePhoto) && (
+            <picture>
+              {mobilePhoto && <source media="(max-width: 680px)" srcSet={mobilePhoto}/>}
+              <img className="jb-custom-photo absolute inset-0 h-full w-full object-cover"
+                src={customPhoto || mobilePhoto}
+                alt="" loading="lazy" decoding="async"
+                onError={event => { event.currentTarget.style.visibility = 'hidden'; }}
+                style={{
+                  '--jb-custom-desktop-crop': `${customCrop?.desktop.x ?? 50}% ${customCrop?.desktop.y ?? photoPosition}%`,
+                  '--jb-custom-mobile-crop': `${customCrop?.mobile.x ?? 50}% ${customCrop?.mobile.y ?? photoPosition}%`,
+                } as CSSProperties}/>
+            </picture>
           )}
           <div className="jb-val-custom-photo-shade absolute inset-0"/>
         </div>
@@ -145,9 +169,9 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
       <SeasonalEffects settings={effects} theme={theme} layer="support"/>
       <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <div className="mb-0 lg:hidden">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-stone-500">{content.eyebrow}</p>
-          <h2 className="site-editable-heading mt-3 font-serif text-stone-900" style={{ fontSize: `${1.85 * headingScale}rem` }}>{content.heading} <span className="italic" style={{ color: 'var(--site-accent, #9E777C)' }}>{content.accentLine}</span></h2>
-          <p className="site-body-copy mt-3 leading-6 text-stone-600">{content.description}</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-stone-500"><RichText value={content.eyebrow} presentation={textPresentations?.['custom.eyebrow']}/></p>
+          <h2 className="site-editable-heading mt-3 font-serif text-stone-900" style={{ fontSize: `${1.85 * headingScale}rem` }}><RichText value={content.heading} presentation={textPresentations?.['custom.heading']}/><span className="italic" style={{ color: 'var(--site-accent, #9E777C)' }}><RichText value={content.accentLine} presentation={textPresentations?.['custom.accentLine']}/></span></h2>
+          <p className="site-body-copy mt-3 leading-6 text-stone-600"><RichText value={content.description} presentation={textPresentations?.['custom.description']}/></p>
           <button
             type="button"
             onClick={onMobileToggle}
@@ -160,12 +184,12 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
         </div>
         <div id="custom-order-content" className={`${mobileOpen ? 'grid mt-8' : 'hidden'} items-start gap-12 lg:mt-0 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] lg:gap-20`}>
           <div className="hidden lg:block lg:sticky lg:top-28">
-            <p className="text-[10px] uppercase tracking-[0.32em] text-stone-500">{content.eyebrow}</p>
+            <p className="text-[10px] uppercase tracking-[0.32em] text-stone-500"><RichText value={content.eyebrow} presentation={textPresentations?.['custom.eyebrow']}/></p>
             <h2 className="site-editable-heading mt-5 font-serif leading-[1.1] tracking-tight text-stone-900" style={{ fontSize: `clamp(${2.8 * headingScale}rem, ${4.6 * headingScale}vw, ${3.8 * headingScale}rem)` }}>
-              {content.heading} <span className="italic" style={{ color: "var(--site-accent, #9E777C)" }}>{content.accentLine}</span>
+              <RichText value={content.heading} presentation={textPresentations?.['custom.heading']}/><span className="italic" style={{ color: "var(--site-accent, #9E777C)" }}><RichText value={content.accentLine} presentation={textPresentations?.['custom.accentLine']}/></span>
             </h2>
             <p className="site-body-copy mt-6 max-w-sm leading-7 text-stone-600">
-              {content.description}
+              <RichText value={content.description} presentation={textPresentations?.['custom.description']}/>
             </p>
             <div className="jb-price-card mt-10 border border-stone-300/80 bg-[#FCFAF7] p-7 sm:p-9">
               <div className="flex items-start justify-between">
@@ -220,7 +244,11 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
                   </div>
                 </div>
 
-                <div className="space-y-7 py-7">
+                <div className="mb-5 flex items-center justify-between border-b border-stone-200 pb-4 text-[11px] font-semibold uppercase tracking-[.12em]">
+                  <span className={contactStep ? 'text-stone-400' : 'text-stone-900'}>01 · Bouquet</span>
+                  <span className={contactStep ? 'text-stone-900' : 'text-stone-400'}>02 · Contact details</span>
+                </div>
+                {!contactStep && <div className="space-y-7 py-7">
                   <div>
                     <span className={labelClass}>Occasion</span>
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -289,9 +317,10 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
                   <label className={labelClass}>Delivery date · 7 days notice *
                     <input required type="date" min={dateMin} value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} className={fieldClass}/>
                   </label>
-                </div>
-
-                <div className="border-t border-stone-200 pt-7">
+                </div>}
+                {contactStep && <div className="border-t border-stone-200 pt-7">
+                  <button type="button" className="mb-4 text-xs font-medium underline underline-offset-4 text-stone-700"
+                    onClick={() => { setContactStep(false); setError(''); }}>Back to bouquet details</button>
                   <p className="text-[10px] uppercase tracking-[0.23em] text-stone-500">Your contact details</p>
                   <h4 className="mt-2 font-serif text-2xl text-stone-900">Where should we reach you?</h4>
                   <div className="mt-6 grid gap-5 sm:grid-cols-2">
@@ -314,12 +343,21 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
                       onChange={event => setWithinBerhampore(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-stone-900"/>
                     I confirm the delivery address is within Berhampore, Murshidabad. Other locations are not yet supported.
                   </label>
-                </div>
+                </div>}
                 {error && <p className="mt-5 text-sm text-red-700" role="alert">{error}</p>}
-                <button disabled={sending} type="submit" className="jb-order-submit mt-8 flex w-full items-center justify-center gap-3 bg-stone-900 px-6 py-4 text-xs uppercase tracking-[0.18em] text-white transition hover:bg-stone-700 disabled:opacity-50">
-                  {sending ? 'Sending enquiry…' : 'Send Enquiry'} <ArrowRight size={17}/>
-                </button>
-                <p className="mt-4 text-center text-[11px] text-stone-500">Our team will call to confirm the design, availability and final price.</p>
+                {!contactStep ? (
+                  <button type="button" onClick={continueToContact}
+                    className="jb-order-submit mt-8 flex w-full items-center justify-center gap-3 bg-stone-900 px-6 py-4 text-xs uppercase tracking-[0.18em] text-white transition hover:bg-stone-700">
+                    Next · Contact details <ArrowRight size={17}/>
+                  </button>
+                ) : (
+                  <>
+                    <button disabled={sending} type="submit" className="jb-order-submit mt-8 flex w-full items-center justify-center gap-3 bg-stone-900 px-6 py-4 text-xs uppercase tracking-[0.18em] text-white transition hover:bg-stone-700 disabled:opacity-50">
+                      {sending ? 'Sending enquiry…' : 'Send Enquiry'} <ArrowRight size={17}/>
+                    </button>
+                    <p className="mt-4 text-center text-[11px] text-stone-500">Our team will call to confirm the design, availability and final price.</p>
+                  </>
+                )}
               </form>
           </div>
         </div>
