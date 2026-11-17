@@ -586,7 +586,7 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
     id, Object.fromEntries(TEXT_SLOTS.map(({ id: slot }) => {
       const current = raw.textPresentations?.[id]?.[slot] || {};
       return [slot, {
-        font: current.font === 'inherit' ? 'inherit' : font(current.font, 'inter'),
+        font: current.font === undefined || current.font === 'inherit' ? 'inherit' : font(current.font, 'inter'),
         size: numberRange(current.size, 0, 0, 96),
         align: ['left', 'center', 'right'].includes(current.align) ? current.align : 'left',
         bold: current.bold === true, italic: current.italic === true,
