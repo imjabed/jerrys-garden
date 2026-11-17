@@ -13,6 +13,8 @@ export default class StorefrontErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, details: ErrorInfo) {
     console.error('[Storefront] A page failed to render', error, details.componentStack);
+    // Reveal the fallback error page even if the storefront crashed during boot.
+    document.getElementById('jb-boot-splash')?.remove();
   }
 
   render() {
