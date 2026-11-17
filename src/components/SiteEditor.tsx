@@ -666,6 +666,34 @@ export default function SiteEditor({
                         v => updateThemeExtra({ heroText: v }))}
                       {colour('Hero italic accent', draft.themeExtras[draft.theme].heroAccent,
                         v => updateThemeExtra({ heroAccent: v }))}
+                      {draft.themeExtras[draft.theme].navImageUrl && (
+                        <img src={draft.themeExtras[draft.theme].navImageUrl} alt="Navbar texture"
+                          className="mt-3 h-20 w-full rounded border border-stone-200 object-cover"
+                          style={{ objectPosition: `${draft.themeExtras[draft.theme].navImageCrop.x}% ${draft.themeExtras[draft.theme].navImageCrop.y}%` }}/>
+                      )}
+                      <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded border border-stone-300 p-3 text-xs">
+                        <UploadCloud className="h-4 w-4"/>
+                        {uploadingKey === 'theme-detail-navImageUrl' ? 'Uploading…' : 'Upload / replace navbar image'}
+                        <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+                          disabled={Boolean(uploadingKey)} onChange={e => {
+                            void uploadThemeDetail('navImageUrl',e.target.files?.[0]); e.target.value='';
+                          }}/>
+                      </label>
+                      {draft.themeExtras[draft.theme].navImageUrl && (
+                        <button type="button" className="text-xs text-red-700 underline"
+                          onClick={() => { rememberSuperseded(draft.themeExtras[draft.theme].navImageUrl,''); updateThemeExtra({navImageUrl:''}); }}>
+                          Remove navbar image (use theme colour)
+                        </button>
+                      )}
+                      <ImageCropControls title="Navbar image positioning"
+                        value={draft.themeExtras[draft.theme].navImageCrop}
+                        onChange={value => updateThemeCrop('navImageCrop',value)}/>
+                      <label className="block space-y-2 text-xs">
+                        <span>Navbar photo visibility · {Math.round(draft.themeExtras[draft.theme].navImageOpacity*100)}%</span>
+                        <input type="range" min="0" max="1" step=".05" className="w-full accent-stone-900"
+                          value={draft.themeExtras[draft.theme].navImageOpacity}
+                          onChange={e=>updateThemeExtra({navImageOpacity:Number(e.target.value)})}/>
+                      </label>
                     </div>
                     <div className="space-y-4 rounded-xl border border-stone-200 p-4">
                       <h3 className="font-serif text-xl">Custom-order backdrop</h3>
@@ -693,12 +721,32 @@ export default function SiteEditor({
                             updateThemeExtra({ customImageUrl: '' });
                           }}>Remove custom-order background</button>
                       )}
-                      <label className="block space-y-2 text-xs">
-                        <span>Image focal point · {draft.themeExtras[draft.theme].customImagePosition}%</span>
-                        <input type="range" min="0" max="100" step="5" value={draft.themeExtras[draft.theme].customImagePosition}
-                          onChange={e => updateThemeExtra({ customImagePosition: Number(e.target.value) })}
-                          className="w-full accent-stone-900"/>
+                      <ImageCropControls title="Desktop custom-order image crop"
+                        value={draft.themeExtras[draft.theme].customCrop.desktop}
+                        onChange={value => updateThemeCrop('customCrop',value,'desktop')}/>
+                      <p className="text-[11px] text-stone-500">Mobile background can differ from desktop. A plain theme colour is used when no image is set.</p>
+                      {draft.themeExtras[draft.theme].customMobileImageUrl && (
+                        <img src={draft.themeExtras[draft.theme].customMobileImageUrl} alt="Mobile custom-order backdrop"
+                          className="mx-auto h-40 w-24 rounded object-cover"
+                          style={{objectPosition:`${draft.themeExtras[draft.theme].customCrop.mobile.x}% ${draft.themeExtras[draft.theme].customCrop.mobile.y}%`}}/>
+                      )}
+                      <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 border border-stone-300 p-3 text-xs">
+                        <UploadCloud className="h-4 w-4"/>
+                        {uploadingKey === 'theme-detail-customMobileImageUrl' ? 'Uploading…' : 'Upload / replace mobile custom-order background'}
+                        <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+                          disabled={Boolean(uploadingKey)} onChange={e => {
+                            void uploadThemeDetail('customMobileImageUrl',e.target.files?.[0]); e.target.value='';
+                          }}/>
                       </label>
+                      {draft.themeExtras[draft.theme].customMobileImageUrl && (
+                        <button type="button" className="text-xs text-red-700 underline"
+                          onClick={() => {rememberSuperseded(draft.themeExtras[draft.theme].customMobileImageUrl,'');updateThemeExtra({customMobileImageUrl:''});}}>
+                          Remove mobile custom-order photo
+                        </button>
+                      )}
+                      <ImageCropControls title="Mobile custom-order image crop"
+                        value={draft.themeExtras[draft.theme].customCrop.mobile}
+                        onChange={value => updateThemeCrop('customCrop',value,'mobile')}/>
                       <label className="block space-y-2 text-xs">
                         <span>Text overlay · {Math.round(draft.themeExtras[draft.theme].customOverlay * 100)}%</span>
                         <input type="range" min=".15" max=".95" step=".05" value={draft.themeExtras[draft.theme].customOverlay}
@@ -708,15 +756,47 @@ export default function SiteEditor({
                     </div>
                     <div className="space-y-4 rounded-xl border border-stone-200 p-4">
                       <h3 className="font-serif text-xl">Cinematic footer floor</h3>
+                      {option('Footer display', draft.themeExtras[draft.theme].footerMode, [
+                        {id:'image',label:'Real image / illustration (full colour)'},
+                        {id:'silhouette',label:'Single-colour silhouette floor'},
+                        {id:'none',label:'No decorative footer image'},
+                      ], value=>updateThemeExtra({
+                        footerMode:value as 'image'|'silhouette'|'none', footerSceneEnabled:value!=='none',
+                      }))}
                       <label className="flex items-center justify-between gap-3 text-xs">
-                        <span>Show decorative footer skyline</span>
+                        <span>Enable footer artwork</span>
                         <input type="checkbox" checked={draft.themeExtras[draft.theme].footerSceneEnabled}
                           onChange={e => updateThemeExtra({ footerSceneEnabled: e.target.checked })}/>
                       </label>
                       <p className="text-[11px] leading-5 text-stone-500">
-                        Built-in monochrome SVG for each celebration. Use a transparent PNG/WebP to replace it,
-                        or turn it off without affecting the footer links.
+                        Winter comes with your Packing Santa image. Switch to Silhouette for the
+                        original Christmas tree/fireworks skyline. Both modes are independently editable.
                       </p>
+                      {draft.themeExtras[draft.theme].footerMode === 'image' && (
+                        <div className="space-y-3 rounded-lg border border-stone-200 p-3">
+                          {draft.themeExtras[draft.theme].footerImageUrl && (
+                            <img src={draft.themeExtras[draft.theme].footerImageUrl} alt="Footer artwork"
+                              className="mx-auto max-h-48 w-full object-contain"/>
+                          )}
+                          <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 border border-stone-300 p-3 text-xs">
+                            <UploadCloud className="h-4 w-4"/>
+                            {uploadingKey === 'theme-detail-footerImageUrl' ? 'Uploading…' : 'Upload / replace footer artwork'}
+                            <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+                              disabled={Boolean(uploadingKey)} onChange={e=>{
+                                void uploadThemeDetail('footerImageUrl',e.target.files?.[0]);e.target.value='';
+                              }}/>
+                          </label>
+                          {draft.themeExtras[draft.theme].footerImageUrl && (
+                            <button type="button" className="text-xs text-red-700 underline"
+                              onClick={()=>{rememberSuperseded(draft.themeExtras[draft.theme].footerImageUrl,'');updateThemeExtra({footerImageUrl:''});}}>
+                              Clear footer artwork
+                            </button>
+                          )}
+                          <ImageCropControls title="Footer image position"
+                            value={draft.themeExtras[draft.theme].footerImageCrop}
+                            onChange={value=>updateThemeCrop('footerImageCrop',value)}/>
+                        </div>
+                      )}
                       {colour('Silhouette / floor colour', draft.themeExtras[draft.theme].footerSceneColor,
                         v => updateThemeExtra({ footerSceneColor: v }))}
                       {input('Footer tagline', draft.themeExtras[draft.theme].footerTagline,
