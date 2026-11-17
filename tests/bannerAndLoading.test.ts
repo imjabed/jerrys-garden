@@ -108,7 +108,8 @@ test('Minimal loader cannot get stuck waiting for a cold backend', () => {
 test('HTML loader has lightweight circle, exact copy, independent CSS timeout and fallback', () => {
   const markup = readFileSync('index.html', 'utf8');
   assert.ok(markup.indexOf('id="jb-boot-splash"') < markup.indexOf('id="root"'));
-  assert.match(markup, /class="jb-boot-spinner"/);
+  assert.match(markup, /class="jb-boot-character"/);
+  assert.match(markup, /src="\/loading-bouquet-girl\.gif"/);
   assert.match(markup, /Loading\.\.\./);
   assert.match(markup, /Please give us a second, we're preparing your bouquets - Jame Bouquets/);
   assert.match(markup, /jb-boot-auto-dismiss \.2s ease 2\.45s forwards/);
