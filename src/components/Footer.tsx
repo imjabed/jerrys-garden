@@ -5,6 +5,8 @@ import { StoreSettings } from '../types';
 import type { PolicyType } from './StorePolicies';
 import type { SiteContent, ThemeId, ValentinesDesign, ThemeExtras } from '../../shared/siteEditor';
 import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
+import RichText from './RichText';
+import type { TextPresentation, TextSlot } from '../../shared/siteEditor';
 
 interface FooterProps {
   storeSettings: StoreSettings;
@@ -18,6 +20,7 @@ interface FooterProps {
   theme?: ThemeId;
   valentines?: ValentinesDesign;
   themeExtras?: ThemeExtras;
+  textPresentations?: Record<TextSlot, TextPresentation>;
 }
 
 export default function Footer({
@@ -28,7 +31,7 @@ export default function Footer({
   onNavigateToShop,
   onOpenPolicy,
   content = DEFAULT_SITE_CONTENT.footer,
-  theme = 'default', valentines, themeExtras,
+  theme = 'default', valentines, themeExtras, textPresentations,
 }: FooterProps) {
   const valentineMode = theme === 'valentines' && Boolean(valentines);
   const skylineSource: Record<ThemeId, string> = {
@@ -89,7 +92,7 @@ export default function Footer({
             </div>
             
             <p className="text-xs text-stone-400 leading-relaxed">
-              {footerContent.description}
+              <RichText value={footerContent.description} presentation={textPresentations?.['footer.description']}/>
             </p>
 
             <p className="text-[11px] tracking-wide text-stone-400">{footerContent.orderNote}</p>
