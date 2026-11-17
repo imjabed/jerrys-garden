@@ -29,6 +29,10 @@ async function openMockedStudio(page: Page, path = '/admin/editor') {
     }
     let payload: any = {success:true,connected:true,bouquets:[],products:[],orders:[],customers:[],
       reviews:[],highlights:[],coupons:[],summary:{},settings:{}};
+    if (path === '/api/mongodb/status') payload = {
+      configured:true,connected:true,database:'jerrysgarden',message:'connected',
+      counts:{customers:0,bouquets:0,orders:0,products:0},
+    };
     if (path === '/api/admin/session') payload = {authenticated:true,email:'test-owner@example.invalid'};
     if (path === '/api/customers/session') payload = {authenticated:false};
     if (path === '/api/admin/site-content' && method === 'GET') payload = {
