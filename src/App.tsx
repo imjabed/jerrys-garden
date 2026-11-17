@@ -47,6 +47,7 @@ import {
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import ThemeBanner from './components/ThemeBanner';
+import RichText from './components/RichText';
 import BouquetCard from './components/BouquetCard';
 import ProductPage from './components/ProductPage';
 import { PRODUCT_SIZE_LABELS, normalizeProductSizes, productSizeFor, isBouquetCategory } from '../shared/productSizes';
@@ -590,6 +591,7 @@ export default function App() {
           {/* Header & Navigation */}
           <Navbar
             theme={siteContent.theme}
+            themeExtras={siteContent.themeExtras[siteContent.theme]}
             cartCount={cart.reduce((sum, it) => sum + it.quantity, 0)}
             onOpenCart={() => setCartDrawerOpen(true)}
             onOpenTracking={() => {
@@ -650,7 +652,9 @@ export default function App() {
                 <Hero
                 content={siteContent.theme === 'valentines' ? siteContent.valentines.hero : siteContent.hero} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects} theme={siteContent.theme}
                 photoUrl={siteContent.themeMedia[siteContent.theme]}
-                mobilePhotoUrl={siteContent.theme === 'valentines' ? siteContent.valentines.heroMobileImageUrl : ''}
+                mobilePhotoUrl={siteContent.theme === 'valentines' ? siteContent.valentines.heroMobileImageUrl : siteContent.themeMobileMedia[siteContent.theme]}
+                imageCrop={siteContent.heroCrop[siteContent.theme]}
+                textPresentations={siteContent.textPresentations[siteContent.theme]}
                 imagePosition={siteContent.heroImagePosition[siteContent.theme]}
                 offer={siteContent.theme === 'default' ? undefined : siteContent.offers[siteContent.theme]}
                 onExploreClick={() => scrollToSection('shop-section')}
@@ -671,7 +675,7 @@ export default function App() {
               <div>
                 <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-3">{siteContent.shop.eyebrow}</p>
                 <h2 className="site-editable-heading font-serif font-normal text-stone-900" style={{ fontSize: `clamp(${2.2 * siteContent.appearance.headingScale}rem, ${4 * siteContent.appearance.headingScale}vw, ${3.2 * siteContent.appearance.headingScale}rem)` }}>
-                  {siteContent.shop.heading}
+                  <RichText value={siteContent.shop.heading} presentation={siteContent.textPresentations[siteContent.theme]['shop.heading']}/>
                 </h2>
                 <p className="site-body-copy mt-1 max-w-xl">
                   {siteContent.shop.description}
@@ -767,6 +771,7 @@ export default function App() {
                 content={siteContent.theme === 'valentines' ? siteContent.valentines.custom : siteContent.custom}
                 valentines={siteContent.theme === 'valentines' ? siteContent.valentines : undefined}
                 themeExtras={siteContent.themeExtras[siteContent.theme]}
+                textPresentations={siteContent.textPresentations[siteContent.theme]}
                 headingScale={siteContent.appearance.headingScale} sizeChart={storeSettings.customSizeFlowers} effects={siteContent.effects} theme={siteContent.theme}
                 mobileOpen={customMobileOpen} onMobileToggle={() => setCustomMobileOpen(current => !current)}
                 onSubmit={async payload => {
@@ -787,6 +792,7 @@ export default function App() {
             theme={siteContent.theme}
             valentines={siteContent.theme === 'valentines' ? siteContent.valentines : undefined}
             themeExtras={siteContent.themeExtras[siteContent.theme]}
+            textPresentations={siteContent.textPresentations[siteContent.theme]}
             storeSettings={storeSettings}
             content={siteContent.footer}
             isOwner={isOwner}
