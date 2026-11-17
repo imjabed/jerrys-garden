@@ -1,6 +1,7 @@
 import { ArrowUpRight } from 'lucide-react';
 import type { RibbonBouquet } from '../types';
-import type { SiteContent } from '../../shared/siteEditor';
+import type { SiteContent, TextPresentation, TextSlot } from '../../shared/siteEditor';
+import RichText from './RichText';
 
 interface Props {
   key?: string;
@@ -10,8 +11,9 @@ interface Props {
   compact?: boolean;
   headingScale?: number;
   editorPreview?: boolean;
+  textPresentations?: Record<TextSlot, TextPresentation>;
 }
-export default function CollectionShowcase({ content, products, onCategoryClick, compact = false, headingScale = 1, editorPreview = false }: Props) {
+export default function CollectionShowcase({ content, products, onCategoryClick, compact = false, headingScale = 1, editorPreview = false, textPresentations }: Props) {
   const cards = content.cards.filter(card => card.visible);
   if (!cards.length) return null;
   const sizes = compact ? 'min-h-36 sm:min-h-44' : 'min-h-[190px] sm:min-h-[250px] lg:min-h-[290px]';
@@ -21,10 +23,10 @@ export default function CollectionShowcase({ content, products, onCategoryClick,
       <div className={`jb-atelier-content relative z-10 mx-auto max-w-7xl px-4 sm:px-8 lg:px-12 ${compact ? 'py-8' : 'py-14 sm:py-20'}`}>
         <div className="jb-atelier-heading mb-8 flex items-end justify-between gap-5">
           <div>
-            <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.28em] opacity-70">{content.eyebrow}</p>
-            <h2 className="font-serif font-normal leading-tight" style={{ fontSize: `clamp(${1.9 * headingScale}rem, ${3.5 * headingScale}vw, ${3.1 * headingScale}rem)` }}>{content.heading}</h2>
+            <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.28em] opacity-70"><RichText value={content.eyebrow} presentation={textPresentations?.['collections.eyebrow']} editorSlot={editorPreview ? 'collections.eyebrow' : undefined}/></p>
+            <h2 className="font-serif font-normal leading-tight" style={{ fontSize: `clamp(${1.9 * headingScale}rem, ${3.5 * headingScale}vw, ${3.1 * headingScale}rem)` }}><RichText value={content.heading} presentation={textPresentations?.['collections.heading']} editorSlot={editorPreview ? 'collections.heading' : undefined}/></h2>
           </div>
-          <p className="hidden pb-2 text-xs opacity-70 sm:block">{content.sideLabel}</p>
+          <p className="hidden pb-2 text-xs opacity-70 sm:block"><RichText value={content.sideLabel} presentation={textPresentations?.['collections.sideLabel']} editorSlot={editorPreview ? 'collections.sideLabel' : undefined}/></p>
         </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
           {cards.map((card, index) => {
