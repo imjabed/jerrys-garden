@@ -1437,3 +1437,17 @@
   outline: 2px solid #1D4E6E;
   outline-offset: 2px;
 }
+
+/* Optional mobile-specific Winter navbar/footer images with separately authored focal points. */
+.site-shell .jb-nav-photo { object-position: var(--jb-nav-desktop-crop, 50% 50%) !important; }
+.site-shell .jb-festival-real-image { object-position: var(--jb-footer-desktop-crop, 50% 50%) !important; }
+@media (max-width:680px) {
+  .site-shell .jb-nav-photo { object-position: var(--jb-nav-mobile-crop, 50% 50%) !important; }
+  .site-shell .jb-festival-real-image { object-position: var(--jb-footer-mobile-crop, 50% 50%) !important; }
+}
+.site-shell[data-editor-device="phone"] .jb-nav-photo {
+  object-position: var(--jb-nav-mobile-crop, 50% 50%) !important;
+}
+.site-shell[data-editor-device="phone"] .jb-festival-real-image {
+  object-position: var(--jb-footer-mobile-crop, 50% 50%) !important;
+}
