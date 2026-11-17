@@ -58,3 +58,30 @@ GitHub Actions executes Node 22 installation, TypeScript `npm run lint`, `npm ru
 
 ## Repository
 `imjabed/jerrys-garden` — default branch `main`
+
+
+## Winter/Christmas theme update — 17 November 2026 (second pass)
+
+**Editor navigation fix:** The owner editor tabs use a responsive 2–3-column wrapping grid, avoiding the previously clipped horizontal tab strip in narrow editor windows. Main panels remain visible and "More tools" still exposes the advanced panels.
+
+**Official supplied Winter imagery (user provided Cloudinary URLs):**
+- Navbar: `https://res.cloudinary.com/ajq29txd/image/upload/v1794900853/NavBar.png`
+- Desktop hero: `https://res.cloudinary.com/ajq29txd/image/upload/v1794900853/Hero_Desktop.png`
+- Phone hero: `https://res.cloudinary.com/ajq29txd/image/upload/v1794900852/Hero_Mobile.png`
+- Full-colour footer: `https://res.cloudinary.com/ajq29txd/image/upload/v1794900853/Packing_Santa.webp`
+
+These links are stored under Winter's editable media defaults. A one-time schema migration seeds them into pre-existing site settings (including old empty image fields). Future explicit removals are honoured using `winterAssetsReady`. The exact URLs were supplied by the owner. Remote asset delivery was not independently verified by the GitHub build and must be checked on the deployed site.
+
+**Device-specific images and focal points:** **Hero Photos** now accepts separate desktop and phone photographs for every theme, with non-destructive X/Y focus controls for each device. **Theme Details** adds the same approach for optional custom-order backgrounds, and exposes navbar image upload, opacity, and XY focus. The custom-order section remains legible with plain theme colours when no photograph is set.
+
+**Footer choice:** **Theme Details → Footer display** lets the owner select **Full-colour image / silhouette / no artwork**. Winter defaults to the owner-supplied Packing Santa image. The alternate Christmas skyline SVG shows fir trees, cabin, sleigh and fireworks with editable silhouette colour.
+
+**Text editor:** **Text** provides line breaks, selection-based bold/italic markup, safe preview, theme-specific font choices, font size and text alignment for hero, custom order, craft section, shop heading/paragraph and footer description. Styling is sanitized and rendered as React text; arbitrary HTML is not executed.
+
+**Custom order form:** The design selection now has a **Next · Contact details** button. It validates bouquet quantities, flower/wrapper colours, and delivery lead time before showing contact inputs and the enquiry submit button. The existing server-side validations and 7-day lead time remain in force.
+
+**Backend:** Cloudinary deletion reference tracking now includes mobile hero photos, mobile custom-order photos, navbar textures and real footer artwork.
+
+**Release tests:** New SSR/logic regression coverage in `tests/winterStudio.test.ts` includes legacy Winter migration, owner cropping constraints, safe formatted text, real/silhouette footer selection and step-one custom order UI. The full repository CI runs TypeScript checks, unit tests and production build. A production browser check remains required for owner authentication, Cloudinary image delivery, mobile layout, and two-step enquiry submission.
+
+**Recommendation for demonstration:** Open Admin → Website Editor, choose Winter, open **Hero Photos**, toggle Phone/Desktop previews, inspect image crops, open **Theme Details** to preview the navbar and Santa footer, then go to **Text** and format a heading. Save Draft, verify the public site is unchanged, then Publish and confirm the public URL shows Winter. Test the two-step custom-order form using a valid sample delivery date and verified contact information; avoid placing a real order during a demo.
