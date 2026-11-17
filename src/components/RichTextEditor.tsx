@@ -141,11 +141,19 @@ export default function RichTextEditor({
       </div>
       <textarea id={editorId} ref={textarea} rows={5}
         onSelect={e => {
-          selectedRange.current = {start:e.currentTarget.selectionStart,end:e.currentTarget.selectionEnd};
+          const start = e.currentTarget.selectionStart;
+          const end = e.currentTarget.selectionEnd;
+          // Browsers may collapse the text-area selection when a font-size,
+          // colour or font control gains focus. Preserve the last meaningful
+          // selection until Apply is clicked.
+          if (end > start) selectedRange.current = {start,end};
         }}
         value={value} maxLength={maxLength}
         onKeyDown={onKeyDown}
-        onChange={e => commit(e.target.value)}
+        onChange={e => {
+          selectedRange.current = {start: e.target.value.length, end: e.target.value.length};
+          commit(e.target.value);
+        }}
         className="w-full resize-y rounded-b border border-stone-200 bg-white p-3 text-sm leading-6 text-stone-900 focus:border-stone-700 focus:outline-none"
         aria-label={label}/>
       <p className="mt-1 text-[10px] leading-5 text-stone-500">
