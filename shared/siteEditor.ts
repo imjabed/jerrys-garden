@@ -309,8 +309,12 @@ export interface CategoryCardConfig {
   countMode: CategoryCountMode;
   countLabel: string;
 }
+export interface NavigationLabels {
+  shop: string; custom: string; track: string; story: string; signIn: string;
+}
 export interface SiteContent {
   theme: ThemeId;
+  navigationLabels: Record<ThemeId, NavigationLabels>;
   themeMedia: Record<ThemeId, string>;
   themeMobileMedia: Record<ThemeId, string>;
   heroCrop: Record<ThemeId, { desktop: CropPosition; mobile: CropPosition }>;
@@ -462,6 +466,10 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
     mobile: { x: 50, y: id === 'winter' ? 50 : 75 },
   }])) as Record<ThemeId, { desktop: CropPosition; mobile: CropPosition }>,
   winterAssetsReady: true,
+  navigationLabels: Object.fromEntries(ALL_THEME_IDS.map(id => [id, {
+    shop: 'Shop Products', custom: 'Custom Orders', track: 'Track Order',
+    story: 'Our Craft', signIn: 'Sign In',
+  }])) as Record<ThemeId, NavigationLabels>,
   textPresentations: Object.fromEntries(ALL_THEME_IDS.map(id =>
     [id, Object.fromEntries(TEXT_SLOTS.map(slot => [slot.id, {
       font: 'inherit', size: 0, align: 'left', bold: false,
@@ -767,6 +775,13 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
   const fx = raw.effects || {};
   const content: SiteContent = {
     theme, themeMedia, themeMobileMedia, heroCrop, textPresentations, winterAssetsReady: true,
+    navigationLabels: Object.fromEntries(ALL_THEME_IDS.map(id => [
+      id, Object.fromEntries(
+        (Object.keys(d.navigationLabels[id]) as Array<keyof NavigationLabels>).map(key => [
+          key, fieldText(raw.navigationLabels?.[id], key, d.navigationLabels[id][key], 45),
+        ]),
+      ) as NavigationLabels,
+    ])) as Record<ThemeId, NavigationLabels>,
     heroImagePosition, offers, valentines,
     themeBanners, themeExtras,
     themeAppearance: {} as SiteContent['themeAppearance'],
