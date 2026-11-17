@@ -17,7 +17,7 @@ import {
   DEFAULT_SITE_CONTENT, DEFAULT_CATEGORIES, FONT_LABELS, FONT_STACKS,
   SECTION_IDS, SEASONAL_THEME_IDS, ALL_THEME_IDS, TEXT_SLOTS, THEME_PRESETS, BLOCK_KINDS, defaultPageBlock, applyThemePreset, sanitizeSiteContent, safeEditorLink,
 } from '../../shared/siteEditor';
-import type { CategoryCardConfig, FontId, SectionId, SiteContent, PageBlock, BlockKind, ThemeId, EffectShape, SeasonalThemeId, SeasonalOffer, CropPosition, TextSlot, TextPresentation } from '../../shared/siteEditor';
+import type { CategoryCardConfig, FontId, SectionId, SiteContent, PageBlock, BlockKind, ThemeId, EffectShape, SeasonalThemeId, SeasonalOffer, CropPosition, TextSlot, TextPresentation, BannerCopyField } from '../../shared/siteEditor';
 import { apiGetSiteEditor, apiSaveSiteEditorDraft, apiPublishSiteEditor, apiGetPublishedSiteContent, apiCleanupUnusedImage } from '../services/api';
 import type { SiteEditorPayload } from '../services/api';
 import { uploadImageToCloudinary } from '../services/cloudinary';
@@ -54,6 +54,7 @@ export default function SiteEditor({
   const [offerTheme, setOfferTheme] = useState<SeasonalThemeId>('valentines');
   const [photoTheme, setPhotoTheme] = useState<ThemeId>('default');
   const [bannerTheme, setBannerTheme] = useState<ThemeId>('default');
+  const [bannerTextField, setBannerTextField] = useState<BannerCopyField>('text');
   const deferredCleanup = useRef<string[]>([]);
   const [heroAssetInfo, setHeroAssetInfo] = useState<{ url: string; width: number; height: number } | null>(null);
   const [showPreview, setShowPreview] = useState(true);
@@ -346,6 +347,10 @@ export default function SiteEditor({
     update(prev => ({ ...prev, themeBanners: { ...prev.themeBanners,
       [id]: { ...prev.themeBanners[id], ...patch },
     } }));
+  const updateBannerTypography = (theme: ThemeId, field: BannerCopyField, style: TextPresentation) =>
+    updateBanner(theme, { typography: { ...draft.themeBanners[theme].typography, [field]: style } });
+  const updateBannerTextColor = (theme: ThemeId, field: BannerCopyField, value: string) =>
+    updateBanner(theme, { textColors: { ...draft.themeBanners[theme].textColors, [field]: value } });
   const updateThemeExtra = (patch: Partial<SiteContent['themeExtras'][ThemeId]>) =>
     update(prev => ({ ...prev, themeExtras: { ...prev.themeExtras,
       [prev.theme]: { ...prev.themeExtras[prev.theme], ...patch },
@@ -587,19 +592,56 @@ export default function SiteEditor({
                       className="h-4 w-4 accent-stone-900"/>
                   </label>
                   <div className="overflow-hidden rounded-lg">
-                    <ThemeBanner theme={bannerTheme} config={draft.themeBanners[bannerTheme]}/>
+                    <ThemeBanner theme={bannerTheme} config={{
+                      ...draft.themeBanners[bannerTheme], enabled: true,
+                    }}/>
                     {!draft.themeBanners[bannerTheme].enabled && (
-                      <p className="bg-stone-100 px-3 py-3 text-center text-[11px] text-stone-600">Hidden on storefront; enable to preview above.</p>
+                      <p className="bg-stone-100 px-3 py-3 text-center text-[11px] text-stone-600">
+                        Preview only — banner remains hidden until you enable and publish it.
+                      </p>
                     )}
                   </div>
-                  {input('Small label', draft.themeBanners[bannerTheme].eyebrow,
-                    v => updateBanner(bannerTheme, { eyebrow: v }))}
-                  {input('Main banner message', draft.themeBanners[bannerTheme].text,
-                    v => updateBanner(bannerTheme, { text: v }), true)}
-                  {input('Action button text', draft.themeBanners[bannerTheme].buttonText,
-                    v => updateBanner(bannerTheme, { buttonText: v }))}
-                  {input('Button link, e.g. #shop-section', draft.themeBanners[bannerTheme].link,
+                  {option('Choose text to edit', bannerTextField, [
+                    { id: 'eyebrow', label: 'Small label / eyebrow' },
+                    { id: 'text', label: 'Main banner message' },
+                    { id: 'buttonText', label: 'Action button text' },
+                  ], value => setBannerTextField(value as BannerCopyField))}
+                  <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+                    <RichTextEditor key={bannerTheme + '-' + bannerTextField}
+                      label={bannerTextField === 'eyebrow' ? 'Small label' :
+                        bannerTextField === 'text' ? 'Main banner message' : 'Button label'}
+                      value={draft.themeBanners[bannerTheme][bannerTextField]}
+                      onChange={value => updateBanner(bannerTheme, { [bannerTextField]: value })}
+                      presentation={draft.themeBanners[bannerTheme].typography[bannerTextField]}
+                      onPresentationChange={value => updateBannerTypography(bannerTheme, bannerTextField, value)}
+                      maxLength={bannerTextField === 'text' ? 700 : bannerTextField === 'eyebrow' ? 160 : 130}/>
+                    {colour('Colour for this text element', draft.themeBanners[bannerTheme].textColors[bannerTextField],
+                      value => updateBannerTextColor(bannerTheme, bannerTextField, value))}
+                    <p className="mt-2 text-[11px] leading-5 text-stone-500">
+                      Bold/italic selected words, insert line breaks, and change font, size, alignment or colour.
+                      Leave the small label or button text empty to hide it.
+                    </p>
+                  </div>
+                  {input('Action destination, e.g. #shop-section', draft.themeBanners[bannerTheme].link,
                     v => updateBanner(bannerTheme, { link: v }))}
+                  {option('Banner content alignment', draft.themeBanners[bannerTheme].align, [
+                    {id:'left',label:'Left'}, {id:'center',label:'Centre'}, {id:'right',label:'Right'},
+                  ], value => updateBanner(bannerTheme, { align: value as 'left'|'center'|'right' }))}
+                  {option('Action button appearance', draft.themeBanners[bannerTheme].buttonVariant, [
+                    {id:'link',label:'Elegant text link'}, {id:'outline',label:'Outlined button'},
+                    {id:'filled',label:'Filled button'},
+                  ], value => updateBanner(bannerTheme, {
+                    buttonVariant: value as 'link'|'outline'|'filled',
+                  }))}
+                  {draft.themeBanners[bannerTheme].buttonVariant === 'filled' &&
+                    colour('Button fill colour', draft.themeBanners[bannerTheme].buttonBackground,
+                      value => updateBanner(bannerTheme, { buttonBackground: value }))}
+                  <label className="block space-y-2 text-xs">
+                    <span>Top/bottom spacing · {draft.themeBanners[bannerTheme].verticalPadding}px</span>
+                    <input type="range" min="4" max="72" step="2" className="w-full accent-stone-900"
+                      value={draft.themeBanners[bannerTheme].verticalPadding}
+                      onChange={e => updateBanner(bannerTheme, { verticalPadding: Number(e.target.value) })}/>
+                  </label>
                   {colour('Background colour', draft.themeBanners[bannerTheme].background,
                     v => updateBanner(bannerTheme, { background: v }))}
                   {colour('Text colour', draft.themeBanners[bannerTheme].textColor,
