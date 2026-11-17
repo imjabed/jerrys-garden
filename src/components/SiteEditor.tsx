@@ -1929,7 +1929,7 @@ export default function SiteEditor({
                 const id = draft.theme;
                 const extras = draft.themeExtras[id];
                 const val = id === 'valentines';
-                const sceneEnabled = extras.footerSceneEnabled && (!val || draft.valentines.footerSceneEnabled);
+                const sceneEnabled = extras.footerSceneEnabled && extras.footerMode !== 'none' && (!val || draft.valentines.footerSceneEnabled);
                 const presetScene = id === 'valentines' ? '/valentines/park-couple-silhouette.svg'
                   : id === 'winter' ? '/seasonal/winter-night-silhouette.svg'
                   : id === 'eid' ? '/seasonal/eid-moonlit-mosque.svg'
@@ -1937,13 +1937,18 @@ export default function SiteEditor({
                 const scene = val ? (draft.valentines.footerSceneUrl || extras.footerSceneUrl || presetScene)
                   : (extras.footerSceneUrl || presetScene);
                 return <footer className="jb-footer-surface text-xs text-white">
-                  {sceneEnabled && scene && (
+                  {sceneEnabled && (extras.footerMode === 'image' ? Boolean(extras.footerImageUrl) : Boolean(scene)) && (
                     <div className={`jb-festival-scene relative overflow-hidden jb-footer-scene-${id}`} aria-hidden="true">
                       <div className="jb-festival-sky absolute inset-0"/>
-                      <div className="jb-festival-silhouette absolute inset-0" style={{
-                        backgroundColor: val ? draft.valentines.colors.silhouette : extras.footerSceneColor,
-                        maskImage: `url("${scene}")`, WebkitMaskImage: `url("${scene}")`,
-                      }}/>
+                      {extras.footerMode === 'image' ? (
+                        <img src={extras.footerImageUrl} alt="" className="jb-festival-real-image absolute inset-0 h-full w-full object-contain object-bottom"
+                          style={{objectPosition:`${extras.footerImageCrop.x}% ${extras.footerImageCrop.y}%`}}/>
+                      ) : (
+                        <div className="jb-festival-silhouette absolute inset-0" style={{
+                          backgroundColor: val ? draft.valentines.colors.silhouette : extras.footerSceneColor,
+                          maskImage: `url("${scene}")`, WebkitMaskImage: `url("${scene}")`,
+                        }}/>
+                      )}
                     </div>
                   )}
                   <div className="px-5 py-7">
