@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 import { safeEditorLink } from '../../shared/siteEditor';
 import { ArrowUpRight } from 'lucide-react';
 import RichText from './RichText';
+import { optimizedCloudinaryUrl } from '../services/visualCrop';
 
 interface Props {
   theme: ThemeId;
@@ -11,9 +12,7 @@ interface Props {
 }
 export default function ThemeBanner({ theme, config, editorPreview = false }: Props) {
   if (!config.enabled) return null;
-  const media = config.imageUrl
-    ? config.imageUrl.replace('/image/upload/', '/image/upload/f_auto,q_auto,w_1600,c_limit/')
-    : '';
+  const media = optimizedCloudinaryUrl(config.imageUrl, 1600);
   const contentAlign = config.align || 'center';
   const alignClass = contentAlign === 'left' ? 'items-start text-left' :
     contentAlign === 'right' ? 'items-end text-right' : 'items-center text-center';
