@@ -475,9 +475,9 @@ export default function SiteEditor({
         <div className={`mx-4 mt-3 border px-4 py-3 text-sm sm:mx-6 ${error ? 'border-red-200 bg-red-50 text-red-800' : 'border-stone-200 bg-white text-stone-700'}`}
           role={error ? 'alert' : 'status'}>{error || notice}</div>
       )}
-      <div className="grid flex-1 min-h-0 grid-cols-1 xl:grid-cols-[minmax(360px,420px)_minmax(0,1fr)]">
-        <aside className="flex flex-col border-r border-stone-200 bg-white xl:max-h-[calc(100vh-73px)]">
-          <nav className="flex gap-1 overflow-x-auto border-b border-stone-200 p-3" aria-label="Editor panels">
+      <div className="grid flex-1 min-h-0 min-w-0 grid-cols-1 xl:grid-cols-[minmax(340px,440px)_minmax(0,1fr)]">
+        <aside className="flex min-w-0 flex-col border-r border-stone-200 bg-white xl:max-h-[calc(100vh-73px)]">
+          <nav className="grid w-full min-w-0 grid-cols-2 gap-2 border-b border-stone-200 p-3 sm:grid-cols-3" aria-label="Editor panels">
             {([
               ['themes', Palette, 'Themes'],
               ['hero', ImageIcon, 'Hero Photos'],
@@ -496,18 +496,18 @@ export default function SiteEditor({
               ['history', RotateCcw, 'Versions'],
             ] as const).filter(([id]) => showAdvanced || !(['offers', 'blocks', 'sections', 'seo', 'history'] as string[]).includes(id)).map(([id, Icon, label]) => (
               <button type="button" key={id} onClick={() => setPanel(id)}
-                className={`flex shrink-0 flex-col items-center gap-1 px-2.5 py-2 text-[10px] font-medium ${panel === id ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'}`}>
-                <Icon className="h-4 w-4"/>{label}
+                className={`flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-md border border-stone-200 px-2 py-2 text-center text-[11px] font-medium leading-tight ${panel === id ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'}`}>
+                <Icon className="h-4 w-4 shrink-0"/><span className="break-words">{label}</span>
               </button>
             ))}
             <button type="button" aria-expanded={showAdvanced} onClick={() => {
               if (showAdvanced && ['offers', 'blocks', 'sections', 'seo', 'history'].includes(panel)) setPanel('themes');
               setShowAdvanced(current => !current);
-            }} className={`flex shrink-0 flex-col items-center gap-1 border-l border-stone-200 px-3 py-2 text-[10px] font-semibold ${showAdvanced ? 'bg-stone-100 text-stone-900' : 'text-stone-600 hover:bg-stone-100'}`}>
-              <Settings2 className="h-4 w-4"/>{showAdvanced ? 'Fewer tools' : 'More tools'}
+            }} className={`flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-md border border-stone-200 px-2 py-2 text-center text-[11px] font-semibold ${showAdvanced ? 'bg-stone-100 text-stone-900' : 'text-stone-600 hover:bg-stone-100'}`}>
+              <Settings2 className="h-4 w-4 shrink-0"/><span>{showAdvanced ? 'Fewer tools' : 'More tools'}</span>
             </button>
           </nav>
-          <div className="space-y-5 overflow-y-auto p-5 pb-12 sm:p-6">
+          <div className="min-h-0 min-w-0 flex-1 space-y-5 overflow-y-auto p-4 pb-12 sm:p-6">
             {panel === 'banner' && (
               <>
                 <div>
