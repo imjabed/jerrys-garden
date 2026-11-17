@@ -4,7 +4,7 @@ import type { PageEffects, ThemeId, CropPosition } from '../../shared/siteEditor
 type Layer = 'hero' | 'support';
 
 export default function SeasonalEffects({
-  settings, theme, layer = 'hero', photoUrl = '', mobilePhotoUrl = '', imagePosition = 76, imageCrop,
+  settings, theme, layer = 'hero', photoUrl = '', mobilePhotoUrl = '', imagePosition = 76, imageCrop, previewDevice = 'desktop',
 }: {
   settings: PageEffects;
   theme: ThemeId;
@@ -13,6 +13,7 @@ export default function SeasonalEffects({
   mobilePhotoUrl?: string;
   imagePosition?: number;
   imageCrop?: { desktop: CropPosition; mobile: CropPosition };
+  previewDevice?: 'desktop' | 'phone' | 'tablet';
 }) {
   const [reduceMotion, setReduceMotion] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -25,7 +26,7 @@ export default function SeasonalEffects({
   }, []);
 
   const support = layer === 'support';
-  const desktopPhoto = photoUrl || mobilePhotoUrl;
+  const desktopPhoto = previewDevice === 'phone' && mobilePhotoUrl ? mobilePhotoUrl : photoUrl || mobilePhotoUrl;
   // Scroll-linked image translation, without position:fixed or background-attachment:fixed.
   // The latter is unreliable on iOS and can cause slow painting on mobile.
   useEffect(() => {
