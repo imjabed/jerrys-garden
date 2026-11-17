@@ -3,10 +3,11 @@ import { ShoppingBag, Search, Compass, ShieldCheck, User as UserIcon, Menu, X, I
 import Logo from './Logo';
 import WhatsAppIcon from './WhatsAppIcon';
 import { UserAccount, StoreSettings } from '../types';
-import type { ThemeId } from '../../shared/siteEditor';
+import type { ThemeId, ThemeExtras } from '../../shared/siteEditor';
 
 interface NavbarProps {
   theme?: ThemeId;
+  themeExtras?: ThemeExtras;
   storeSettings: StoreSettings;
   cartCount: number;
   onOpenCart: () => void;
@@ -26,6 +27,7 @@ interface NavbarProps {
 
 export default function Navbar({
   theme = 'default',
+  themeExtras,
   storeSettings,
   cartCount,
   onOpenCart,
@@ -48,6 +50,18 @@ export default function Navbar({
 
   return (
     <header className="jb-nav-surface sticky top-0 z-40 border-b border-stone-200/80 backdrop-blur-md transition-all" data-nav-theme={theme}>
+      {themeExtras?.navImageUrl && (
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+          <img src={themeExtras.navImageUrl} alt="" loading="eager"
+            className="h-full w-full object-cover"
+            style={{
+              objectPosition: `${themeExtras.navImageCrop.x}% ${themeExtras.navImageCrop.y}%`,
+              opacity: themeExtras.navImageOpacity,
+            }}
+            onError={event => { event.currentTarget.style.display = 'none'; }}/>
+          <div className="jb-nav-photo-scrim absolute inset-0"/>
+        </div>
+      )}
       {theme !== 'default' && (
         <div className="jb-navbar-festive-details pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
           {theme === 'valentines' && (
