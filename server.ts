@@ -474,7 +474,7 @@ async function startServer() {
       // transformations. Treat the transformed image as a reference to the
       // same underlying public_id, otherwise cleanup could delete a source
       // still used by the live website.
-      while (/^(?:c_crop,x_\\d+,y_\\d+,w_\\d+,h_\\d+|f_auto,q_auto(?::best)?,w_\\d+,c_limit)$/.test(parts[start] || '')) {
+      while (/^(?:c_crop,x_\d+,y_\d+,w_\d+,h_\d+|f_auto,q_auto(?::best)?,w_\d+,c_limit)$/.test(parts[start] || '')) {
         start++;
       }
       if (/^v[0-9]+$/.test(parts[start] || '')) start++;
