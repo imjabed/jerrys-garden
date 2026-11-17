@@ -378,11 +378,19 @@ export default function SiteEditor({
     const [group, field] = slot.split('.') as [string, string];
     const source: any = draft.theme === 'valentines' && (group === 'hero' || group === 'custom')
       ? draft.valentines[group] : (draft as any)[group];
+    if (draft.theme === 'valentines' && slot === 'footer.description') return draft.valentines.footerDescription;
+    if (draft.theme === 'valentines' && slot === 'footer.orderNote') return draft.valentines.footerOrderNote;
     return String(source?.[field] || '');
   };
   const updateRichText = (slot: TextSlot, value: string) => {
     const [group, field] = slot.split('.') as [string, string];
     update(prev => {
+      if (prev.theme === 'valentines' && slot === 'footer.description') return {
+        ...prev, valentines: { ...prev.valentines, footerDescription:value },
+      };
+      if (prev.theme === 'valentines' && slot === 'footer.orderNote') return {
+        ...prev, valentines: { ...prev.valentines, footerOrderNote:value },
+      };
       if (prev.theme === 'valentines' && (group === 'hero' || group === 'custom')) {
         return { ...prev, valentines: {
           ...prev.valentines, [group]: { ...prev.valentines[group], [field]: value },
@@ -2250,8 +2258,14 @@ export default function SiteEditor({
                       </p>
                     )}
                     <p className="font-serif text-lg">Jame Bouquets</p>
-                    <p className="mt-3 opacity-75">{val ? draft.valentines.footerDescription : draft.footer.description}</p>
-                    <p className="mt-2 opacity-65">{val ? draft.valentines.footerOrderNote : draft.footer.orderNote}</p>
+                    <p className="mt-3 opacity-75"><RichText
+                      value={val ? draft.valentines.footerDescription : draft.footer.description}
+                      presentation={draft.textPresentations[draft.theme]['footer.description']}
+                      editorSlot="footer.description"/></p>
+                    <p className="mt-2 opacity-65"><RichText
+                      value={val ? draft.valentines.footerOrderNote : draft.footer.orderNote}
+                      presentation={draft.textPresentations[draft.theme]['footer.orderNote']}
+                      editorSlot="footer.orderNote"/></p>
                     <button type="button" className="mt-3 border-b border-white/50 pb-1 text-[10px] font-semibold"
                       onClick={() => setPanel(val ? 'valentines' : 'theme-detail')}>Edit footer scene</button>
                   </div>
