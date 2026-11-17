@@ -7,6 +7,7 @@ const fonts = ['inherit', ...Object.keys(FONT_LABELS)] as Array<FontId | 'inheri
 export default function RichTextEditor({
   label, value, onChange, presentation, onPresentationChange,
 }: {
+  key?: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
