@@ -929,7 +929,7 @@ export default function SiteEditor({
                   id, label: THEME_PRESETS.find(p => p.id === id)?.label || id,
                 })), value => setPhotoTheme(value as ThemeId))}
                 <div className="space-y-4 rounded-xl border border-stone-200 bg-white p-4">
-                  <div className="relative mx-auto aspect-[9/12] w-full max-w-[280px] overflow-hidden rounded-xl border border-stone-200"
+                  <div className="relative mx-auto aspect-[16/9] w-full overflow-hidden rounded-xl border border-stone-200"
                     style={{ backgroundColor: THEME_PRESETS.find(p => p.id === photoTheme)?.appearance.heroBackground }}>
                     {draft.themeMedia[photoTheme] ? (
                       <img src={draft.themeMedia[photoTheme]} alt={`${photoTheme} hero background preview`}
@@ -939,7 +939,7 @@ export default function SiteEditor({
                           width: event.currentTarget.naturalWidth,
                           height: event.currentTarget.naturalHeight,
                         })}
-                        style={{ objectPosition: `50% ${draft.heroImagePosition[photoTheme]}%` }}/>
+                        style={{ objectPosition: `${draft.heroCrop[photoTheme].desktop.x}% ${draft.heroCrop[photoTheme].desktop.y}%` }}/>
                     ) : (
                       <div className="flex h-full items-center justify-center px-5 text-center text-xs text-stone-500">
                         No background image yet. The theme colour remains visible until you upload one.
@@ -984,23 +984,61 @@ export default function SiteEditor({
                     </button>
                   )}
                   <p className="text-[11px] leading-5 text-stone-500">
-                    For desktops, use a sharp landscape original (ideally 2400–3200px wide).
-                    For phones, upload a separate 9:16 portrait in Valentine Studio.
-                    Changing the hero background never changes product photographs.
+                    Desktop: 2560 × 1440 preferred. Mobile: 1080 × 1920 preferred.
+                    Changing this image does not touch product photographs.
                   </p>
-                  <label className="block space-y-2 border-t border-stone-100 pt-4 text-xs">
-                    <span className="flex justify-between gap-2">
-                      <span className="font-semibold">Background image focal point</span>
-                      <span>{Math.round(draft.heroImagePosition[photoTheme])}% down</span>
-                    </span>
-                    <input type="range" min="0" max="100" step="5" className="w-full accent-stone-900"
-                      value={draft.heroImagePosition[photoTheme]} onChange={e => update(prev => ({
-                        ...prev, heroImagePosition: {
-                          ...prev.heroImagePosition, [photoTheme]: Number(e.target.value),
-                        },
-                      }))}/>
-                    <span className="block text-[11px] text-stone-500">Move the crop toward the top or bottom of the image.</span>
-                  </label>
+                  <ImageCropControls title="Desktop · Left/Right/Up/Down crop"
+                    value={draft.heroCrop[photoTheme].desktop}
+                    onChange={value => updateHeroCrop(photoTheme, 'desktop', value)}/>
+                  <div className="border-t border-stone-200 pt-5">
+                    <h3 className="font-serif text-xl">Mobile hero background</h3>
+                    <p className="mt-2 text-xs leading-5 text-stone-500">
+                      A different portrait image can be used on narrow screens. If left empty,
+                      the desktop image is automatically cropped using the mobile controls.
+                    </p>
+                    <div className="relative mx-auto mt-4 aspect-[9/16] w-[180px] max-w-full overflow-hidden rounded-lg border border-stone-200"
+                      style={{ backgroundColor: draft.appearance.heroBackground }}>
+                      {(photoTheme === 'valentines'
+                        ? draft.valentines.heroMobileImageUrl || draft.themeMobileMedia.valentines
+                        : draft.themeMobileMedia[photoTheme]) ? (
+                        <img src={photoTheme === 'valentines'
+                          ? draft.valentines.heroMobileImageUrl || draft.themeMobileMedia.valentines
+                          : draft.themeMobileMedia[photoTheme]}
+                          alt="Mobile hero preview" className="h-full w-full object-cover"
+                          style={{ objectPosition: `${draft.heroCrop[photoTheme].mobile.x}% ${draft.heroCrop[photoTheme].mobile.y}%` }}/>
+                      ) : draft.themeMedia[photoTheme] ? (
+                        <img src={draft.themeMedia[photoTheme]} alt="Desktop image cropped for mobile"
+                          className="h-full w-full object-cover"
+                          style={{ objectPosition: `${draft.heroCrop[photoTheme].mobile.x}% ${draft.heroCrop[photoTheme].mobile.y}%` }}/>
+                      ) : <span className="flex h-full items-center justify-center p-3 text-center text-xs text-stone-500">No mobile photo</span>}
+                    </div>
+                    <label className="mt-3 flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded border border-stone-300 p-3 text-xs font-semibold">
+                      <UploadCloud className="h-4 w-4"/>
+                      {uploadingKey === 'hero-mobile-' + photoTheme ? 'Uploading…' : 'Upload / replace mobile hero'}
+                      <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+                        disabled={Boolean(uploadingKey)} onChange={e => {
+                          void uploadMobileHeroPhoto(photoTheme, e.target.files?.[0]); e.target.value = '';
+                        }}/>
+                    </label>
+                    {(photoTheme === 'valentines' ? draft.valentines.heroMobileImageUrl : draft.themeMobileMedia[photoTheme]) && (
+                      <button type="button" className="mt-2 text-xs text-red-700 underline"
+                        onClick={() => {
+                          const current = photoTheme === 'valentines' ? draft.valentines.heroMobileImageUrl : draft.themeMobileMedia[photoTheme];
+                          rememberSuperseded(current, '');
+                          update(prev => ({
+                            ...prev, themeMobileMedia: { ...prev.themeMobileMedia, [photoTheme]: '' },
+                            ...(photoTheme === 'valentines' ? {
+                              valentines: { ...prev.valentines, heroMobileImageUrl: '' },
+                            } : {}),
+                          }));
+                        }}>Use desktop background on mobile instead</button>
+                    )}
+                    <div className="mt-4">
+                      <ImageCropControls title="Mobile · Left/Right/Up/Down crop"
+                        value={draft.heroCrop[photoTheme].mobile}
+                        onChange={value => updateHeroCrop(photoTheme, 'mobile', value)}/>
+                    </div>
+                  </div>
                   {photoTheme !== draft.theme && (
                     <button type="button" className="w-full rounded border border-stone-300 px-4 py-3 text-xs font-semibold"
                       onClick={() => {
