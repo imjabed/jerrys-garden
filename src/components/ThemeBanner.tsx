@@ -7,8 +7,9 @@ import RichText from './RichText';
 interface Props {
   theme: ThemeId;
   config: ThemeBannerConfig;
+  editorPreview?: boolean;
 }
-export default function ThemeBanner({ theme, config }: Props) {
+export default function ThemeBanner({ theme, config, editorPreview = false }: Props) {
   if (!config.enabled) return null;
   const media = config.imageUrl
     ? config.imageUrl.replace('/image/upload/', '/image/upload/f_auto,q_auto,w_1600,c_limit/')
@@ -45,13 +46,13 @@ export default function ThemeBanner({ theme, config }: Props) {
           paddingBottom: config.verticalPadding ?? 16 }}>
         <div className="w-full min-w-0">
           {config.eyebrow && (
-            <p className="jb-banner-eyebrow text-[9px] font-semibold uppercase tracking-[.24em]"
+            <p data-banner-field={editorPreview ? 'eyebrow' : undefined} className="jb-banner-eyebrow text-[9px] font-semibold uppercase tracking-[.24em]"
               style={{ color: config.textColors?.eyebrow || config.accentColor }}>
               <RichText value={config.eyebrow} presentation={config.typography?.eyebrow}/>
             </p>
           )}
           {config.text && (
-            <p className="mt-1 font-serif text-[17px] leading-snug sm:text-xl"
+            <p data-banner-field={editorPreview ? 'text' : undefined} className="mt-1 font-serif text-[17px] leading-snug sm:text-xl"
               style={{ color: config.textColors?.text || config.textColor }}>
               <RichText value={config.text} presentation={config.typography?.text}/>
             </p>
@@ -59,7 +60,7 @@ export default function ThemeBanner({ theme, config }: Props) {
         </div>
         {config.buttonText && (
           <a href={safeEditorLink(config.link)}
-            className={`jb-banner-action inline-flex min-h-9 max-w-full items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-[.12em] transition-opacity hover:opacity-75 ${actionClass}`}
+            data-banner-field={editorPreview ? 'buttonText' : undefined} className={`jb-banner-action inline-flex min-h-9 max-w-full items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-[.12em] transition-opacity hover:opacity-75 ${actionClass}`}
             style={buttonStyle}>
             <RichText value={config.buttonText} presentation={config.typography?.buttonText} inline/>
             <ArrowUpRight className="h-3.5 w-3.5 shrink-0"/>
