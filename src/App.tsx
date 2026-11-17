@@ -678,7 +678,7 @@ export default function App() {
                   <RichText value={siteContent.shop.heading} presentation={siteContent.textPresentations[siteContent.theme]['shop.heading']}/>
                 </h2>
                 <p className="site-body-copy mt-1 max-w-xl">
-                  {siteContent.shop.description}
+                  <RichText value={siteContent.shop.description} presentation={siteContent.textPresentations[siteContent.theme]['shop.description']}/>
                 </p>
               </div>
 
@@ -780,7 +780,7 @@ export default function App() {
                 }}/>
               </SectionErrorBoundary>
             );
-            if (id === 'story') return <RibbonStory key={id} content={siteContent.story} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects} theme={siteContent.theme}/>;
+            if (id === 'story') return <RibbonStory key={id} content={siteContent.story} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects} theme={siteContent.theme} textPresentations={siteContent.textPresentations[siteContent.theme]}/>;
             const block = siteContent.blocks.find(item => item.id === id);
             return block ? <CustomPageBlock key={block.id} block={block}/> : null;
           })}
