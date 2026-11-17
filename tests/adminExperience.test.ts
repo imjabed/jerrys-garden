@@ -81,7 +81,7 @@ test('Winter, Eid and Puja footers render distinct local SVG park skylines', () 
   } as any;
   for (const theme of ['winter', 'eid', 'puja'] as const) {
     const html = renderToStaticMarkup(createElement(Footer, {
-      storeSettings: settings, theme, themeExtras: DEFAULT_SITE_CONTENT.themeExtras[theme],
+      storeSettings: settings, theme, themeExtras: { ...DEFAULT_SITE_CONTENT.themeExtras[theme], footerMode: 'silhouette' as const },
       onOpenOwnerLogin: () => undefined, onOpenTracking: () => undefined,
       onNavigateToShop: () => undefined, onOpenPolicy: () => undefined,
     }));
