@@ -123,3 +123,12 @@ test('App no longer delays loader behind theme or catalogue network promises', (
   assert.doesNotMatch(app, /setThemeFetchSettled|maximumSplashElapsed|catalogSettled:/);
   assert.match(entry, /scheduleSplashDismiss\(\)/);
 });
+
+test('The loading icon is the original high-resolution transparent animated GIF', () => {
+  const bytes = readFileSync('public/loading-bouquet-girl.gif');
+  assert.equal(bytes.subarray(0, 6).toString('ascii'), 'GIF89a');
+  assert.equal(bytes.readUInt16LE(6), 512);
+  assert.equal(bytes.readUInt16LE(8), 512);
+  assert.ok(bytes.length > 300_000, 'Original artwork should not be reduced to a tiny low-quality placeholder');
+  assert.match(readFileSync('index.html', 'utf8'), /src="\/loading-bouquet-girl\.gif"/);
+});
