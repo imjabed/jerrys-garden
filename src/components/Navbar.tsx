@@ -52,13 +52,17 @@ export default function Navbar({
     <header className="jb-nav-surface sticky top-0 z-40 border-b border-stone-200/80 backdrop-blur-md transition-all" data-nav-theme={theme}>
       {themeExtras?.navImageUrl && (
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-          <img src={themeExtras.navImageUrl} alt="" loading="eager"
-            className="h-full w-full object-cover"
-            style={{
-              objectPosition: `${themeExtras.navImageCrop.x}% ${themeExtras.navImageCrop.y}%`,
-              opacity: themeExtras.navImageOpacity,
-            }}
-            onError={event => { event.currentTarget.style.display = 'none'; }}/>
+          <picture>
+            {themeExtras.navMobileImageUrl && <source media="(max-width: 680px)" srcSet={themeExtras.navMobileImageUrl}/>}
+            <img src={themeExtras.navImageUrl} alt="" loading="eager"
+              className="jb-nav-photo h-full w-full object-cover"
+              style={{
+                '--jb-nav-desktop-crop': `${themeExtras.navImageCrop.x}% ${themeExtras.navImageCrop.y}%`,
+                '--jb-nav-mobile-crop': `${themeExtras.navMobileCrop.x}% ${themeExtras.navMobileCrop.y}%`,
+                opacity: themeExtras.navImageOpacity,
+              } as import('react').CSSProperties}
+              onError={event => { event.currentTarget.style.display = 'none'; }}/>
+          </picture>
           <div className="jb-nav-photo-scrim absolute inset-0"/>
         </div>
       )}
