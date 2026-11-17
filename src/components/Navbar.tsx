@@ -196,7 +196,10 @@ export default function Navbar({
               <div className="relative">
                 <button
                   id="user-menu-btn"
-                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  type="button"
+                  aria-expanded={userDropdownOpen}
+                  aria-label="Account options"
+                  onClick={() => { setUserDropdownOpen(current => !current); setMobileMenuOpen(false); }}
                   className="flex items-center gap-2 py-1 px-2.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-medium transition-colors"
                 >
                   <div className="w-6 h-6 rounded-full bg-rose-200 text-rose-800 font-bold flex items-center justify-center text-[11px]">
@@ -206,7 +209,7 @@ export default function Navbar({
                 </button>
 
                 {userDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-stone-200 py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                  <div className="jb-customer-dropdown absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-stone-200 bg-white py-2 text-stone-800 shadow-xl z-50">
                     <div className="px-4 py-2 border-b border-stone-100">
                       <p className="text-xs text-stone-400 font-medium">Signed in as</p>
                       <p className="text-xs font-semibold text-stone-800 truncate">{activeUser.name}</p>
@@ -261,7 +264,11 @@ export default function Navbar({
             {/* Mobile Hamburger Toggle */}
             <button
               id="mobile-menu-toggle"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              type="button"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="jb-mobile-menu"
+              aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              onClick={() => { setMobileMenuOpen(current => !current); setUserDropdownOpen(false); }}
               className="lg:hidden p-2 text-stone-700 hover:text-rose-600 rounded-lg"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -272,7 +279,7 @@ export default function Navbar({
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="jb-mobile-menu lg:hidden border-b border-stone-200 px-4 pt-2 pb-6 space-y-3 shadow-lg">
+        <div id="jb-mobile-menu" className="jb-mobile-menu lg:hidden border-b border-stone-200 px-4 pt-2 pb-6 space-y-3 shadow-lg">
           <button
             onClick={() => {
               onNavigateToShop();
