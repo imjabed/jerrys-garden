@@ -2,6 +2,8 @@ import { ArrowUpRight, Gift, Heart, Flower2 } from 'lucide-react';
 import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
 import type { SiteContent, ThemeId, PageEffects } from '../../shared/siteEditor';
 import SeasonalEffects from './SeasonalEffects';
+import RichText from './RichText';
+import type { TextSlot, TextPresentation } from '../../shared/siteEditor';
 
 const qualities = [
   { icon: Heart, title: 'Handmade', detail: 'Thoughtful details in every piece.' },
@@ -9,8 +11,9 @@ const qualities = [
   { icon: Flower2, title: 'Made to keep', detail: 'Little reminders that last.' },
 ];
 
-export default function RibbonStory({ content = DEFAULT_SITE_CONTENT.story, headingScale = 1, theme = 'default', effects = DEFAULT_SITE_CONTENT.effects }: {
+export default function RibbonStory({ content = DEFAULT_SITE_CONTENT.story, headingScale = 1, theme = 'default', effects = DEFAULT_SITE_CONTENT.effects, textPresentations }: {
   key?: string; content?: SiteContent['story']; headingScale?: number; theme?: ThemeId; effects?: PageEffects;
+  textPresentations?: Record<TextSlot, TextPresentation>;
 }) {
   return (
     <section id="ribbon-story" className="jb-story-surface relative isolate overflow-hidden border-t border-stone-200/80 py-20 sm:py-28">
@@ -19,10 +22,10 @@ export default function RibbonStory({ content = DEFAULT_SITE_CONTENT.story, head
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-end">
           <div>
             <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-6">{content.eyebrow}</p>
-            <h2 className="site-editable-heading font-serif font-normal leading-[1.12] tracking-tight text-stone-900" style={{ fontSize: `clamp(${2.15 * headingScale}rem, ${4.4 * headingScale}vw, ${3.8 * headingScale}rem)` }} >{content.heading}<br/><span className="italic" style={{ color: 'var(--site-accent, #9D777C)' }}>{content.accentLine}</span></h2>
+            <h2 className="site-editable-heading font-serif font-normal leading-[1.12] tracking-tight text-stone-900" style={{ fontSize: `clamp(${2.15 * headingScale}rem, ${4.4 * headingScale}vw, ${3.8 * headingScale}rem)` }} ><RichText value={content.heading} presentation={textPresentations?.['story.heading']}/><span className="italic" style={{ color: 'var(--site-accent, #9D777C)' }}>{content.accentLine}</span></h2>
           </div>
           <div>
-            <p className="site-body-copy leading-7 text-stone-600 max-w-md">{content.description}</p>
+            <p className="site-body-copy leading-7 text-stone-600 max-w-md"><RichText value={content.description} presentation={textPresentations?.['story.description']}/></p>
             <p className="mt-6 inline-flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-stone-700">Made in Berhampore <ArrowUpRight size={15}/></p>
           </div>
         </div>
