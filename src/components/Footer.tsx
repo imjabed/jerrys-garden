@@ -37,7 +37,9 @@ export default function Footer({
     eid: '/seasonal/eid-moonlit-mosque.svg',
     puja: '/seasonal/puja-bengali-pandal.svg',
   };
-  const sceneEnabled = (themeExtras?.footerSceneEnabled ?? valentineMode) && (!valentineMode || valentines?.footerSceneEnabled !== false);
+  const footerMode = themeExtras?.footerMode || 'silhouette';
+  const sceneEnabled = footerMode !== 'none' && (themeExtras?.footerSceneEnabled ?? valentineMode)
+    && (!valentineMode || valentines?.footerSceneEnabled !== false);
   const sceneUrl = valentineMode
     ? (valentines?.footerSceneUrl || themeExtras?.footerSceneUrl || skylineSource.valentines)
     : (themeExtras?.footerSceneUrl || skylineSource[theme]);
@@ -47,18 +49,28 @@ export default function Footer({
     : content;
   return (
     <footer className={`jb-footer-surface text-stone-300 border-t border-stone-800 pb-12 ${sceneEnabled ? 'jb-footer-with-scene' : 'pt-16'} ${valentineMode ? 'jb-valentine-footer' : ''}`}>
-      {sceneEnabled && sceneUrl && (
+      {sceneEnabled && (footerMode === 'image' ? Boolean(themeExtras?.footerImageUrl) : Boolean(sceneUrl)) && (
         <div className={`jb-festival-scene relative isolate overflow-hidden jb-footer-scene-${theme}`}
           aria-hidden="true">
           <div className="jb-festival-sky absolute inset-0"/>
-          <div className="jb-festival-silhouette absolute inset-0"
-            style={{
-              backgroundColor: valentineMode
-                ? (valentines?.colors.silhouette || themeExtras?.footerSceneColor)
-                : themeExtras?.footerSceneColor,
-              maskImage: `url("${sceneUrl}")`,
-              WebkitMaskImage: `url("${sceneUrl}")`,
-            }}/>
+          {footerMode === 'image' && themeExtras?.footerImageUrl ? (
+            <img src={themeExtras.footerImageUrl} alt="" draggable={false}
+              loading="lazy" decoding="async"
+              className="jb-festival-real-image absolute inset-0 h-full w-full object-contain object-bottom"
+              style={{
+                objectPosition: `${themeExtras.footerImageCrop.x}% ${themeExtras.footerImageCrop.y}%`,
+              }}
+              onError={event => { event.currentTarget.style.display = 'none'; }}/>
+          ) : (
+            <div className="jb-festival-silhouette absolute inset-0"
+              style={{
+                backgroundColor: valentineMode
+                  ? (valentines?.colors.silhouette || themeExtras?.footerSceneColor)
+                  : themeExtras?.footerSceneColor,
+                maskImage: `url("${sceneUrl}")`,
+                WebkitMaskImage: `url("${sceneUrl}")`,
+              }}/>
+          )}
         </div>
       )}
       {footerTagline && (
