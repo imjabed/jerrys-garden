@@ -1416,24 +1416,38 @@ export default function SiteEditor({
             )}
             {panel === 'text' && (
               <>
-                <h2 className="font-serif text-2xl">Homepage copy</h2>
-                <p className="text-xs leading-5 text-stone-500">Update the words customers read. The preview changes as you type.</p>
-                {([
-                  ['hero', 'Hero'],
-                  ['shop', 'Shop catalog'],
-                  ['custom', 'Custom orders'],
-                  ['story', 'Our craft'],
-                ] as const).map(([key, title]) => (
-                  <details key={key} open={key === 'hero'} className="border border-stone-200 px-4 py-3">
-                    <summary className="cursor-pointer text-sm font-medium">{title}</summary>
-                    <div className="mt-4 space-y-4">
-                      {Object.entries(draft[key]).map(([field, value]) =>
-                        input(field.replace(/([A-Z])/g, ' $1'), String(value),
-                          next => updateText(key, field, next), field === 'description')
-                      )}
-                    </div>
-                  </details>
-                ))}
+                <div>
+                  <h2 className="font-serif text-2xl">Website typography editor</h2>
+                  <p className="mt-2 text-xs leading-6 text-stone-600">
+                    Edit Winter/Christmas text without affecting other themes. Add line breaks,
+                    format selected words with bold or italic, and choose a font, size, and alignment
+                    for each field. Live storefront rendering treats the text as plain content, never raw HTML.
+                  </p>
+                </div>
+                {option('Text element', textSlot, TEXT_SLOTS.map(x => ({id:x.id,label:x.label})),
+                  id => setTextSlot(id as TextSlot))}
+                <div className="rounded-xl border border-stone-200 bg-white p-4">
+                  <RichTextEditor key={draft.theme + ':' + textSlot}
+                    label={TEXT_SLOTS.find(x => x.id === textSlot)?.label || textSlot}
+                    value={editedTextValue(textSlot)} onChange={value => updateRichText(textSlot, value)}
+                    presentation={draft.textPresentations[draft.theme][textSlot]}
+                    onPresentationChange={value => updateTextPresentation(textSlot, value)}/>
+                </div>
+                <div className="rounded-lg border border-stone-200 bg-stone-50 p-4">
+                  <p className="mb-3 text-xs font-semibold">Quick access</p>
+                  <button type="button" onClick={() => setPanel('banner')}
+                    className="mr-2 mb-2 rounded border border-stone-300 bg-white px-3 py-2 text-xs">
+                    Banner text
+                  </button>
+                  <button type="button" onClick={() => setPanel('branding')}
+                    className="mr-2 mb-2 rounded border border-stone-300 bg-white px-3 py-2 text-xs">
+                    Footer notices
+                  </button>
+                  <button type="button" onClick={() => setPanel('appearance')}
+                    className="mb-2 rounded border border-stone-300 bg-white px-3 py-2 text-xs">
+                    Theme-wide fonts
+                  </button>
+                </div>
               </>
             )}
             {panel === 'collections' && (
