@@ -1451,3 +1451,37 @@
 .site-shell[data-editor-device="phone"] .jb-festival-real-image {
   object-position: var(--jb-footer-mobile-crop, 50% 50%) !important;
 }
+
+/* Website Studio — click an element in the preview to open its inspector.
+   Highlight only in the admin canvas, never on the published storefront. */
+.site-shell[data-editor-device] [data-editor-section] {
+  cursor: pointer;
+  position: relative;
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+.site-shell[data-editor-device] [data-editor-section]:hover {
+  outline: 2px dashed rgba(121, 56, 76, .82);
+  outline-offset: -2px;
+}
+.site-shell[data-editor-device] [data-editor-slot] {
+  cursor: text;
+  border-radius: 2px;
+}
+.site-shell[data-editor-device] [data-editor-slot]:hover {
+  outline: 2px solid rgba(114, 59, 84, .75);
+  outline-offset: 3px;
+}
+.site-shell[data-selected-preview="hero"] [data-editor-section="hero"],
+.site-shell[data-selected-preview="header"] [data-editor-section="header"],
+.site-shell[data-selected-preview="banner"] [data-editor-section="banner"],
+.site-shell[data-selected-preview="collections"] [data-editor-section="collections"],
+.site-shell[data-selected-preview="shop"] [data-editor-section="shop"],
+.site-shell[data-selected-preview="custom"] [data-editor-section="custom"],
+.site-shell[data-selected-preview="reviews"] [data-editor-section="reviews"],
+.site-shell[data-selected-preview="story"] [data-editor-section="story"],
+.site-shell[data-selected-preview="footer"] [data-editor-section="footer"],
+.site-shell[data-selected-preview="block"] [data-editor-section="block"] {
+  outline: 2px solid rgba(121, 56, 76, .76);
+  outline-offset: -2px;
+}
