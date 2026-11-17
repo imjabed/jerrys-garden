@@ -791,7 +791,8 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
       ).filter(([key, url]) =>
         key.length <= 120 &&
         typeof url === 'string' &&
-        /^https:\\/\\/res\\.cloudinary\\.com\\/[\\w-]+\\/image\\/upload\\//.test(url) &&
+        url.startsWith('https://res.cloudinary.com/') &&
+        url.includes('/image/upload/') &&
         url.length <= 800,
       ).slice(0, 100),
     ) as Record<string, string>,
