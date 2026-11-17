@@ -18,12 +18,13 @@ export function formatInlineText(source: string): ReactNode[] {
   });
 }
 export default function RichText({
-  value, presentation, className = '', inline = false,
+  value, presentation, className = '', inline = false, editorSlot,
 }: {
   value: string;
   presentation?: TextPresentation;
   className?: string;
   inline?: boolean;
+  editorSlot?: string;
 }) {
   const style: CSSProperties = {
     whiteSpace: 'pre-wrap',
@@ -31,9 +32,16 @@ export default function RichText({
       ? FONT_STACKS[presentation.font] : undefined,
     fontSize: presentation?.size ? `${presentation.size}px` : undefined,
     textAlign: presentation?.align || undefined,
-    fontWeight: presentation?.bold ? 700 : undefined,
-    fontStyle: presentation?.italic ? 'italic' : undefined,
+    fontWeight: presentation ? (presentation.bold ? 700 : 400) : undefined,
+    // Explicit 'normal' overrides old theme wrappers that always forced italic.
+    fontStyle: presentation ? (presentation.italic ? 'italic' : 'normal') : undefined,
+    color: presentation?.color || undefined,
+    lineHeight: presentation?.lineHeight ? presentation.lineHeight : undefined,
+    letterSpacing: typeof presentation?.letterSpacing === 'number' && presentation.letterSpacing !== 0
+      ? `${presentation.letterSpacing}px` : undefined,
+    textTransform: presentation?.transform && presentation.transform !== 'none'
+      ? presentation.transform : undefined,
     display: inline ? 'inline' : 'block',
   };
-  return <span className={className} style={style}>{formatInlineText(value)}</span>;
+  return <span className={className} style={style} data-editor-slot={editorSlot}>{formatInlineText(value)}</span>;
 }
