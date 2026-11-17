@@ -12,7 +12,6 @@ import SeasonalEffects from './SeasonalEffects';
 import RichText from './RichText';
 import StudioErrorBoundary from './StudioErrorBoundary';
 import RichTextEditor from './RichTextEditor';
-import ImageCropControls from './ImageCropControls';
 import VisualCropDialog, { type CropTask } from './VisualCropDialog';
 import { originalCloudinaryUrl } from '../services/visualCrop';
 import type { RibbonBouquet } from '../types';
@@ -1117,9 +1116,18 @@ export default function SiteEditor({
                               Clear footer artwork
                             </button>
                           )}
-                          <ImageCropControls title="Desktop footer crop"
-                            value={draft.themeExtras[draft.theme].footerImageCrop}
-                            onChange={value=>updateThemeCrop('footerImageCrop',value)}/>
+                          {draft.themeExtras[draft.theme].footerImageUrl && (
+                            <button type="button" className="w-full rounded border border-stone-300 bg-stone-50 px-3 py-3 text-xs font-semibold hover:bg-stone-100"
+                              onClick={() => editExistingCrop(
+                                `detail:${draft.theme}:footerImageUrl`, 'Desktop footer artwork',
+                                draft.themeExtras[draft.theme].footerImageUrl, 16/5,
+                                cropped => update(prev => ({
+                                  ...prev, themeExtras: {...prev.themeExtras,[prev.theme]:{
+                                    ...prev.themeExtras[prev.theme],footerImageUrl:cropped,
+                                  }},
+                                })),
+                              )}>Edit / Re-crop desktop footer artwork</button>
+                          )}
                           <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 border border-stone-300 p-3 text-xs">
                             <UploadCloud className="h-4 w-4"/>
                             {uploadingKey === 'theme-detail-footerMobileImageUrl' ? 'Uploading…' : 'Optional: upload mobile footer artwork'}
@@ -1134,9 +1142,18 @@ export default function SiteEditor({
                               Remove mobile footer image
                             </button>
                           )}
-                          <ImageCropControls title="Mobile footer crop"
-                            value={draft.themeExtras[draft.theme].footerMobileCrop}
-                            onChange={value=>updateThemeCrop('footerMobileCrop',value)}/>
+                          {draft.themeExtras[draft.theme].footerMobileImageUrl && (
+                            <button type="button" className="w-full rounded border border-stone-300 bg-stone-50 px-3 py-3 text-xs font-semibold hover:bg-stone-100"
+                              onClick={() => editExistingCrop(
+                                `detail:${draft.theme}:footerMobileImageUrl`, 'Mobile footer artwork',
+                                draft.themeExtras[draft.theme].footerMobileImageUrl, 4/3,
+                                cropped => update(prev => ({
+                                  ...prev, themeExtras: {...prev.themeExtras,[prev.theme]:{
+                                    ...prev.themeExtras[prev.theme],footerMobileImageUrl:cropped,
+                                  }},
+                                })),
+                              )}>Edit / Re-crop mobile footer artwork</button>
+                          )}
                         </div>
                       )}
                       {colour('Silhouette / floor colour', draft.themeExtras[draft.theme].footerSceneColor,
