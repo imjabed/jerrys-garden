@@ -3,6 +3,8 @@ import type { RibbonBouquet } from '../types';
 import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
 import type { SiteContent, PageEffects, ThemeId, SeasonalOffer } from '../../shared/siteEditor';
 import SeasonalEffects from './SeasonalEffects';
+import RichText from './RichText';
+import type { CropPosition, TextPresentation, TextSlot } from '../../shared/siteEditor';
 
 interface HeroProps {
   key?: string;
@@ -16,32 +18,36 @@ interface HeroProps {
   photoUrl?: string;
   mobilePhotoUrl?: string;
   imagePosition?: number;
+  imageCrop?: { desktop: CropPosition; mobile: CropPosition };
+  textPresentations?: Record<TextSlot, TextPresentation>;
   offer?: SeasonalOffer;
 }
 
 export default function Hero({
   onExploreClick, onFeaturedClick, featuredProduct,
   content = DEFAULT_SITE_CONTENT.hero, headingScale = 1,
-  effects = DEFAULT_SITE_CONTENT.effects, theme = 'default', photoUrl, mobilePhotoUrl, imagePosition = 76, offer,
+  effects = DEFAULT_SITE_CONTENT.effects, theme = 'default', photoUrl, mobilePhotoUrl, imagePosition = 76, imageCrop, textPresentations, offer,
 }: HeroProps) {
   const seasonal = theme !== 'default';
   const showOffer = seasonal && offer?.enabled && Boolean(offer.code);
   return (
     <section className={`jb-hero-surface relative isolate overflow-hidden border-b border-stone-200 ${seasonal ? 'jb-hero-seasonal' : ''} ${photoUrl ? 'jb-hero-with-image' : ''}`}>
-      <SeasonalEffects settings={effects} theme={theme} photoUrl={photoUrl} mobilePhotoUrl={mobilePhotoUrl} imagePosition={imagePosition}/>
+      <SeasonalEffects settings={effects} theme={theme} photoUrl={photoUrl} mobilePhotoUrl={mobilePhotoUrl} imagePosition={imagePosition} imageCrop={imageCrop}/>
       <div className={`jb-hero-layout relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-5 py-14 sm:px-8 lg:gap-16 lg:px-12 lg:py-24
         ${seasonal ? 'jb-hero-seasonal-layout lg:grid-cols-1' : 'lg:min-h-[620px] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]'}`}>
         <div className={`jb-hero-copy min-w-0 ${seasonal ? 'jb-hero-seasonal-copy' : ''}`}>
           <p className="mb-5 text-[10px] uppercase tracking-[0.26em] text-stone-600 sm:mb-7">
-            {content.eyebrow}
+            <RichText value={content.eyebrow} presentation={textPresentations?.['hero.eyebrow']}/>
           </p>
           <h1 className="site-editable-heading font-serif font-normal leading-[1.07] tracking-tight text-stone-900"
             style={{ fontSize: `clamp(${(seasonal ? 2.6 : 3.15) * headingScale}rem, ${(seasonal ? 5.5 : 6.5) * headingScale}vw, ${(seasonal ? 5.2 : 6) * headingScale}rem)` }}>
-            {content.heading}<br />
-            <span className="italic" style={{ color: 'var(--site-accent, #9D777C)' }}>{content.accentLine}</span>
+            <RichText value={content.heading} presentation={textPresentations?.['hero.heading']}/>
+            <span className="italic" style={{ color: 'var(--site-accent, #9D777C)' }}>
+              <RichText value={content.accentLine} presentation={textPresentations?.['hero.accentLine']}/>
+            </span>
           </h1>
           <p className="site-body-copy mt-5 max-w-sm leading-relaxed text-stone-700 sm:mt-7">
-            {content.description}
+            <RichText value={content.description} presentation={textPresentations?.['hero.description']}/>
           </p>
           <button type="button" onClick={onExploreClick}
             className="site-outline-button mt-7 inline-flex min-h-11 items-center gap-3 border-b pb-2 text-xs font-semibold uppercase tracking-[0.13em] transition-all hover:gap-5 sm:mt-9">
