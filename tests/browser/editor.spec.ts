@@ -20,6 +20,14 @@ async function openMockedStudio(page: Page, path = '/admin/editor') {
     'Access-Control-Allow-Headers': 'Content-Type, X-JG-Client',
     'Access-Control-Allow-Methods': 'GET, PUT, POST, DELETE, OPTIONS',
   };
+  await page.route('https://res.cloudinary.com/**', async route => {
+    // Deterministic 64 x 64 test asset for browser cropping without Cloudinary/CDN credentials.
+    const image = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/ZWsAAAAASUVORK5CYII=',
+      'base64',
+    );
+    return route.fulfill({ status:200, contentType:'image/png',body:image });
+  });
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url());
     const path = url.pathname;
@@ -202,17 +210,22 @@ test('Banner background photo upload and hero crop changes survive saving', asyn
     name:'banner.png', mimeType:'image/png',
     buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/ZWsAAAAASUVORK5CYII=','base64'),
   });
-  await expect(page.getByText('Existing Cloudinary photo reused.')).toBeVisible();
+  await expect(page.getByRole('dialog',{name:'Crop winter banner'})).toBeVisible();
+  await page.getByRole('button',{name:'Save crop to draft'}).click();
+  await expect(page.getByRole('dialog',{name:'Crop winter banner'})).toHaveCount(0);
   await page.getByRole('button',{name:'Hero Photos'}).click();
   await page.getByRole('combobox',{name:'Background to edit'}).selectOption('winter');
-  const horizontal=page.getByRole('slider',{name:'Desktop · Left/Right/Up/Down crop: horizontal position'});
-  await horizontal.focus();
-  await horizontal.press('End');
-  await expect(horizontal).toHaveValue('100');
+  await page.getByRole('button',{name:'Edit / Re-crop desktop hero'}).click();
+  await expect(page.getByRole('dialog',{name:'Crop winter desktop hero'})).toBeVisible();
+  await page.getByRole('button',{name:'Zoom in'}).click();
+  await page.getByRole('button',{name:'Save crop to draft'}).click();
   await page.getByRole('button',{name:'Save draft'}).click();
   await expect(page.getByText('Draft saved. Your live website has not changed.')).toBeVisible();
+  expect(state.draft.themeBanners.winter.imageUrl).toContain('c_crop,');
   expect(state.draft.themeBanners.winter.imageUrl).toContain('editor_test_photo.png');
-  expect(state.draft.heroCrop.winter.desktop.x).toBe(100);
+  expect(state.draft.themeMedia.winter).toContain('c_crop,');
+  expect(state.draft.originalImages['banner:winter']).toContain('editor_test_photo.png');
+  expect(state.draft.originalImages['hero:desktop:winter']).toContain('Hero_Desktop.png');
   expect(errors).toEqual([]);
 });
 
@@ -228,7 +241,8 @@ test('Docked DevTools-width editor keeps preview in viewport after banner image 
     name:'winter-sale.png',mimeType:'image/png',
     buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/ZWsAAAAASUVORK5CYII=','base64'),
   });
-  await expect(page.getByText('Existing Cloudinary photo reused.')).toBeVisible();
+  await expect(page.getByRole('dialog',{name:'Crop winter banner'})).toBeVisible();
+  await page.getByRole('button',{name:'Save crop to draft'}).click();
   await expect(preview).toBeInViewport();
   await expect(page.getByRole('button',{name:'Save draft'})).toBeVisible();
   await expect(page.getByText('Campaign banner editor')).toBeVisible();
@@ -259,5 +273,52 @@ test('Small-screen editor keeps image selection and preview accessible without b
     hasText:!!document.body.textContent?.includes('Jame Bouquets Studio')}));
   expect(doc.hasRoot).toBe(true);
   expect(doc.hasText).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('Crop + re-crop keeps the original Cloudinary asset and updates the draft crop', async ({page})=>{
+  const {errors,state}=await openMockedStudio(page);
+  await page.getByRole('button',{name:'Banner',exact:true}).click();
+  await page.getByRole('combobox',{name:'Theme banner'}).selectOption('winter');
+  const uploader=page.locator('label').filter({hasText:'Upload / replace banner background image'}).locator('input[type="file"]');
+  await uploader.setInputFiles({
+    name:'banner.png',mimeType:'image/png',
+    buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/ZWsAAAAASUVORK5CYII=','base64'),
+  });
+  const dialog=page.getByRole('dialog',{name:'Crop winter banner'});
+  await expect(dialog).toBeVisible();
+  await page.getByRole('button',{name:'Zoom in'}).click();
+  await page.getByRole('button',{name:'Save crop to draft'}).click();
+  await page.getByRole('button',{name:'Save draft'}).click();
+  const first=state.draft.themeBanners.winter.imageUrl;
+  const source=state.draft.originalImages['banner:winter'];
+  expect(first).toContain('/c_crop,');
+  expect(source).not.toContain('/c_crop,');
+  await page.getByRole('button',{name:'Edit / Re-crop banner photo'}).click();
+  await expect(dialog).toBeVisible();
+  await expect(page.getByLabel('Crop zoom')).toHaveValue('1.1');
+  await page.getByRole('button',{name:'Zoom out'}).click();
+  await page.getByRole('button',{name:'Save crop to draft'}).click();
+  await page.getByRole('button',{name:'Save draft'}).click();
+  expect(state.draft.originalImages['banner:winter']).toBe(source);
+  expect(state.draft.themeBanners.winter.imageUrl).toContain('/c_crop,');
+  expect(errors).toEqual([]);
+});
+
+test('Cancel crop does not change published or draft banner image',async ({page})=>{
+  const {errors,state}=await openMockedStudio(page);
+  const before=state.draft.themeBanners.winter.imageUrl;
+  await page.getByRole('button',{name:'Banner',exact:true}).click();
+  await page.getByRole('combobox',{name:'Theme banner'}).selectOption('winter');
+  const uploader=page.locator('label').filter({hasText:'Upload / replace banner background image'}).locator('input[type="file"]');
+  await uploader.setInputFiles({
+    name:'banner.png',mimeType:'image/png',
+    buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/ZWsAAAAASUVORK5CYII=','base64'),
+  });
+  await expect(page.getByRole('dialog',{name:'Crop winter banner'})).toBeVisible();
+  await page.getByRole('button',{name:'Cancel',exact:true}).click();
+  await expect(page.getByRole('dialog',{name:'Crop winter banner'})).toHaveCount(0);
+  expect(state.draft.themeBanners.winter.imageUrl).toBe(before);
+  expect(state.published.themeBanners.winter.imageUrl).toBe(before);
   expect(errors).toEqual([]);
 });
