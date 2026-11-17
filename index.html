@@ -83,6 +83,14 @@
       <p>Please check your internet connection or refresh the page.</p>
       <a href="/">Refresh the shop</a>
     </div>
+    <!-- Emergency removal is independent of the React app and backend.
+         The CSS animation is a second failsafe if scripts are delayed. -->
+    <script>
+      window.setTimeout(function () {
+        var loader = document.getElementById('jb-boot-splash');
+        if (loader) loader.remove();
+      }, location.pathname.startsWith('/admin/editor') ? 0 : 2450);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
