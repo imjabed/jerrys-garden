@@ -60,6 +60,8 @@ export default function SiteEditor({
   const [showPreview, setShowPreview] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [textSlot, setTextSlot] = useState<TextSlot>('hero.heading');
+  const [focusedPreview, setFocusedPreview] = useState<string | null>(null);
+  const inspectorRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
     setLoading(true);
@@ -388,6 +390,47 @@ export default function SiteEditor({
       return { ...prev, [group]: { ...(prev as any)[group], [field]: value } };
     });
   };
+  const focusPreview = (section: string, slot?: TextSlot) => {
+    const panels: Record<string, Panel> = {
+      header: 'theme-detail', banner: 'banner', hero: 'text',
+      collections: 'collections', shop: 'text', reviews: 'sections',
+      custom: 'text', story: 'text', footer: 'branding', block: 'blocks',
+    };
+    setFocusedPreview(section);
+    if (slot) {
+      setTextSlot(slot);
+      setPanel('text');
+    } else {
+      const selectedPanel = panels[section] || 'sections';
+      setPanel(selectedPanel);
+      if (section === 'hero') setTextSlot('hero.heading');
+      if (section === 'shop') setTextSlot('shop.heading');
+      if (section === 'custom') setTextSlot('custom.heading');
+      if (section === 'story') setTextSlot('story.heading');
+      if (section === 'footer' && draft.theme === 'valentines') setPanel('valentines');
+      if (section === 'footer' && draft.theme !== 'valentines') setPanel('theme-detail');
+      if (['blocks','sections'].includes(selectedPanel)) setShowAdvanced(true);
+    }
+    setBannerTheme(draft.theme);
+    setPhotoTheme(draft.theme);
+    inspectorRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const onPreviewClick = (event: import('react').MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    const text = target.closest<HTMLElement>('[data-editor-slot]');
+    const element = target.closest<HTMLElement>('[data-editor-section]');
+    const section = element?.dataset.editorSection;
+    const slot = text?.dataset.editorSlot;
+    if (!section && !slot) return;
+    // Preview is a design canvas, not the live storefront. Prevent navigation,
+    // unwanted cart actions or a nested button changing the selected inspector.
+    event.preventDefault();
+    event.stopPropagation();
+    if (section === 'block' && element?.dataset.editorBlock) {
+      setSelectedBlock(element.dataset.editorBlock);
+    }
+    focusPreview(section || 'hero', slot && TEXT_SLOTS.some(s => s.id === slot) ? slot as TextSlot : undefined);
+  };
   const updateValentineCopy = (section: 'hero' | 'custom', field: keyof SiteContent['hero'], value: string) =>
     update(prev => ({ ...prev, valentines: { ...prev.valentines,
       [section]: { ...prev.valentines[section], [field]: value },
@@ -570,7 +613,7 @@ export default function SiteEditor({
               <Settings2 className="h-4 w-4 shrink-0"/><span>{showAdvanced ? 'Fewer tools' : 'More tools'}</span>
             </button>
           </nav>
-          <div className="min-h-0 min-w-0 flex-1 space-y-5 overflow-y-auto p-4 pb-12 sm:p-6">
+          <div ref={inspectorRef} className="min-h-0 min-w-0 flex-1 space-y-5 overflow-y-auto p-4 pb-12 sm:p-6">
             {panel === 'banner' && (
               <>
                 <div>
@@ -1878,7 +1921,7 @@ export default function SiteEditor({
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-stone-800">Visual preview</p>
-              <p className="mt-1 text-xs text-stone-500">Editing only. Customers see the last published version.</p>
+              <p className="mt-1 text-xs text-stone-500">Click any section or text in this preview to open its editor. Customers see only the published version.</p>
             </div>
             <div className="flex items-center gap-1 rounded border border-stone-300 bg-white p-1">
               {([
@@ -1896,8 +1939,8 @@ export default function SiteEditor({
           <div className="mx-auto overflow-hidden border border-stone-300 bg-white shadow-xl transition-[max-width] duration-300"
             style={{ maxWidth: previewWidths[device] }}>
             <div className="max-h-[calc(100vh-175px)] min-h-[420px] overflow-y-auto site-shell"
-              style={previewStyle} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'} data-festive-decor={draft.effects.enabled && draft.effects.illustrationEnabled ? 'on' : 'off'} data-illustration-placement={draft.effects.illustrationPlacement} data-editor-device={device} data-festive-motion={draft.effects.enabled && draft.effects.artworkMotion ? "on" : "off"}>
-              <div className="jb-nav-surface relative flex items-center justify-between overflow-hidden border-b border-stone-200/30 px-4 py-4"
+              style={previewStyle} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'} data-festive-decor={draft.effects.enabled && draft.effects.illustrationEnabled ? 'on' : 'off'} data-illustration-placement={draft.effects.illustrationPlacement} data-editor-device={device} onClickCapture={onPreviewClick} data-festive-motion={draft.effects.enabled && draft.effects.artworkMotion ? "on" : "off"}>
+              <div data-editor-section="header" className="jb-nav-surface relative flex items-center justify-between overflow-hidden border-b border-stone-200/30 px-4 py-4"
                 style={{backgroundColor:draft.themeExtras[draft.theme].navBackground, color:draft.themeExtras[draft.theme].navText}}>
                 {draft.themeExtras[draft.theme].navImageUrl && (
                   <div className="pointer-events-none absolute inset-0">
@@ -1933,8 +1976,8 @@ export default function SiteEditor({
               </div>
               {draft.sections.order.filter(id => draft.sections.visible[id]).map(id => {
                 if (id === 'hero') return <div key={id}>
-                  <ThemeBanner theme={draft.theme} config={draft.themeBanners[draft.theme]}/>
-                  <Hero
+                  <div data-editor-section="banner"><ThemeBanner theme={draft.theme} config={draft.themeBanners[draft.theme]}/></div>
+                  <div data-editor-section="hero"><Hero
                   content={draft.theme === 'valentines' ? draft.valentines.hero : draft.hero}
                   headingScale={draft.appearance.headingScale}
                   effects={draft.effects} theme={draft.theme}
@@ -1945,14 +1988,15 @@ export default function SiteEditor({
                   previewDevice={device}
                   imagePosition={draft.heroImagePosition[draft.theme]}
                   offer={draft.theme === 'default' ? undefined : draft.offers[draft.theme]}
-                  onExploreClick={() => setPanel('text')} onFeaturedClick={() => {}} featuredProduct={products.find(p => p.featured) || products[0] || null}/>
+                  onExploreClick={() => focusPreview('hero', 'hero.button')} onFeaturedClick={() => {}} featuredProduct={products.find(p => p.featured) || products[0] || null}/>
+                  </div>
                 </div>;
-                if (id === 'collections') return <CollectionShowcase key={id} content={draft.collections} headingScale={draft.appearance.headingScale}
-                  products={products} onCategoryClick={key => { setSelectedCategory(key); setPanel('collections'); }}/>;
-                if (id === 'shop') return <section key={id} className="jb-shop-section relative isolate px-5 py-10">
-                  <p className="text-[10px] uppercase tracking-widest text-stone-500">{draft.shop.eyebrow}</p>
-                  <h2 className="mt-2 font-serif text-3xl">{draft.shop.heading}</h2>
-                  <p className="mt-2 text-sm text-stone-600">{draft.shop.description}</p>
+                if (id === 'collections') return <div key={id} data-editor-section="collections"><CollectionShowcase content={draft.collections} headingScale={draft.appearance.headingScale}
+                  products={products} onCategoryClick={key => { setSelectedCategory(key); setPanel('collections'); }}/></div>;
+                if (id === 'shop') return <section key={id} data-editor-section="shop" className="jb-shop-section relative isolate px-5 py-10">
+                  <p className="text-[10px] uppercase tracking-widest text-stone-500"><RichText value={draft.shop.eyebrow} presentation={draft.textPresentations[draft.theme]['shop.eyebrow']} editorSlot="shop.eyebrow"/></p>
+                  <h2 className="mt-2 font-serif text-3xl"><RichText value={draft.shop.heading} presentation={draft.textPresentations[draft.theme]['shop.heading']} editorSlot="shop.heading"/></h2>
+                  <p className="mt-2 text-sm text-stone-600"><RichText value={draft.shop.description} presentation={draft.textPresentations[draft.theme]['shop.description']} editorSlot="shop.description"/></p>
                   <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">{products.slice(0, 4).map(p => (
                     <div key={p.id} className="jb-product-card border border-stone-200 bg-white">
                       {p.imageUrl && <img src={p.imageUrl} alt="" className="aspect-square w-full object-cover"/>}
@@ -1960,7 +2004,7 @@ export default function SiteEditor({
                     </div>
                   ))}</div>
                 </section>;
-                if (id === 'reviews') return <section key={id} className="border-y border-stone-200 bg-stone-50 px-5 py-10">
+                if (id === 'reviews') return <section key={id} data-editor-section="reviews" className="border-y border-stone-200 bg-stone-50 px-5 py-10">
                   <p className="font-serif text-2xl">Customer reviews</p>
                   <p className="mt-2 text-xs text-stone-500">Only verified, approved reviews appear on the live site.</p>
                 </section>;
@@ -1971,7 +2015,7 @@ export default function SiteEditor({
                   const focalPoint = isValentine ? {x:50,y:draft.valentines.customImagePosition} : device === 'phone' ? design.customCrop.mobile : design.customCrop.desktop;
                   const photoOverlay = isValentine ? draft.valentines.customOverlay : design.customOverlay;
                   const copy = isValentine ? draft.valentines.custom : draft.custom;
-                  return <section key={id}
+                  return <section key={id} data-editor-section="custom"
                     className={`jb-custom-surface relative isolate overflow-hidden px-5 py-12 ${isValentine ? 'jb-valentine-custom' : 'jb-themed-custom'}`}
                     style={{ '--val-custom-overlay': String(photoOverlay), '--jb-custom-overlay': String(photoOverlay) } as CSSProperties}>
                     <div className="jb-val-custom-photo-layer pointer-events-none absolute inset-0" aria-hidden="true">
@@ -1982,9 +2026,9 @@ export default function SiteEditor({
                     </div>
                     <div className={`relative z-10 grid min-w-0 gap-6 ${device === 'desktop' ? 'grid-cols-2' : ''}`}>
                       <div className="min-w-0">
-                        <p className="text-[10px] uppercase tracking-widest text-stone-600"><RichText value={copy.eyebrow} presentation={draft.textPresentations[draft.theme]['custom.eyebrow']}/></p>
-                        <h2 className="mt-3 font-serif text-3xl leading-tight"><RichText value={copy.heading} presentation={draft.textPresentations[draft.theme]['custom.heading']}/><em><RichText value={copy.accentLine} presentation={draft.textPresentations[draft.theme]['custom.accentLine']}/></em></h2>
-                        <p className="mt-4 text-xs leading-6 text-stone-700"><RichText value={copy.description} presentation={draft.textPresentations[draft.theme]['custom.description']}/></p>
+                        <p className="text-[10px] uppercase tracking-widest text-stone-600"><RichText value={copy.eyebrow} presentation={draft.textPresentations[draft.theme]['custom.eyebrow']} editorSlot="custom.eyebrow"/></p>
+                        <h2 className="mt-3 font-serif text-3xl leading-tight"><RichText value={copy.heading} presentation={draft.textPresentations[draft.theme]['custom.heading']} editorSlot="custom.heading"/><span style={{color:'var(--site-accent)'}}><RichText value={copy.accentLine} presentation={draft.textPresentations[draft.theme]['custom.accentLine']} editorSlot="custom.accentLine"/></span></h2>
+                        <p className="mt-4 text-xs leading-6 text-stone-700"><RichText value={copy.description} presentation={draft.textPresentations[draft.theme]['custom.description']} editorSlot="custom.description"/></p>
                         <button type="button" onClick={() => setPanel(isValentine ? 'valentines' : 'theme-detail')}
                           className="site-primary-button mt-5 px-5 py-3 text-xs">{copy.button}</button>
                       </div>
@@ -1999,17 +2043,17 @@ export default function SiteEditor({
                     </div>
                   </section>;
                 }
-                if (id === 'story') return <section key={id} className="jb-story-surface relative isolate overflow-hidden px-5 py-12">
+                if (id === 'story') return <section key={id} data-editor-section="story" className="jb-story-surface relative isolate overflow-hidden px-5 py-12">
                   <SeasonalEffects settings={draft.effects} theme={draft.theme} layer="support"/>
                   <div className="relative z-10">
-                  <p className="text-xs uppercase tracking-widest text-stone-500">{draft.story.eyebrow}</p>
-                  <h2 className="mt-3 font-serif text-3xl"><RichText value={draft.story.heading} presentation={draft.textPresentations[draft.theme]['story.heading']}/><em>{draft.story.accentLine}</em></h2>
-                  <p className="mt-3 max-w-lg text-sm text-stone-600"><RichText value={draft.story.description} presentation={draft.textPresentations[draft.theme]['story.description']}/></p>
+                  <p className="text-xs uppercase tracking-widest text-stone-500"><RichText value={draft.story.eyebrow} presentation={draft.textPresentations[draft.theme]['story.eyebrow']} editorSlot="story.eyebrow"/></p>
+                  <h2 className="mt-3 font-serif text-3xl"><RichText value={draft.story.heading} presentation={draft.textPresentations[draft.theme]['story.heading']} editorSlot="story.heading"/><span style={{color:'var(--site-accent)'}}><RichText value={draft.story.accentLine} presentation={draft.textPresentations[draft.theme]['story.accentLine']} editorSlot="story.accentLine"/></span></h2>
+                  <p className="mt-3 max-w-lg text-sm text-stone-600"><RichText value={draft.story.description} presentation={draft.textPresentations[draft.theme]['story.description']} editorSlot="story.description"/></p>
                   </div>
                 </section>;
                 const block = draft.blocks.find(item => item.id === id);
                 return block ? (
-                  <div key={block.id} className="group/preview relative">
+                  <div key={block.id} data-editor-section="block" data-editor-block={block.id} className="group/preview relative">
                     <button type="button" onClick={() => { setSelectedBlock(block.id); setPanel('blocks'); }}
                       className="absolute right-2 top-2 z-20 border border-stone-300 bg-white px-3 py-2 text-[11px] text-stone-800 shadow-sm">
                       Edit section
@@ -2029,7 +2073,7 @@ export default function SiteEditor({
                   : id === 'puja' ? '/seasonal/puja-bengali-pandal.svg' : '';
                 const scene = val ? (draft.valentines.footerSceneUrl || extras.footerSceneUrl || presetScene)
                   : (extras.footerSceneUrl || presetScene);
-                return <footer className="jb-footer-surface text-xs text-white">
+                return <footer data-editor-section="footer" className="jb-footer-surface text-xs text-white">
                   {sceneEnabled && (extras.footerMode === 'image' ? Boolean(extras.footerImageUrl) : Boolean(scene)) && (
                     <div className={`jb-festival-scene relative overflow-hidden jb-footer-scene-${id}`} aria-hidden="true">
                       <div className="jb-festival-sky absolute inset-0"/>
