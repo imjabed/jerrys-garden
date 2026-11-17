@@ -352,9 +352,15 @@ export default function SiteEditor({
       [id]: { ...prev.themeBanners[id], ...patch },
     } }));
   const updateBannerTypography = (theme: ThemeId, field: BannerCopyField, style: TextPresentation) =>
-    updateBanner(theme, { typography: { ...draft.themeBanners[theme].typography, [field]: style } });
+    update(prev => ({ ...prev, themeBanners: { ...prev.themeBanners, [theme]: {
+      ...prev.themeBanners[theme],
+      typography: { ...prev.themeBanners[theme].typography, [field]: style },
+    } } }));
   const updateBannerTextColor = (theme: ThemeId, field: BannerCopyField, value: string) =>
-    updateBanner(theme, { textColors: { ...draft.themeBanners[theme].textColors, [field]: value } });
+    update(prev => ({ ...prev, themeBanners: { ...prev.themeBanners, [theme]: {
+      ...prev.themeBanners[theme],
+      textColors: { ...prev.themeBanners[theme].textColors, [field]: value },
+    } } }));
   const updateThemeExtra = (patch: Partial<SiteContent['themeExtras'][ThemeId]>) =>
     update(prev => ({ ...prev, themeExtras: { ...prev.themeExtras,
       [prev.theme]: { ...prev.themeExtras[prev.theme], ...patch },
