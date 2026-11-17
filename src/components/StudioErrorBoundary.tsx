@@ -6,6 +6,7 @@ export default class StudioErrorBoundary extends Component<
   {children: ReactNode; label?: string},
   {error: Error | null; retryCount: number}
 > {
+  declare readonly props: Readonly<{children: ReactNode; label?: string}>;
   state = {error: null as Error | null, retryCount: 0};
 
   static getDerivedStateFromError(error: Error) { return {error}; }
@@ -30,11 +31,6 @@ export default class StudioErrorBoundary extends Component<
             </pre>
           </details>
           <div className="flex flex-wrap gap-3">
-            <button type="button" onClick={() => this.setState(s => ({
-              error: null, retryCount: s.retryCount + 1,
-            }))} className="rounded bg-stone-900 px-5 py-3 text-xs font-semibold text-white">
-              Retry preview
-            </button>
             <button type="button" onClick={() => window.location.reload()}
               className="rounded border border-stone-300 px-5 py-3 text-xs font-semibold">
               Reload editor
