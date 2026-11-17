@@ -80,6 +80,23 @@ export default function App() {
   const [siteContent, setSiteContent] = useState<SiteContent>(DEFAULT_SITE_CONTENT);
   const [ownerChecked, setOwnerChecked] = useState(false);
   const editorRoute = window.location.pathname.startsWith('/admin/editor');
+  // The Studio is a viewport-sized workspace. A crop dialog is portalled to
+  // document.body; without locking document scrolling, closing the dialog can
+  // leave the browser scrolled below the fixed editor (a completely blank view).
+  useEffect(() => {
+    if (!editorRoute) return;
+    const html = document.documentElement;
+    const body = document.body;
+    const oldHtmlOverflow = html.style.overflow;
+    const oldBodyOverflow = body.style.overflow;
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    window.scrollTo(0, 0);
+    return () => {
+      html.style.overflow = oldHtmlOverflow;
+      body.style.overflow = oldBodyOverflow;
+    };
+  }, [editorRoute]);
   const [reviewSummaries, setReviewSummaries] = useState<Record<string, ReviewSummary>>({});
   const [reviewHighlights, setReviewHighlights] = useState<ProductReview[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
