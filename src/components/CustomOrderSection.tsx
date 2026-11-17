@@ -146,9 +146,9 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
   const labelClass = 'block text-[11px] uppercase tracking-[0.14em] text-stone-600';
   return (
     <section id="custom-builder"
-      className={`jb-custom-surface relative isolate overflow-hidden border-y border-stone-200/70 py-14 sm:py-20 lg:py-28 ${theme === 'valentines' ? 'jb-valentine-custom' : ''} ${themeExtras && (theme !== 'default' || customPhoto) ? 'jb-themed-custom' : ''}`}
+      className={`jb-custom-surface relative isolate overflow-hidden border-y border-stone-200/70 py-14 sm:py-20 lg:py-28 ${theme === 'valentines' ? 'jb-valentine-custom' : ''} ${themeExtras && (theme !== 'default' || customPhoto || mobilePhoto) ? 'jb-themed-custom' : ''}`}
       style={{ '--val-custom-overlay': String(photoOverlay), '--jb-custom-overlay': String(photoOverlay) } as CSSProperties}>
-      {themeExtras && (theme !== 'default' || customPhoto) && (
+      {themeExtras && (theme !== 'default' || customPhoto || mobilePhoto) && (
         <div className="jb-val-custom-photo-layer pointer-events-none absolute inset-0" aria-hidden="true">
           {(customPhoto || mobilePhoto) && (
             <picture>
