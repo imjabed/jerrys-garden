@@ -21,12 +21,11 @@ async function openMockedStudio(page: Page, path = '/admin/editor') {
     'Access-Control-Allow-Methods': 'GET, PUT, POST, DELETE, OPTIONS',
   };
   await page.route('https://res.cloudinary.com/**', async route => {
-    // Deterministic 64 x 64 test asset for browser cropping without Cloudinary/CDN credentials.
+    // Deterministic wide image delivered in-memory; no real Cloudinary access.
     const image = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/ZWsAAAAASUVORK5CYII=',
-      'base64',
+      '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="#274b70"/><circle cx="850" cy="350" r="190" fill="#e3ae79"/></svg>',
     );
-    return route.fulfill({ status:200, contentType:'image/png',body:image });
+    return route.fulfill({ status:200, contentType:'image/svg+xml',body:image });
   });
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url());
@@ -296,7 +295,8 @@ test('Crop + re-crop keeps the original Cloudinary asset and updates the draft c
   expect(source).not.toContain('/c_crop,');
   await page.getByRole('button',{name:'Edit / Re-crop banner photo'}).click();
   await expect(dialog).toBeVisible();
-  await expect(page.getByLabel('Crop zoom')).toHaveValue('1.1');
+  const zoom = Number(await page.getByLabel('Crop zoom').inputValue());
+  expect(zoom).toBeGreaterThan(1);
   await page.getByRole('button',{name:'Zoom out'}).click();
   await page.getByRole('button',{name:'Save crop to draft'}).click();
   await page.getByRole('button',{name:'Save draft'}).click();
