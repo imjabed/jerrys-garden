@@ -780,7 +780,7 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
         (Object.keys(d.navigationLabels[id]) as Array<keyof NavigationLabels>).map(key => [
           key, fieldText(raw.navigationLabels?.[id], key, d.navigationLabels[id][key], 45),
         ]),
-      ) as NavigationLabels,
+      ) as unknown as NavigationLabels,
     ])) as Record<ThemeId, NavigationLabels>,
     heroImagePosition, offers, valentines,
     themeBanners, themeExtras,
