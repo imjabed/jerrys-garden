@@ -1808,7 +1808,18 @@ export default function SiteEditor({
             style={{ maxWidth: previewWidths[device] }}>
             <div className="max-h-[calc(100vh-175px)] min-h-[420px] overflow-y-auto site-shell"
               style={previewStyle} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'} data-festive-decor={draft.effects.enabled && draft.effects.illustrationEnabled ? 'on' : 'off'} data-illustration-placement={draft.effects.illustrationPlacement} data-editor-device={device} data-festive-motion={draft.effects.enabled && draft.effects.artworkMotion ? "on" : "off"}>
-              <div className="jb-nav-surface relative flex items-center justify-between overflow-hidden border-b border-stone-200/30 px-4 py-4">
+              <div className="jb-nav-surface relative flex items-center justify-between overflow-hidden border-b border-stone-200/30 px-4 py-4"
+                style={{backgroundColor:draft.themeExtras[draft.theme].navBackground, color:draft.themeExtras[draft.theme].navText}}>
+                {draft.themeExtras[draft.theme].navImageUrl && (
+                  <div className="pointer-events-none absolute inset-0">
+                    <img src={draft.themeExtras[draft.theme].navImageUrl} alt=""
+                      className="h-full w-full object-cover" style={{
+                        opacity:draft.themeExtras[draft.theme].navImageOpacity,
+                        objectPosition:`${draft.themeExtras[draft.theme].navImageCrop.x}% ${draft.themeExtras[draft.theme].navImageCrop.y}%`,
+                      }}/>
+                    <div className="jb-nav-photo-scrim absolute inset-0"/>
+                  </div>
+                )}
                 {draft.theme === 'valentines' && (
                   <div className="jb-valentine-preview-trim pointer-events-none absolute inset-0" aria-hidden="true"/>
                 )}
@@ -1835,7 +1846,10 @@ export default function SiteEditor({
                   headingScale={draft.appearance.headingScale}
                   effects={draft.effects} theme={draft.theme}
                   photoUrl={draft.themeMedia[draft.theme]}
-                  mobilePhotoUrl={draft.theme === 'valentines' ? draft.valentines.heroMobileImageUrl : ''}
+                  mobilePhotoUrl={draft.theme === 'valentines' ? draft.valentines.heroMobileImageUrl : draft.themeMobileMedia[draft.theme]}
+                  imageCrop={draft.heroCrop[draft.theme]}
+                  textPresentations={draft.textPresentations[draft.theme]}
+                  previewDevice={device}
                   imagePosition={draft.heroImagePosition[draft.theme]}
                   offer={draft.theme === 'default' ? undefined : draft.offers[draft.theme]}
                   onExploreClick={() => setPanel('text')} onFeaturedClick={() => {}} featuredProduct={products.find(p => p.featured) || products[0] || null}/>
@@ -1860,8 +1874,8 @@ export default function SiteEditor({
                 if (id === 'custom') {
                   const isValentine = draft.theme === 'valentines';
                   const design = draft.themeExtras[draft.theme];
-                  const customImage = isValentine ? draft.valentines.customImageUrl : design.customImageUrl;
-                  const focalPoint = isValentine ? draft.valentines.customImagePosition : design.customImagePosition;
+                  const customImage = isValentine ? draft.valentines.customImageUrl : device === 'phone' ? design.customMobileImageUrl || design.customImageUrl : design.customImageUrl;
+                  const focalPoint = isValentine ? {x:50,y:draft.valentines.customImagePosition} : device === 'phone' ? design.customCrop.mobile : design.customCrop.desktop;
                   const photoOverlay = isValentine ? draft.valentines.customOverlay : design.customOverlay;
                   const copy = isValentine ? draft.valentines.custom : draft.custom;
                   return <section key={id}
@@ -1870,14 +1884,14 @@ export default function SiteEditor({
                     <div className="jb-val-custom-photo-layer pointer-events-none absolute inset-0" aria-hidden="true">
                       {customImage && <img src={customImage} alt="" className="absolute inset-0 h-full w-full object-cover"
                         onError={event => { event.currentTarget.style.visibility = 'hidden'; }}
-                        style={{ objectPosition: `50% ${focalPoint}%` }}/>}
+                        style={{ objectPosition: `${focalPoint.x}% ${focalPoint.y}%` }}/>}
                       <div className="jb-val-custom-photo-shade absolute inset-0"/>
                     </div>
                     <div className={`relative z-10 grid min-w-0 gap-6 ${device === 'desktop' ? 'grid-cols-2' : ''}`}>
                       <div className="min-w-0">
-                        <p className="text-[10px] uppercase tracking-widest text-stone-600">{copy.eyebrow}</p>
-                        <h2 className="mt-3 font-serif text-3xl leading-tight">{copy.heading} <em>{copy.accentLine}</em></h2>
-                        <p className="mt-4 text-xs leading-6 text-stone-700">{copy.description}</p>
+                        <p className="text-[10px] uppercase tracking-widest text-stone-600"><RichText value={copy.eyebrow} presentation={draft.textPresentations[draft.theme]['custom.eyebrow']}/></p>
+                        <h2 className="mt-3 font-serif text-3xl leading-tight"><RichText value={copy.heading} presentation={draft.textPresentations[draft.theme]['custom.heading']}/><em><RichText value={copy.accentLine} presentation={draft.textPresentations[draft.theme]['custom.accentLine']}/></em></h2>
+                        <p className="mt-4 text-xs leading-6 text-stone-700"><RichText value={copy.description} presentation={draft.textPresentations[draft.theme]['custom.description']}/></p>
                         <button type="button" onClick={() => setPanel(isValentine ? 'valentines' : 'theme-detail')}
                           className="site-primary-button mt-5 px-5 py-3 text-xs">{copy.button}</button>
                       </div>
@@ -1896,8 +1910,8 @@ export default function SiteEditor({
                   <SeasonalEffects settings={draft.effects} theme={draft.theme} layer="support"/>
                   <div className="relative z-10">
                   <p className="text-xs uppercase tracking-widest text-stone-500">{draft.story.eyebrow}</p>
-                  <h2 className="mt-3 font-serif text-3xl">{draft.story.heading} <em>{draft.story.accentLine}</em></h2>
-                  <p className="mt-3 max-w-lg text-sm text-stone-600">{draft.story.description}</p>
+                  <h2 className="mt-3 font-serif text-3xl"><RichText value={draft.story.heading} presentation={draft.textPresentations[draft.theme]['story.heading']}/><em>{draft.story.accentLine}</em></h2>
+                  <p className="mt-3 max-w-lg text-sm text-stone-600"><RichText value={draft.story.description} presentation={draft.textPresentations[draft.theme]['story.description']}/></p>
                   </div>
                 </section>;
                 const block = draft.blocks.find(item => item.id === id);
