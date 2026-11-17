@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { FONT_LABELS, type FontId, type TextPresentation } from '../../shared/siteEditor';
 import { clearInlineEmphasis, toggleEmphasis, type EmphasisMark } from '../services/textFormatting';
 import RichText from './RichText';
@@ -24,14 +24,37 @@ export default function RichTextEditor({
   const textarea = useRef<HTMLTextAreaElement>(null);
   const editorId = useId();
   const selectedRange = useRef({start:0,end:0});
+  useEffect(() => {
+    const node = textarea.current;
+    if (!node) return;
+    const remember = () => {
+      const start = node.selectionStart;
+      const end = node.selectionEnd;
+      if (end > start) selectedRange.current = {start,end};
+    };
+    // React's onSelect can miss programmatic selections and some browsers'
+    // selection changes when leaving the textarea for a number/colour picker.
+    // Native events provide a consistent, independent backup.
+    node.addEventListener('select',remember);
+    node.addEventListener('mouseup',remember);
+    node.addEventListener('keyup',remember);
+    return () => {
+      node.removeEventListener('select',remember);
+      node.removeEventListener('mouseup',remember);
+      node.removeEventListener('keyup',remember);
+    };
+  }, []);
   const [selectedSize, setSelectedSize] = useState(28);
   const [selectedColor, setSelectedColor] = useState('#d5a45b');
   const [selectedFont, setSelectedFont] = useState<FontId>('playfair');
   const [selectedStyleMode, setSelectedStyleMode] = useState<'size'|'color'|'font'|'all'>('all');
   const styleSelectedWords = () => {
     const node = textarea.current;
-    const start = selectedRange.current.start;
-    const end = selectedRange.current.end;
+    const activeRange = selectedRange.current;
+    const currentStart = node?.selectionStart ?? 0;
+    const currentEnd = node?.selectionEnd ?? 0;
+    const start = activeRange.end > activeRange.start ? activeRange.start : currentStart;
+    const end = activeRange.end > activeRange.start ? activeRange.end : currentEnd;
     const chosen: InlineStyle = selectedStyleMode === 'size' ? {size:selectedSize}
       : selectedStyleMode === 'color' ? {color:selectedColor}
       : selectedStyleMode === 'font' ? {font:selectedFont}
