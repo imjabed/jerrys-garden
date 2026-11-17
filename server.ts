@@ -512,8 +512,8 @@ async function startServer() {
           ...Object.values(config?.valentines || {}).filter((v: any) => typeof v === 'string'),
           ...Object.values(config?.themeBanners || {}).map((b: any) => b?.imageUrl),
           ...Object.values(config?.themeExtras || {}).flatMap((p: any) => [
-            p?.customImageUrl, p?.customMobileImageUrl, p?.navImageUrl,
-            p?.footerSceneUrl, p?.footerImageUrl,
+            p?.customImageUrl, p?.customMobileImageUrl, p?.navImageUrl, p?.navMobileImageUrl,
+            p?.footerSceneUrl, p?.footerImageUrl, p?.footerMobileImageUrl,
           ]),
         ];
         return usesCollectionCover || usesPageBlock
