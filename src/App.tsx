@@ -667,7 +667,7 @@ export default function App() {
               </div>
             );
             if (id === 'collections') return (
-              <CollectionShowcase key={id} content={siteContent.collections} products={bouquets} headingScale={siteContent.appearance.headingScale}
+              <CollectionShowcase key={id} content={siteContent.collections} products={bouquets} headingScale={siteContent.appearance.headingScale} textPresentations={siteContent.textPresentations[siteContent.theme]}
                 onCategoryClick={cat => { setSelectedCategory(cat); scrollToSection('shop-section'); }}/>
             );
             if (id === 'shop') return (
