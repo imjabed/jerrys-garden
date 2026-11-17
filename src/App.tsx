@@ -536,7 +536,7 @@ export default function App() {
   } as CSSProperties;
 
   return (
-    <div className={`site-shell flex flex-col selection:bg-rose-100 selection:text-rose-900 ${editorRoute ? 'min-h-0 md:h-dvh md:overflow-hidden' : 'min-h-screen'}`} style={storefrontStyle} data-site-theme={siteContent.theme} data-hover-lift={siteContent.effects.hoverLift ? "on" : "off"} data-festive-decor={siteContent.effects.enabled && siteContent.effects.illustrationEnabled ? "on" : "off"} data-illustration-placement={siteContent.effects.illustrationPlacement} data-festive-motion={siteContent.effects.enabled && siteContent.effects.artworkMotion ? "on" : "off"}>
+    <div className={`site-shell flex flex-col selection:bg-rose-100 selection:text-rose-900 ${editorRoute ? 'min-h-0 md:fixed md:inset-0 md:h-dvh md:w-screen md:overflow-hidden' : 'min-h-screen'}`} style={storefrontStyle} data-site-theme={siteContent.theme} data-hover-lift={siteContent.effects.hoverLift ? "on" : "off"} data-festive-decor={siteContent.effects.enabled && siteContent.effects.illustrationEnabled ? "on" : "off"} data-illustration-placement={siteContent.effects.illustrationPlacement} data-festive-motion={siteContent.effects.enabled && siteContent.effects.artworkMotion ? "on" : "off"}>
       
       {/* Toast Notification */}
       {toastMessage && (
