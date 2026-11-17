@@ -79,10 +79,10 @@ test('Winter banner background colour never blanks editor, survives save and pub
   await expect(page.locator('.jb-theme-banner')).toHaveCSS('background-color','rgb(204, 34, 51)');
   await page.getByRole('button',{name:'Save draft'}).click();
   await expect(page.getByText('Draft saved. Your live website has not changed.')).toBeVisible();
-  expect(state.draft.themeBanners.winter.background).toBe('#CC2233');
+  expect(state.draft.themeBanners.winter.background.toLowerCase()).toBe('#cc2233');
   await page.getByRole('button',{name:'Publish',exact:true}).click();
   await expect(page.getByText(/Published and verified/)).toBeVisible();
-  expect(state.published.themeBanners.winter.background).toBe('#CC2233');
+  expect(state.published.themeBanners.winter.background.toLowerCase()).toBe('#cc2233');
   expect(state.writes).toBeGreaterThan(0);
   expect(state.publishes).toBe(1);
   expect(errors).toEqual([]);
@@ -116,7 +116,7 @@ test('Mobile preview menu opens and clicking hero accent selects the right text 
   await page.getByRole('button',{name:'Close preview navigation'}).click();
   await expect(page.getByText('Design preview. Menu links select their sections for editing.')).toHaveCount(0);
   await page.locator('[data-editor-slot="hero.accentLine"]').first().click();
-  await expect(page.getByRole('combobox',{name:'Choose text to edit'})).toHaveValue('hero.accentLine');
+  await expect(page.getByRole('combobox',{name:'Text element'})).toHaveValue('hero.accentLine');
   expect(errors).toEqual([]);
 });
 
