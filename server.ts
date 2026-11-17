@@ -508,9 +508,13 @@ async function startServer() {
               && block.images.some((url: string) => managedCloudinaryId(url, folder) === publicId)));
         const allMedia = [
           ...Object.values(config?.themeMedia || {}),
+          ...Object.values(config?.themeMobileMedia || {}),
           ...Object.values(config?.valentines || {}).filter((v: any) => typeof v === 'string'),
           ...Object.values(config?.themeBanners || {}).map((b: any) => b?.imageUrl),
-          ...Object.values(config?.themeExtras || {}).flatMap((p: any) => [p?.customImageUrl, p?.footerSceneUrl]),
+          ...Object.values(config?.themeExtras || {}).flatMap((p: any) => [
+            p?.customImageUrl, p?.customMobileImageUrl, p?.navImageUrl,
+            p?.footerSceneUrl, p?.footerImageUrl,
+          ]),
         ];
         return usesCollectionCover || usesPageBlock
           || allMedia.some(url => managedCloudinaryId(url, folder) === publicId);
