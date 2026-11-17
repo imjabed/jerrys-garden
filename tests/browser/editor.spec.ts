@@ -6,7 +6,7 @@ import type { SiteContent } from '../../shared/siteEditor';
  * Browser contract: use real Vite + React + DOM, but do NOT touch the
  * production API, owner credentials, payments, Cloudinary, or customer data.
  */
-async function openMockedStudio(page: Page) {
+async function openMockedStudio(page: Page, path = '/admin/editor') {
   const errors: string[] = [];
   page.on('pageerror', err => errors.push(err.message));
   const state: { draft: SiteContent; published: SiteContent; revision: number; writes: number; publishes: number } = {
@@ -60,9 +60,13 @@ async function openMockedStudio(page: Page) {
       payload={success:true,connected:true,bouquets:[],products:[]};
     return route.fulfill({status:200,headers,contentType:'application/json',body:JSON.stringify(payload)});
   });
-  await page.goto('/admin/editor');
-  await expect(page.getByText('Jame Bouquets Studio').first()).toBeVisible();
-  await expect(page.getByText('Visual preview')).toBeVisible();
+  await page.goto(path);
+  if (path.startsWith('/admin/editor')) {
+    await expect(page.getByText('Jame Bouquets Studio').first()).toBeVisible();
+    await expect(page.getByText('Visual preview')).toBeVisible();
+  } else {
+    await expect(page.getByRole('heading',{name:'Owner dashboard'})).toBeVisible();
+  }
   return {errors,state};
 }
 
@@ -138,5 +142,20 @@ test('Banner supports partial sentence formatting in browser without losing save
   await page.getByRole('button',{name:'Save draft'}).click();
   expect(state.draft.themeBanners.winter.text).toContain('[[size=36');
   expect(state.draft.themeBanners.winter.text).toContain('efg this is a small font done');
+  expect(errors).toEqual([]);
+});
+
+test('Owner dashboard sections and Website Editor link remain navigable', async ({page}) => {
+  const {errors}=await openMockedStudio(page, '/?owner=dashboard');
+  const nav=page.getByRole('navigation',{name:'Owner dashboard sections'});
+  await expect(nav).toBeVisible();
+  for (const tab of ['Orders','Customer insights','Products','Offers','Reviews','Settings']) {
+    await nav.getByRole('button',{name:new RegExp('^'+tab)}).click();
+    await expect(page.getByRole('heading',{name:'Owner dashboard'})).toBeVisible();
+    await expect(page.getByText("We couldn't display this page.")).toHaveCount(0);
+  }
+  // Enter the same owner editor from its real dashboard action.
+  await page.getByRole('button',{name:'Website Editor'}).click();
+  await expect(page.getByText('Visual preview')).toBeVisible();
   expect(errors).toEqual([]);
 });
