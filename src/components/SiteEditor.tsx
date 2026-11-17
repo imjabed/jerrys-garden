@@ -9,12 +9,15 @@ import ThemeBanner from './ThemeBanner';
 import CollectionShowcase from './CollectionShowcase';
 import CustomPageBlock from './CustomPageBlock';
 import SeasonalEffects from './SeasonalEffects';
+import RichText from './RichText';
+import RichTextEditor from './RichTextEditor';
+import ImageCropControls from './ImageCropControls';
 import type { RibbonBouquet } from '../types';
 import {
   DEFAULT_SITE_CONTENT, DEFAULT_CATEGORIES, FONT_LABELS, FONT_STACKS,
-  SECTION_IDS, SEASONAL_THEME_IDS, ALL_THEME_IDS, THEME_PRESETS, BLOCK_KINDS, defaultPageBlock, applyThemePreset, sanitizeSiteContent, safeEditorLink,
+  SECTION_IDS, SEASONAL_THEME_IDS, ALL_THEME_IDS, TEXT_SLOTS, THEME_PRESETS, BLOCK_KINDS, defaultPageBlock, applyThemePreset, sanitizeSiteContent, safeEditorLink,
 } from '../../shared/siteEditor';
-import type { CategoryCardConfig, FontId, SectionId, SiteContent, PageBlock, BlockKind, ThemeId, EffectShape, SeasonalThemeId, SeasonalOffer } from '../../shared/siteEditor';
+import type { CategoryCardConfig, FontId, SectionId, SiteContent, PageBlock, BlockKind, ThemeId, EffectShape, SeasonalThemeId, SeasonalOffer, CropPosition, TextSlot, TextPresentation } from '../../shared/siteEditor';
 import { apiGetSiteEditor, apiSaveSiteEditorDraft, apiPublishSiteEditor, apiGetPublishedSiteContent, apiCleanupUnusedImage } from '../services/api';
 import type { SiteEditorPayload } from '../services/api';
 import { uploadImageToCloudinary } from '../services/cloudinary';
@@ -55,6 +58,7 @@ export default function SiteEditor({
   const [heroAssetInfo, setHeroAssetInfo] = useState<{ url: string; width: number; height: number } | null>(null);
   const [showPreview, setShowPreview] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [textSlot, setTextSlot] = useState<TextSlot>('hero.heading');
 
   const load = async () => {
     setLoading(true);
@@ -269,6 +273,27 @@ export default function SiteEditor({
       setError(err?.message || 'Could not upload seasonal photo.');
     } finally { setUploadingKey(null); }
   };
+  const uploadMobileHeroPhoto = async (id: ThemeId, file?: File) => {
+    if (!file) return;
+    if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 5*1024*1024) {
+      setError('Use a JPG, PNG or WebP under 5 MB.'); return;
+    }
+    setUploadingKey(`hero-mobile-${id}`); setError('');
+    try {
+      const uploaded = await uploadImageToCloudinary(file, 'jame_bouquets_themes');
+      rememberSuperseded(draft.themeMobileMedia[id], uploaded.url);
+      update(prev => ({
+        ...prev, themeMobileMedia: { ...prev.themeMobileMedia, [id]: uploaded.url },
+        ...(id === 'valentines' ? { valentines: { ...prev.valentines, heroMobileImageUrl: uploaded.url } } : {}),
+      }));
+      setNotice(uploaded.reused ? 'Identical image reused from Cloudinary.' : 'Mobile hero ready. Publish to apply it.');
+    } catch (err: any) { setError(err?.message || 'Mobile photo upload failed.'); }
+    finally { setUploadingKey(null); }
+  };
+  const updateHeroCrop = (id: ThemeId, mode: 'desktop' | 'mobile', position: CropPosition) =>
+    update(prev => ({
+      ...prev, heroCrop: { ...prev.heroCrop, [id]: { ...prev.heroCrop[id], [mode]: position } },
+    }));
   const uploadValentinePhoto = async (field: 'heroMobileImageUrl' | 'customImageUrl' | 'footerSceneUrl', file?: File) => {
     if (!file) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
@@ -284,7 +309,7 @@ export default function SiteEditor({
       setError(err?.message || 'Could not upload the Valentine image.');
     } finally { setUploadingKey(null); }
   };
-  const uploadThemeDetail = async (field: 'customImageUrl' | 'footerSceneUrl', file?: File) => {
+  const uploadThemeDetail = async (field: 'customImageUrl' | 'customMobileImageUrl' | 'footerSceneUrl' | 'footerImageUrl' | 'navImageUrl', file?: File) => {
     if (!file) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
       setError('Choose a JPEG, PNG or WebP image under 5 MB.'); return;
@@ -325,6 +350,39 @@ export default function SiteEditor({
     update(prev => ({ ...prev, themeExtras: { ...prev.themeExtras,
       [prev.theme]: { ...prev.themeExtras[prev.theme], ...patch },
     } }));
+  const updateThemeCrop = (field: 'customCrop' | 'navImageCrop' | 'footerImageCrop',
+    value: CropPosition, mode?: 'desktop' | 'mobile') =>
+    update(prev => {
+      const id = prev.theme;
+      const previous = prev.themeExtras[id];
+      const updated = field === 'customCrop' && mode
+        ? { customCrop: { ...previous.customCrop, [mode]: value } }
+        : { [field]: value };
+      return { ...prev, themeExtras: { ...prev.themeExtras,
+        [id]: { ...previous, ...updated },
+      } };
+    });
+  const updateTextPresentation = (slot: TextSlot, value: TextPresentation) =>
+    update(prev => ({ ...prev, textPresentations: {
+      ...prev.textPresentations, [prev.theme]: { ...prev.textPresentations[prev.theme], [slot]: value },
+    } }));
+  const editedTextValue = (slot: TextSlot): string => {
+    const [group, field] = slot.split('.') as [string, string];
+    const source: any = draft.theme === 'valentines' && (group === 'hero' || group === 'custom')
+      ? draft.valentines[group] : (draft as any)[group];
+    return String(source?.[field] || '');
+  };
+  const updateRichText = (slot: TextSlot, value: string) => {
+    const [group, field] = slot.split('.') as [string, string];
+    update(prev => {
+      if (prev.theme === 'valentines' && (group === 'hero' || group === 'custom')) {
+        return { ...prev, valentines: {
+          ...prev.valentines, [group]: { ...prev.valentines[group], [field]: value },
+        } };
+      }
+      return { ...prev, [group]: { ...(prev as any)[group], [field]: value } };
+    });
+  };
   const updateValentineCopy = (section: 'hero' | 'custom', field: keyof SiteContent['hero'], value: string) =>
     update(prev => ({ ...prev, valentines: { ...prev.valentines,
       [section]: { ...prev.valentines[section], [field]: value },
