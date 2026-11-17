@@ -61,6 +61,7 @@ export const DEFAULT_VALENTINES_DESIGN: ValentinesDesign = {
     silhouette: '#4B1024',
   },
 };
+export type BannerCopyField = 'eyebrow' | 'text' | 'buttonText';
 export interface ThemeBanner {
   enabled: boolean;
   eyebrow: string;
@@ -72,6 +73,14 @@ export interface ThemeBanner {
   accentColor: string;
   imageUrl: string;
   imageOpacity: number;
+  // Each banner text element has its own typography and colour.
+  // Missing properties in older editor drafts are filled by the sanitizer.
+  typography: Record<BannerCopyField, TextPresentation>;
+  textColors: Record<BannerCopyField, string>;
+  align: 'left' | 'center' | 'right';
+  verticalPadding: number;
+  buttonVariant: 'link' | 'outline' | 'filled';
+  buttonBackground: string;
 }
 export interface CropPosition { x: number; y: number }
 export type TextSlot = 'hero.eyebrow' | 'hero.heading' | 'hero.accentLine' | 'hero.description' |
@@ -402,6 +411,11 @@ const defaultThemeExtras = () => Object.fromEntries(THEME_PRESETS.map(p => [p.id
   heroText: p.id === 'winter' ? '#FFF8E9' : p.appearance.text,
   heroAccent: p.id === 'winter' ? '#D8B270' : p.appearance.accent,
 }])) as Record<ThemeId, ThemeExtras>;
+const defaultBannerTypography = (): Record<BannerCopyField, TextPresentation> => ({
+  eyebrow: { font: 'inherit', size: 0, align: 'center', bold: false, italic: false },
+  text: { font: 'inherit', size: 0, align: 'center', bold: false, italic: false },
+  buttonText: { font: 'inherit', size: 0, align: 'center', bold: false, italic: false },
+});
 const defaultThemeBanners = () => Object.fromEntries(THEME_PRESETS.map(p => [p.id, {
   enabled: p.id !== 'default',
   eyebrow: p.id === 'default' ? 'JAME BOUQUETS' : 'A SEASON TO REMEMBER',
@@ -414,6 +428,10 @@ const defaultThemeBanners = () => Object.fromEntries(THEME_PRESETS.map(p => [p.i
   background: p.id === 'winter' ? '#0E2A41' : p.id === 'eid' ? '#154638'
     : p.id === 'puja' ? '#901A1A' : p.id === 'valentines' ? '#73112C' : '#292524',
   textColor: '#FFF8F0', accentColor: '#F3CF9D', imageUrl: '', imageOpacity: .26,
+  typography: defaultBannerTypography(),
+  textColors: { eyebrow: '#F3CF9D', text: '#FFF8F0', buttonText: '#F3CF9D' },
+  align: 'center', verticalPadding: 16,
+  buttonVariant: 'link', buttonBackground: '#F3CF9D',
 }])) as Record<ThemeId, ThemeBanner>;
 export const DEFAULT_SITE_CONTENT: SiteContent = {
   theme: 'default',
@@ -651,15 +669,38 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
     const fallback = d.themeBanners[id];
     return [id, {
       enabled: source?.enabled === undefined ? fallback.enabled : source.enabled === true,
-      eyebrow: fieldText(source, 'eyebrow', fallback.eyebrow, 80),
-      text: fieldText(source, 'text', fallback.text, 220),
-      buttonText: fieldText(source, 'buttonText', fallback.buttonText, 70),
+      // Allow empty copy to intentionally hide the eyebrow or action, and keep line breaks.
+      eyebrow: typeof source?.eyebrow === 'string' ? source.eyebrow.slice(0, 160) : fallback.eyebrow,
+      text: typeof source?.text === 'string' ? source.text.slice(0, 700) : fallback.text,
+      buttonText: typeof source?.buttonText === 'string' ? source.buttonText.slice(0, 130) : fallback.buttonText,
       link: safeEditorLink(source?.link ?? fallback.link),
       background: hex(source?.background, fallback.background),
       textColor: hex(source?.textColor, fallback.textColor),
       accentColor: hex(source?.accentColor, fallback.accentColor),
       imageUrl: safeEditorImage(source?.imageUrl),
       imageOpacity: numberRange(source?.imageOpacity, fallback.imageOpacity, 0, 0.75),
+      typography: Object.fromEntries((['eyebrow', 'text', 'buttonText'] as BannerCopyField[])
+        .map(field => {
+          const style = source?.typography?.[field] || {};
+          const original = fallback.typography[field];
+          return [field, {
+            font: style.font === 'inherit' ? 'inherit' : font(style.font, original.font === 'inherit' ? 'inter' : original.font),
+            size: numberRange(style.size, original.size, 0, 96),
+            align: ['left','center','right'].includes(style.align) ? style.align : original.align,
+            bold: style.bold === true,
+            italic: style.italic === true,
+          }];
+        })) as ThemeBanner['typography'],
+      textColors: {
+        eyebrow: hex(source?.textColors?.eyebrow, hex(source?.accentColor, fallback.textColors.eyebrow)),
+        text: hex(source?.textColors?.text, hex(source?.textColor, fallback.textColors.text)),
+        buttonText: hex(source?.textColors?.buttonText, hex(source?.accentColor, fallback.textColors.buttonText)),
+      },
+      align: ['left','center','right'].includes(source?.align) ? source.align : fallback.align,
+      verticalPadding: numberRange(source?.verticalPadding, fallback.verticalPadding, 4, 72),
+      buttonVariant: ['link','outline','filled'].includes(source?.buttonVariant)
+        ? source.buttonVariant : fallback.buttonVariant,
+      buttonBackground: hex(source?.buttonBackground, fallback.buttonBackground),
     }];
   })) as SiteContent['themeBanners'];
   const themeExtras = Object.fromEntries(ALL_THEME_IDS.map(id => {
