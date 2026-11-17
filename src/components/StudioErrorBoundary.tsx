@@ -3,16 +3,17 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 /** Admin-only crash isolation. An unexpected widget error must never leave
  * the owner staring at a blank page or silently publish invalid settings. */
 export default class StudioErrorBoundary extends Component<
-  {children: ReactNode; label?: string},
+  {children: ReactNode; label?: string; onError?: (error: Error) => void; onRetry?: () => void},
   {error: Error | null; retryCount: number}
 > {
-  declare readonly props: Readonly<{children: ReactNode; label?: string}>;
+  declare readonly props: Readonly<{children: ReactNode; label?: string; onError?: (error: Error) => void; onRetry?: () => void}>;
   state = {error: null as Error | null, retryCount: 0};
 
   static getDerivedStateFromError(error: Error) { return {error}; }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[Jame Studio] Editor widget crashed:', error, info.componentStack);
+    this.props.onError?.(error);
   }
 
   render() {
@@ -31,6 +32,12 @@ export default class StudioErrorBoundary extends Component<
             </pre>
           </details>
           <div className="flex flex-wrap gap-3">
+            {this.props.onRetry && (
+              <button type="button" onClick={this.props.onRetry}
+                className="rounded bg-stone-900 px-5 py-3 text-xs font-semibold text-white">
+                Retry preview
+              </button>
+            )}
             <button type="button" onClick={() => window.location.reload()}
               className="rounded border border-stone-300 px-5 py-3 text-xs font-semibold">
               Reload editor
