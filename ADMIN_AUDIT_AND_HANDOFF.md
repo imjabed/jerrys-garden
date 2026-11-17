@@ -95,11 +95,12 @@ These links are stored under Winter's editable media defaults. A one-time schema
 - Banner-wide controls cover background colour, overall alignment, vertical spacing, button appearance (text link / outline / filled), button fill, link destination, background photo, image visibility, and enabled/disabled state.
 - Settings are stored per theme and sanitized on both edit/publish paths. Old banner drafts migrate with inherited typography and familiar original colours. The banner remains decorative and does not issue real discounts; coupons still require the separate admin coupon flow.
 
-**First-visit branded storefront loader:**
-- A tiny, CSS-only Jame Bouquets splash appears in the *initial HTML* before React's JavaScript has started. This avoids a white flash before React mounts.
-- The splash remains visible for **at least two seconds from navigation start**, and until both the published theme request and catalogue request settle (ready or offline). It is not restarted for in-app product navigation or when the user returns to a visible tab.
-- A **15-second maximum** prevents a suspended backend request from trapping visitors behind a loader. Errors remain visible when rendering fails (the error boundary removes the splash). Admin editor routes bypass the delay.
-- The splash is responsive, has readable status text, provides an eventual retry link, and respects reduced-motion preferences.
-- This is a UX improvement, *not* a server-performance optimisation. Vercel serves the static React frontend, but slow API calls can arise from a cold or congested Render backend. Confirm cold/warm response times separately if genuine speed improvements are needed.
+**First-visit minimalist loading screen (revised):**
+- A lightweight HTML/CSS-only 36px circular spinner and exactly two lines of copy appear immediately before React loads: **Loading...** and **Please give us a second, we're preparing your bouquets - Jame Bouquets**. No decorative logo, page title, external icons or extra font/image requests.
+- Previously the splash waited on theme and catalogue requests, so a slow Render backend kept it visible for up to 15 seconds. This coupling was removed after the owner reported an indefinitely appearing loader.
+- The spinner now clears after a fixed ~2 seconds and never waits for APIs. There are three independent ways it is dismissed: a React entry-point timer, a CSS 2.45s auto-hide, and a tiny inline HTML script that removes it at 2.45s even if the React app doesn't initialize.
+- If the React application never mounts, the page underneath offers a small **Refresh the shop** recovery message rather than leaving customers on a blank screen. Normal React error boundaries remain available.
+- The effect is a perceived-load improvement, not a reduction in the backend's response times. It cannot ensure the intended theme has finished downloading before the two-second expiry, so check theme loading and API cold-start time separately.
+- The loader is skipped on the admin editor route and respects reduced-motion preferences.
 
-**Validation:** `tests/bannerAndLoading.test.ts` covers formatting, optional hidden copy, migration/security sanitization, 2s minimum/15s bounded reveal, and splash presence before the React root. The current GitHub Actions workflow performs TypeScript validation, tests, and frontend/backend builds; do a final real-phone check after Vercel deploy.
+**Validation:** `tests/bannerAndLoading.test.ts` covers formatting, optional hidden copy, migration/security sanitization, fixed 2s reveal, CSS fallback, and recovery screen. GitHub Actions performs TypeScript validation, tests, and production builds; do a real-phone smoke test after Vercel deploy.
