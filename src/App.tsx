@@ -594,6 +594,7 @@ export default function App() {
           <Navbar
             theme={siteContent.theme}
             themeExtras={siteContent.themeExtras[siteContent.theme]}
+            navigationLabels={siteContent.navigationLabels[siteContent.theme]}
             cartCount={cart.reduce((sum, it) => sum + it.quantity, 0)}
             onOpenCart={() => setCartDrawerOpen(true)}
             onOpenTracking={() => {
