@@ -83,21 +83,31 @@ export interface ThemeBanner {
   buttonBackground: string;
 }
 export interface CropPosition { x: number; y: number }
-export type TextSlot = 'hero.eyebrow' | 'hero.heading' | 'hero.accentLine' | 'hero.description' |
-  'custom.eyebrow' | 'custom.heading' | 'custom.accentLine' | 'custom.description' |
-  'story.heading' | 'story.description' | 'footer.description' | 'shop.heading' | 'shop.description';
+export type TextSlot = 'hero.eyebrow' | 'hero.heading' | 'hero.accentLine' | 'hero.description' | 'hero.button' |
+  'custom.eyebrow' | 'custom.heading' | 'custom.accentLine' | 'custom.description' | 'custom.button' |
+  'story.eyebrow' | 'story.heading' | 'story.accentLine' | 'story.description' |
+  'footer.description' | 'shop.eyebrow' | 'shop.heading' | 'shop.description';
 export const TEXT_SLOTS: { id: TextSlot; label: string }[] = [
   { id: 'hero.eyebrow', label: 'Hero label' }, { id: 'hero.heading', label: 'Hero headline' },
   { id: 'hero.accentLine', label: 'Hero accent line' }, { id: 'hero.description', label: 'Hero paragraph' },
+  { id: 'hero.button', label: 'Hero button text' },
   { id: 'custom.eyebrow', label: 'Custom-order label' }, { id: 'custom.heading', label: 'Custom-order headline' },
   { id: 'custom.accentLine', label: 'Custom-order accent' }, { id: 'custom.description', label: 'Custom-order paragraph' },
-  { id: 'story.heading', label: 'Our craft headline' }, { id: 'story.description', label: 'Our craft paragraph' },
-  { id: 'footer.description', label: 'Footer description' }, { id: 'shop.heading', label: 'Shop heading' },
+  { id: 'custom.button', label: 'Custom-order button text' },
+  { id: 'story.eyebrow', label: 'Our craft label' },
+  { id: 'story.heading', label: 'Our craft headline' }, { id: 'story.accentLine', label: 'Our craft accent' },
+  { id: 'story.description', label: 'Our craft paragraph' },
+  { id: 'footer.description', label: 'Footer description' },
+  { id: 'shop.eyebrow', label: 'Shop label' }, { id: 'shop.heading', label: 'Shop heading' },
   { id: 'shop.description', label: 'Shop description' },
 ];
 export interface TextPresentation {
   font: FontId | 'inherit'; size: number; align: 'left' | 'center' | 'right';
   bold: boolean; italic: boolean;
+  color?: string;
+  lineHeight?: number;
+  letterSpacing?: number;
+  transform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
 }
 export interface ThemeExtras {
   customImageUrl: string;
@@ -454,7 +464,9 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
   winterAssetsReady: true,
   textPresentations: Object.fromEntries(ALL_THEME_IDS.map(id =>
     [id, Object.fromEntries(TEXT_SLOTS.map(slot => [slot.id, {
-      font: 'inherit', size: 0, align: 'left', bold: false, italic: false,
+      font: 'inherit', size: 0, align: 'left', bold: false,
+      italic: ['hero.accentLine','custom.accentLine','story.accentLine'].includes(slot.id),
+      color: '', lineHeight: 0, letterSpacing: 0, transform: 'none',
     }]))],
   )) as Record<ThemeId, Record<TextSlot, TextPresentation>>,
   heroImagePosition: { default: 50, valentines: 76, puja: 76, winter: 76, eid: 76 },
@@ -614,7 +626,12 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
         font: current.font === undefined || current.font === 'inherit' ? 'inherit' : font(current.font, 'inter'),
         size: numberRange(current.size, 0, 0, 96),
         align: ['left', 'center', 'right'].includes(current.align) ? current.align : 'left',
-        bold: current.bold === true, italic: current.italic === true,
+        bold: current.bold === true,
+        italic: typeof current.italic === 'boolean' ? current.italic : d.textPresentations[id][slot].italic,
+        color: hex(current.color, '') ,
+        lineHeight: numberRange(current.lineHeight, 0, 0, 3),
+        letterSpacing: numberRange(current.letterSpacing, 0, -3, 12),
+        transform: ['none', 'uppercase', 'lowercase', 'capitalize'].includes(current.transform) ? current.transform : 'none',
       }];
     })),
   ])) as SiteContent['textPresentations'];
@@ -691,6 +708,10 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
             align: ['left','center','right'].includes(style.align) ? style.align : original.align,
             bold: style.bold === true,
             italic: style.italic === true,
+            color: hex(style.color, ''),
+            lineHeight: numberRange(style.lineHeight, 0, 0, 3),
+            letterSpacing: numberRange(style.letterSpacing, 0, -3, 12),
+            transform: ['none', 'uppercase', 'lowercase', 'capitalize'].includes(style.transform) ? style.transform : 'none',
           }];
         })) as ThemeBanner['typography'],
       textColors: {
