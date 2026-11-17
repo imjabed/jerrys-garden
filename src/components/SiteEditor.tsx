@@ -626,7 +626,14 @@ export default function SiteEditor({
                     v => updateBanner(bannerTheme, { link: v }))}
                   {option('Banner content alignment', draft.themeBanners[bannerTheme].align, [
                     {id:'left',label:'Left'}, {id:'center',label:'Centre'}, {id:'right',label:'Right'},
-                  ], value => updateBanner(bannerTheme, { align: value as 'left'|'center'|'right' }))}
+                  ], value => updateBanner(bannerTheme, {
+                    align: value as 'left'|'center'|'right',
+                    typography: Object.fromEntries((['eyebrow','text','buttonText'] as BannerCopyField[])
+                      .map(field => [field, {
+                        ...draft.themeBanners[bannerTheme].typography[field],
+                        align: value as 'left'|'center'|'right',
+                      }])) as SiteContent['themeBanners'][ThemeId]['typography'],
+                  }))}
                   {option('Action button appearance', draft.themeBanners[bannerTheme].buttonVariant, [
                     {id:'link',label:'Elegant text link'}, {id:'outline',label:'Outlined button'},
                     {id:'filled',label:'Filled button'},
@@ -644,10 +651,16 @@ export default function SiteEditor({
                   </label>
                   {colour('Background colour', draft.themeBanners[bannerTheme].background,
                     v => updateBanner(bannerTheme, { background: v }))}
-                  {colour('Text colour', draft.themeBanners[bannerTheme].textColor,
-                    v => updateBanner(bannerTheme, { textColor: v }))}
-                  {colour('Accent colour', draft.themeBanners[bannerTheme].accentColor,
-                    v => updateBanner(bannerTheme, { accentColor: v }))}
+                  {colour('Default text colour', draft.themeBanners[bannerTheme].textColor,
+                    v => updateBanner(bannerTheme, {
+                      textColor: v, textColors: { ...draft.themeBanners[bannerTheme].textColors, text: v },
+                    }))}
+                  {colour('Accent colour (label + action)', draft.themeBanners[bannerTheme].accentColor,
+                    v => updateBanner(bannerTheme, {
+                      accentColor: v, textColors: {
+                        ...draft.themeBanners[bannerTheme].textColors, eyebrow: v, buttonText: v,
+                      },
+                    }))}
                   {draft.themeBanners[bannerTheme].imageUrl && (
                     <img src={draft.themeBanners[bannerTheme].imageUrl} alt="Banner preview" className="h-28 w-full rounded object-cover"/>
                   )}
