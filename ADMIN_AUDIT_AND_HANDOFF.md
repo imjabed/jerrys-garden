@@ -85,3 +85,21 @@ These links are stored under Winter's editable media defaults. A one-time schema
 **Release tests:** New SSR/logic regression coverage in `tests/winterStudio.test.ts` includes legacy Winter migration, owner cropping constraints, safe formatted text, real/silhouette footer selection and step-one custom order UI. The full repository CI runs TypeScript checks, unit tests and production build. A production browser check remains required for owner authentication, Cloudinary image delivery, mobile layout, and two-step enquiry submission.
 
 **Recommendation for demonstration:** Open Admin → Website Editor, choose Winter, open **Hero Photos**, toggle Phone/Desktop previews, inspect image crops, open **Theme Details** to preview the navbar and Santa footer, then go to **Text** and format a heading. Save Draft, verify the public site is unchanged, then Publish and confirm the public URL shows Winter. Test the two-step custom-order form using a valid sample delivery date and verified contact information; avoid placing a real order during a demo.
+
+
+## Website banner rich text + first-visit loading — November 17, 2026
+
+**Banner Studio (Admin → Website Editor → Banner):**
+- The small label, primary announcement, and button text now have *independent* rich-text controls for line breaks, bold/italic selections, font family, size, alignment, and colour. There is a live banner preview even when a theme's banner is disabled.
+- The owner may intentionally blank the label or CTA text to hide either element. Saving and publishing preserves line breaks and rich-text markers without executing HTML.
+- Banner-wide controls cover background colour, overall alignment, vertical spacing, button appearance (text link / outline / filled), button fill, link destination, background photo, image visibility, and enabled/disabled state.
+- Settings are stored per theme and sanitized on both edit/publish paths. Old banner drafts migrate with inherited typography and familiar original colours. The banner remains decorative and does not issue real discounts; coupons still require the separate admin coupon flow.
+
+**First-visit branded storefront loader:**
+- A tiny, CSS-only Jame Bouquets splash appears in the *initial HTML* before React's JavaScript has started. This avoids a white flash before React mounts.
+- The splash remains visible for **at least two seconds from navigation start**, and until both the published theme request and catalogue request settle (ready or offline). It is not restarted for in-app product navigation or when the user returns to a visible tab.
+- A **15-second maximum** prevents a suspended backend request from trapping visitors behind a loader. Errors remain visible when rendering fails (the error boundary removes the splash). Admin editor routes bypass the delay.
+- The splash is responsive, has readable status text, provides an eventual retry link, and respects reduced-motion preferences.
+- This is a UX improvement, *not* a server-performance optimisation. Vercel serves the static React frontend, but slow API calls can arise from a cold or congested Render backend. Confirm cold/warm response times separately if genuine speed improvements are needed.
+
+**Validation:** `tests/bannerAndLoading.test.ts` covers formatting, optional hidden copy, migration/security sanitization, 2s minimum/15s bounded reveal, and splash presence before the React root. The current GitHub Actions workflow performs TypeScript validation, tests, and frontend/backend builds; do a final real-phone check after Vercel deploy.
