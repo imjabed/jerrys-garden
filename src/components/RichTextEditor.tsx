@@ -1,20 +1,22 @@
-import { useRef } from 'react';
+import { useId, useRef } from 'react';
 import { FONT_LABELS, type FontId, type TextPresentation } from '../../shared/siteEditor';
 import RichText from './RichText';
 
 const fonts = ['inherit', ...Object.keys(FONT_LABELS)] as Array<FontId | 'inherit'>;
 
 export default function RichTextEditor({
-  label, value, onChange, presentation, onPresentationChange,
+  label, value, onChange, presentation, onPresentationChange, maxLength = 350,
 }: {
   key?: string;
   label: string;
+  maxLength?: number;
   value: string;
   onChange: (value: string) => void;
   presentation: TextPresentation;
   onPresentationChange: (next: TextPresentation) => void;
 }) {
   const textarea = useRef<HTMLTextAreaElement>(null);
+  const editorId = useId();
   const wrapSelection = (mark: '*' | '**') => {
     const node = textarea.current;
     const start = node?.selectionStart ?? value.length;
@@ -37,7 +39,7 @@ export default function RichTextEditor({
   };
   return <div className="space-y-4">
     <div>
-      <label htmlFor="jb-rich-text-editor" className="text-xs font-semibold text-stone-800">{label}</label>
+      <label htmlFor={editorId} className="text-xs font-semibold text-stone-800">{label}</label>
       <div className="mt-2 flex flex-wrap gap-2 border border-b-0 border-stone-200 bg-stone-50 p-2">
         <button type="button" title="Bold selected words" onClick={() => wrapSelection('**')}
           className="min-h-9 min-w-10 rounded border border-stone-200 bg-white px-3 font-bold">B</button>
@@ -46,8 +48,8 @@ export default function RichTextEditor({
         <button type="button" onClick={addBreak}
           className="min-h-9 rounded border border-stone-200 bg-white px-3 text-xs">↵ Line break</button>
       </div>
-      <textarea id="jb-rich-text-editor" ref={textarea} rows={5}
-        value={value} maxLength={350}
+      <textarea id={editorId} ref={textarea} rows={5}
+        value={value} maxLength={maxLength}
         onChange={e => onChange(e.target.value)}
         className="w-full resize-y rounded-b border border-stone-200 bg-white p-3 text-sm leading-6 text-stone-900 focus:border-stone-700 focus:outline-none"
         aria-label={label}/>
