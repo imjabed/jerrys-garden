@@ -1485,3 +1485,53 @@
   outline: 2px solid rgba(121, 56, 76, .76);
   outline-offset: -2px;
 }
+
+/* Winter account popover must remain readable despite theme-wide navbar styles.
+   Previous broad .jb-nav-inner button !important rule made text white on white. */
+.site-shell .jb-nav-surface .jb-customer-dropdown {
+  color:#292524 !important;
+  background:#fff !important;
+  isolation:isolate;
+}
+.site-shell .jb-nav-surface .jb-customer-dropdown p,
+.site-shell .jb-nav-surface .jb-customer-dropdown button,
+.site-shell[data-site-theme="winter"] .jb-nav-surface .jb-customer-dropdown p,
+.site-shell[data-site-theme="winter"] .jb-nav-surface .jb-customer-dropdown button {
+  color:#292524 !important;
+  background-color:#fff;
+}
+.site-shell .jb-nav-surface .jb-customer-dropdown button:hover {
+  background-color:#f5f5f4 !important;
+}
+.site-shell .jb-nav-surface .jb-customer-dropdown button:last-child,
+.site-shell[data-site-theme="winter"] .jb-nav-surface .jb-customer-dropdown button:last-child {
+  color:#b91c1c !important;
+}
+.site-shell .jb-nav-surface .jb-mobile-menu {
+  position:relative;
+  z-index:5;
+}
+.site-shell[data-site-theme="winter"] .jb-nav-surface .jb-mobile-menu button,
+.site-shell[data-site-theme="winter"] .jb-nav-surface .jb-mobile-menu a {
+  color:var(--jb-nav-text,#fff8f0) !important;
+}
+.site-shell[data-editor-device] .jb-editor-preview-menu {
+  position:relative;
+  z-index:20;
+  background:var(--jb-nav-bg,#10243d);
+  border-bottom:1px solid var(--jb-nav-accent,#dab973);
+  padding:12px;
+}
+.site-shell[data-editor-device] .jb-editor-preview-menu button {
+  display:block;
+  width:100%;
+  min-height:40px;
+  padding:9px 12px;
+  text-align:left;
+  color:var(--jb-nav-text,#fff8f0) !important;
+  border-bottom:1px solid rgba(255,255,255,.17);
+  font-size:12px;
+}
+.site-shell[data-editor-device] .jb-editor-preview-menu button:hover {
+  background:rgba(255,255,255,.12);
+}
