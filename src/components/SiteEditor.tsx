@@ -594,7 +594,7 @@ export default function SiteEditor({
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F3F0EC] text-stone-800">
+    <div className="flex min-h-screen flex-col bg-[#F3F0EC] text-stone-800 md:h-dvh md:overflow-hidden">
       <header className="sticky top-0 z-40 flex flex-wrap items-center gap-3 border-b border-stone-200 bg-white px-4 py-3 shadow-sm sm:px-6">
         <button type="button" onClick={onExit} className="flex items-center gap-2 text-xs font-medium text-stone-700 hover:text-black">
           <ArrowLeft className="h-4 w-4"/> Admin dashboard
@@ -617,9 +617,9 @@ export default function SiteEditor({
         <div className={`mx-4 mt-3 border px-4 py-3 text-sm sm:mx-6 ${error ? 'border-red-200 bg-red-50 text-red-800' : 'border-stone-200 bg-white text-stone-700'}`}
           role={error ? 'alert' : 'status'}>{error || notice}</div>
       )}
-      <div className="grid flex-1 min-h-0 min-w-0 grid-cols-1 xl:grid-cols-[minmax(340px,440px)_minmax(0,1fr)]">
-        <aside className="flex min-w-0 flex-col border-r border-stone-200 bg-white xl:max-h-[calc(100vh-73px)]">
-          <nav className="grid w-full min-w-0 grid-cols-2 gap-2 border-b border-stone-200 p-3 sm:grid-cols-3" aria-label="Editor panels">
+      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 md:grid-cols-[minmax(300px,370px)_minmax(0,1fr)] xl:grid-cols-[minmax(340px,430px)_minmax(0,1fr)]">
+        <aside className="flex min-h-0 min-w-0 flex-col border-r border-stone-200 bg-white max-md:max-h-[56dvh]">
+          <nav className="flex w-full min-w-0 shrink-0 flex-nowrap gap-1.5 overflow-x-auto border-b border-stone-200 p-2 [scrollbar-width:thin]" aria-label="Editor panels">
             {([
               ['themes', Palette, 'Themes'],
               ['guide', BookOpen, 'Editor Guide'],
@@ -639,18 +639,18 @@ export default function SiteEditor({
               ['history', RotateCcw, 'Versions'],
             ] as const).filter(([id]) => showAdvanced || !(['offers', 'blocks', 'sections', 'seo', 'history'] as string[]).includes(id)).map(([id, Icon, label]) => (
               <button type="button" key={id} onClick={() => setPanel(id)}
-                className={`flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-md border border-stone-200 px-2 py-2 text-center text-[11px] font-medium leading-tight ${panel === id ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'}`}>
-                <Icon className="h-4 w-4 shrink-0"/><span className="break-words">{label}</span>
+                className={`flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-md border border-stone-200 px-2.5 py-2 text-center text-[11px] font-medium leading-tight ${panel === id ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'}`}>
+                <Icon className="h-4 w-4 shrink-0"/><span className="whitespace-nowrap">{label}</span>
               </button>
             ))}
             <button type="button" aria-expanded={showAdvanced} onClick={() => {
               if (showAdvanced && ['offers', 'blocks', 'sections', 'seo', 'history'].includes(panel)) setPanel('themes');
               setShowAdvanced(current => !current);
-            }} className={`flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-md border border-stone-200 px-2 py-2 text-center text-[11px] font-semibold ${showAdvanced ? 'bg-stone-100 text-stone-900' : 'text-stone-600 hover:bg-stone-100'}`}>
+            }} className={`flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-md border border-stone-200 px-2.5 py-2 text-center text-[11px] font-semibold ${showAdvanced ? 'bg-stone-100 text-stone-900' : 'text-stone-600 hover:bg-stone-100'}`}>
               <Settings2 className="h-4 w-4 shrink-0"/><span>{showAdvanced ? 'Fewer tools' : 'More tools'}</span>
             </button>
           </nav>
-          <div ref={inspectorRef} className="min-h-0 min-w-0 flex-1 space-y-5 overflow-y-auto p-4 pb-12 sm:p-6">
+          <div ref={inspectorRef} className="min-h-0 min-w-0 flex-1 space-y-5 overflow-x-hidden overflow-y-auto overscroll-contain p-4 pb-12 sm:p-5">
             {focusedPreview && (
               <div className="rounded-xl border border-stone-200 bg-[#FBF8F4] p-3">
                 <p className="mb-2 text-xs font-semibold text-stone-900">
@@ -2049,7 +2049,7 @@ export default function SiteEditor({
             )}
           </div>
         </aside>
-        <main className="min-h-[460px] overflow-hidden bg-[#E7E3DE] p-3 sm:p-6">
+        <main className="min-h-[420px] min-w-0 overflow-y-auto overscroll-contain bg-[#E7E3DE] p-3 md:min-h-0 sm:p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-stone-800">Visual preview</p>
@@ -2086,7 +2086,7 @@ export default function SiteEditor({
             }}>
           <div className="mx-auto overflow-hidden border border-stone-300 bg-white shadow-xl transition-[max-width] duration-300"
             style={{ maxWidth: previewWidths[device] }}>
-            <div className="max-h-[calc(100vh-175px)] min-h-[420px] overflow-y-auto site-shell"
+            <div className="max-h-[min(72dvh,820px)] min-h-[360px] overflow-y-auto site-shell"
               style={previewStyle} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'} data-festive-decor={draft.effects.enabled && draft.effects.illustrationEnabled ? 'on' : 'off'} data-illustration-placement={draft.effects.illustrationPlacement} data-editor-device={device} data-selected-preview={focusedPreview || ''} onClickCapture={onPreviewClick} data-festive-motion={draft.effects.enabled && draft.effects.artworkMotion ? "on" : "off"}>
               <div data-editor-section="header" className="jb-nav-surface relative flex items-center justify-between overflow-hidden border-b border-stone-200/30 px-4 py-4"
                 style={{backgroundColor:draft.themeExtras[draft.theme].navBackground, color:draft.themeExtras[draft.theme].navText}}>
