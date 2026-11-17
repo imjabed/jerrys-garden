@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import type { PageEffects, ThemeId } from '../../shared/siteEditor';
+import type { PageEffects, ThemeId, CropPosition } from '../../shared/siteEditor';
 
 type Layer = 'hero' | 'support';
 
 export default function SeasonalEffects({
-  settings, theme, layer = 'hero', photoUrl = '', mobilePhotoUrl = '', imagePosition = 76,
+  settings, theme, layer = 'hero', photoUrl = '', mobilePhotoUrl = '', imagePosition = 76, imageCrop,
 }: {
   settings: PageEffects;
   theme: ThemeId;
@@ -12,6 +12,7 @@ export default function SeasonalEffects({
   photoUrl?: string;
   mobilePhotoUrl?: string;
   imagePosition?: number;
+  imageCrop?: { desktop: CropPosition; mobile: CropPosition };
 }) {
   const [reduceMotion, setReduceMotion] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -91,17 +92,16 @@ export default function SeasonalEffects({
         <picture className="absolute inset-0 h-full w-full">
           {mobilePhotoUrl && (
             <source media="(max-width: 700px)"
-              srcSet={theme === 'valentines'
-                ? retinaSrcSet(mobilePhotoUrl, [480, 720, 960, 1200, 1440, 1920])
-                : retinaSrcSet(mobilePhotoUrl, [640, 960])}
+              srcSet={retinaSrcSet(mobilePhotoUrl, [480, 720, 960, 1200, 1440, 1920])}
               sizes="100vw"/>
           )}
-          <img src={cdn(desktopPhoto, theme === 'valentines' ? 1920 : 960)}
-            srcSet={theme === 'valentines'
-              ? retinaSrcSet(desktopPhoto, [640, 960, 1280, 1600, 1920, 2400, 3200])
-              : retinaSrcSet(desktopPhoto, [640, 960, 1280])}
+          <img src={cdn(desktopPhoto, 1920)}
+            srcSet={retinaSrcSet(desktopPhoto, [640, 960, 1280, 1600, 1920, 2400, 3200])}
             sizes="100vw" alt="" draggable={false} fetchPriority="high" decoding="async"
-            style={{ objectPosition: `50% ${Math.max(0, Math.min(100, imagePosition))}%` }}
+            style={{
+              '--jb-photo-crop-desktop': `${imageCrop?.desktop.x ?? 50}% ${imageCrop?.desktop.y ?? imagePosition}%`,
+              '--jb-photo-crop-mobile': `${imageCrop?.mobile.x ?? 50}% ${imageCrop?.mobile.y ?? imagePosition}%`,
+            } as CSSProperties}
             className={`jb-hero-photo absolute inset-0 h-full w-full object-cover ${settings.parallax && !reduceMotion ? "jb-hero-photo-parallax" : ""}`}/>
         </picture>
       )}
