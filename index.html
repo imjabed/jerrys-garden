@@ -13,44 +13,46 @@
     <meta property="og:image:alt" content="Jame Bouquets — handmade ribbon bouquets and keepsakes" />
     <meta property="og:url" content="https://jamebouquets.vercel.app/" />
     <meta name="theme-color" content="#FAF7F2" />
-    <!-- Inline boot styles appear before React and before seasonal API data has loaded. -->
+    <!-- Self-expiring loader: no backend dependency, no externally loaded art. -->
     <style>
       #jb-boot-splash {
-        position: fixed; inset: 0; z-index: 2147483640; display: flex;
-        align-items: center; justify-content: center; padding: 24px;
-        background: radial-gradient(ellipse at 50% 32%, #fffdfa 0%, #faf4ed 48%, #f6ebe2 100%);
-        color: #46222c; text-align: center; font-family: Georgia, 'Times New Roman', serif;
-        transition: opacity .28s ease, visibility .28s ease;
+        position: fixed; inset: 0; z-index: 2147483640;
+        display: grid; place-items: center; padding: 24px;
+        text-align: center; background: #FAF7F2; color: #542E3A;
+        animation: jb-boot-auto-dismiss .2s ease 2.45s forwards;
       }
-      #jb-boot-splash.jb-boot-leaving { opacity: 0; visibility: hidden; pointer-events: none; }
-      #jb-boot-splash .jb-boot-mark {
-        margin: 0 auto 22px; width: 56px; height: 56px;
-        display: grid; place-items: center; border: 1px solid #cfb9a6;
-        border-radius: 100%; color: #8d2440;
+      #jb-boot-splash.jb-boot-leaving {
+        opacity: 0; visibility: hidden; pointer-events: none;
       }
-      #jb-boot-splash .jb-boot-mark svg { width: 30px; height: 30px; }
-      #jb-boot-splash .jb-boot-title { font-size: clamp(27px, 5vw, 37px); letter-spacing: .015em; line-height: 1.2; margin: 0; }
-      #jb-boot-splash .jb-boot-subtitle {
-        margin: 12px 0 0; font-family: Arial, sans-serif; font-size: 10px;
-        font-weight: 600; letter-spacing: .28em; text-transform: uppercase; color: #835f61;
+      #jb-boot-splash .jb-boot-spinner {
+        display: block; width: 36px; height: 36px; margin: 0 auto 18px;
+        border: 3px solid #E8D5D1; border-top-color: #992B4A;
+        border-radius: 50%; animation: jb-boot-spin .8s linear infinite;
       }
-      #jb-boot-splash .jb-boot-progress {
-        width: 100px; height: 2px; margin: 34px auto 0; background: #e2cec4; overflow: hidden; border-radius: 20px;
+      #jb-boot-splash .jb-boot-caption {
+        margin: 0; font: 600 17px/1.4 Arial, sans-serif;
       }
-      #jb-boot-splash .jb-boot-progress::before {
-        display: block; content: ''; width: 38%; height: 100%;
-        background: #8d2440; animation: jb-boot-load 1.4s ease-in-out infinite alternate;
+      #jb-boot-splash .jb-boot-subcaption {
+        max-width: 390px; margin: 11px auto 0;
+        color: #826C71; font: 13px/1.65 Arial, sans-serif;
       }
-      #jb-boot-splash .jb-boot-caption { color: #81696a; font: 12px Arial, sans-serif; margin-top: 17px; }
-      #jb-boot-splash .jb-boot-retry {
-        display: block; opacity: 0; margin-top: 18px; color: #714050;
-        font: 12px Arial, sans-serif; animation: jb-boot-help 1s 12s forwards;
+      @keyframes jb-boot-spin { to { transform: rotate(360deg); } }
+      @keyframes jb-boot-auto-dismiss {
+        to { opacity: 0; visibility: hidden; pointer-events: none; }
       }
-      @keyframes jb-boot-load { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
-      @keyframes jb-boot-help { to { opacity: 1; } }
+      #jb-boot-fallback {
+        display: flex; min-height: 100vh; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 16px; padding: 28px; background: #FAF7F2;
+        color: #542E3A; text-align: center; font-family: Arial, sans-serif;
+      }
+      #jb-boot-fallback h2 { margin: 0; font-size: 21px; font-weight: 500; }
+      #jb-boot-fallback p { max-width: 360px; font-size: 13px; line-height: 1.7; }
+      #jb-boot-fallback a { padding: 12px 22px; background: #7D1837; color: #fff; font-size: 13px; text-decoration: none; }
+      #root:not(:empty) + #jb-boot-fallback { display: none; }
       @media (prefers-reduced-motion: reduce) {
-        #jb-boot-splash .jb-boot-progress::before { animation: none; width: 100%; }
-        #jb-boot-splash, #jb-boot-splash .jb-boot-retry { transition: none; }
+        #jb-boot-splash .jb-boot-spinner { animation: none; border-style: dashed; }
+        #jb-boot-splash { animation-duration: 1ms; }
       }
     </style>
     <link rel="icon" href="/favicon.png" type="image/png" sizes="96x96" />
@@ -64,26 +66,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Lora:wght@400;500;600&family=Playfair+Display:ital,wght@0,400..800;1,400..800&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
   </head>
   <body class="bg-[#FAF8F5] text-stone-800 antialiased selection:bg-rose-100 selection:text-rose-900 font-sans">
-    <div id="jb-boot-splash" role="status" aria-label="Preparing Jame Bouquets">
+    <div id="jb-boot-splash" role="status" aria-live="polite" aria-label="Loading Jame Bouquets">
       <div>
-        <div class="jb-boot-mark" aria-hidden="true">
-          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-            <path d="M24 42V21M24 34c-9 0-13-6-15-10 8-1 13 1 15 10ZM24 30c8 0 13-5 15-10-8-1-13 2-15 10Z"/>
-            <path d="M24 20C11 16 14 5 22 10 24 2 32 7 29 13c9-2 10 8 2 9l-7-2Z"/>
-          </svg>
-        </div>
-        <h1 class="jb-boot-title">Jame Bouquets</h1>
-        <p class="jb-boot-subtitle">Handmade gifts, thoughtfully prepared</p>
-        <div class="jb-boot-progress" aria-hidden="true"></div>
-        <p class="jb-boot-caption">Preparing your collection…</p>
-        <a class="jb-boot-retry" href="/">Taking longer than expected? Refresh the shop</a>
+        <span class="jb-boot-spinner" aria-hidden="true"></span>
+        <p class="jb-boot-caption">Loading...</p>
+        <p class="jb-boot-subcaption">Please give us a second, we're preparing your bouquets - Jame Bouquets</p>
       </div>
     </div>
     <noscript>
-      <style>#jb-boot-splash { display: none !important; }</style>
+      <style>#jb-boot-splash, #jb-boot-fallback { display: none !important; }</style>
       <p style="padding:32px;text-align:center;font-family:Arial,sans-serif">JavaScript is required to browse the Jame Bouquets shop.</p>
     </noscript>
     <div id="root"></div>
+    <div id="jb-boot-fallback">
+      <h2>We couldn't open the shop.</h2>
+      <p>Please check your internet connection or refresh the page.</p>
+      <a href="/">Refresh the shop</a>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
