@@ -1922,6 +1922,12 @@ export default function SiteEditor({
             <div>
               <p className="text-sm font-semibold text-stone-800">Visual preview</p>
               <p className="mt-1 text-xs text-stone-500">Click any section or text in this preview to open its editor. Customers see only the published version.</p>
+              {focusedPreview && (
+                <p className="mt-2 inline-flex rounded border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-800">
+                  Selected: {focusedPreview === 'header' ? 'Navigation' : focusedPreview === 'block' ? 'Custom section' : labels[focusedPreview] || focusedPreview}
+                  {' · '}Edit with the tools on the left
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-1 rounded border border-stone-300 bg-white p-1">
               {([
@@ -1939,7 +1945,7 @@ export default function SiteEditor({
           <div className="mx-auto overflow-hidden border border-stone-300 bg-white shadow-xl transition-[max-width] duration-300"
             style={{ maxWidth: previewWidths[device] }}>
             <div className="max-h-[calc(100vh-175px)] min-h-[420px] overflow-y-auto site-shell"
-              style={previewStyle} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'} data-festive-decor={draft.effects.enabled && draft.effects.illustrationEnabled ? 'on' : 'off'} data-illustration-placement={draft.effects.illustrationPlacement} data-editor-device={device} onClickCapture={onPreviewClick} data-festive-motion={draft.effects.enabled && draft.effects.artworkMotion ? "on" : "off"}>
+              style={previewStyle} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'} data-festive-decor={draft.effects.enabled && draft.effects.illustrationEnabled ? 'on' : 'off'} data-illustration-placement={draft.effects.illustrationPlacement} data-editor-device={device} data-selected-preview={focusedPreview || ''} onClickCapture={onPreviewClick} data-festive-motion={draft.effects.enabled && draft.effects.artworkMotion ? "on" : "off"}>
               <div data-editor-section="header" className="jb-nav-surface relative flex items-center justify-between overflow-hidden border-b border-stone-200/30 px-4 py-4"
                 style={{backgroundColor:draft.themeExtras[draft.theme].navBackground, color:draft.themeExtras[draft.theme].navText}}>
                 {draft.themeExtras[draft.theme].navImageUrl && (
