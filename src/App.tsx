@@ -71,44 +71,14 @@ import SiteEditor from './components/SiteEditor';
 import CustomPageBlock from './components/CustomPageBlock';
 import { DEFAULT_SITE_CONTENT, FONT_STACKS, safeEditorLink } from '../shared/siteEditor';
 import type { SiteContent } from '../shared/siteEditor';
-import {
-  MAX_STOREFRONT_SPLASH_MS, remainingMinimumSplashMs, shouldRevealStorefront,
-} from './services/storefrontBoot';
 
 export default function App() {
   // Core App State
   const [bouquets, setBouquets] = useState<RibbonBouquet[]>([]);
   const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'offline'>('loading');
   const [siteContent, setSiteContent] = useState<SiteContent>(DEFAULT_SITE_CONTENT);
-  const [themeFetchSettled, setThemeFetchSettled] = useState(false);
-  const [minimumSplashElapsed, setMinimumSplashElapsed] = useState(false);
-  const [maximumSplashElapsed, setMaximumSplashElapsed] = useState(false);
   const [ownerChecked, setOwnerChecked] = useState(false);
   const editorRoute = window.location.pathname.startsWith('/admin/editor');
-  useEffect(() => {
-    // performance.now() includes network/JS bootstrap time since navigation;
-    // warm loads therefore aren't artificially held for another full 2 seconds.
-    const minTimer = window.setTimeout(
-      () => setMinimumSplashElapsed(true), remainingMinimumSplashMs(performance.now()),
-    );
-    const maxTimer = window.setTimeout(
-      () => setMaximumSplashElapsed(true), Math.max(0, MAX_STOREFRONT_SPLASH_MS - performance.now()),
-    );
-    return () => { window.clearTimeout(minTimer); window.clearTimeout(maxTimer); };
-  }, []);
-  useEffect(() => {
-    const reveal = shouldRevealStorefront({
-      editorRoute, minimumElapsed: minimumSplashElapsed,
-      themeSettled: themeFetchSettled, catalogSettled: catalogStatus !== 'loading',
-      maximumElapsed: maximumSplashElapsed,
-    });
-    if (!reveal) return;
-    const splash = document.getElementById('jb-boot-splash');
-    if (!splash) return;
-    splash.classList.add('jb-boot-leaving');
-    const removal = window.setTimeout(() => splash.remove(), 320);
-    return () => window.clearTimeout(removal);
-  }, [editorRoute, minimumSplashElapsed, themeFetchSettled, catalogStatus, maximumSplashElapsed]);
   const [reviewSummaries, setReviewSummaries] = useState<Record<string, ReviewSummary>>({});
   const [reviewHighlights, setReviewHighlights] = useState<ProductReview[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -237,10 +207,9 @@ export default function App() {
     };
     initRemoteData();
     refreshReviewDisplays();
-    void apiGetPublishedSiteContent()
-      .then(setSiteContent)
-      .catch(() => { /* The default theme remains usable if the backend fails. */ })
-      .finally(() => setThemeFetchSettled(true));
+    void apiGetPublishedSiteContent().then(setSiteContent).catch(() => {
+      // Render may be cold or offline; keep the storefront usable regardless.
+    });
 
     const refreshCatalog = async () => { const response = await apiGetBouquets(); if (response.connected) { setBouquets(response.bouquets); setCatalogStatus('ready'); } else setCatalogStatus('offline'); }
     const onVisible = () => { if (document.visibilityState === 'visible') void refreshCatalog(); };
