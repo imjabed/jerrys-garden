@@ -101,9 +101,13 @@ export interface ThemeExtras {
   footerSceneColor: string;
   footerMode: 'silhouette' | 'image' | 'none';
   footerImageUrl: string;
+  footerMobileImageUrl: string;
   footerImageCrop: CropPosition;
+  footerMobileCrop: CropPosition;
   navImageUrl: string;
+  navMobileImageUrl: string;
   navImageCrop: CropPosition;
+  navMobileCrop: CropPosition;
   navImageOpacity: number;
   footerTagline: string;
   navBackground: string;
@@ -380,8 +384,9 @@ const defaultThemeExtras = () => Object.fromEntries(THEME_PRESETS.map(p => [p.id
   footerMode: p.id === 'winter' ? 'image' : p.id === 'default' ? 'none' : 'silhouette',
   footerImageUrl: p.id === 'winter' ? 'https://res.cloudinary.com/ajq29txd/image/upload/v1794900853/Packing_Santa.webp' : '',
   footerImageCrop: { x: 50, y: 50 },
+  footerMobileImageUrl: '', footerMobileCrop: { x: 50, y: 50 },
   navImageUrl: p.id === 'winter' ? 'https://res.cloudinary.com/ajq29txd/image/upload/v1794900853/NavBar.png' : '',
-  navImageCrop: { x: 50, y: 50 }, navImageOpacity: .6,
+  navImageCrop: { x: 50, y: 50 }, navMobileImageUrl: '', navMobileCrop: { x: 50, y: 50 }, navImageOpacity: .6,
   footerSceneUrl: '', footerSceneEnabled: p.id !== 'default',
   footerSceneColor: p.id === 'winter' ? '#071729' : p.id === 'eid' ? '#072E27'
     : p.id === 'puja' ? '#691318' : p.id === 'valentines' ? '#4B1024' : '#292524',
@@ -676,10 +681,14 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
         ? safeEditorImage(source?.footerImageUrl) || fallback.footerImageUrl
         : safeEditorImage(source?.footerImageUrl ?? fallback.footerImageUrl),
       footerImageCrop: crop(source?.footerImageCrop, fallback.footerImageCrop),
+      footerMobileImageUrl: safeEditorImage(source?.footerMobileImageUrl),
+      footerMobileCrop: crop(source?.footerMobileCrop, fallback.footerMobileCrop),
       navImageUrl: id === 'winter' && migrateWinter
         ? safeEditorImage(source?.navImageUrl) || fallback.navImageUrl
         : safeEditorImage(source?.navImageUrl ?? fallback.navImageUrl),
       navImageCrop: crop(source?.navImageCrop, fallback.navImageCrop),
+      navMobileImageUrl: safeEditorImage(source?.navMobileImageUrl),
+      navMobileCrop: crop(source?.navMobileCrop, fallback.navMobileCrop),
       navImageOpacity: numberRange(source?.navImageOpacity, fallback.navImageOpacity, 0, 1),
       footerSceneEnabled: source?.footerSceneEnabled === undefined ? fallback.footerSceneEnabled : source.footerSceneEnabled === true,
       footerSceneColor: hex(source?.footerSceneColor, fallback.footerSceneColor),
