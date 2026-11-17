@@ -24,10 +24,9 @@
       #jb-boot-splash.jb-boot-leaving {
         opacity: 0; visibility: hidden; pointer-events: none;
       }
-      #jb-boot-splash .jb-boot-spinner {
-        display: block; width: 36px; height: 36px; margin: 0 auto 18px;
-        border: 3px solid #E8D5D1; border-top-color: #992B4A;
-        border-radius: 50%; animation: jb-boot-spin .8s linear infinite;
+      #jb-boot-splash .jb-boot-character {
+        display: block; width: 112px; height: 112px; max-width: 35vw;
+        object-fit: contain; margin: 0 auto 18px;
       }
       #jb-boot-splash .jb-boot-caption {
         margin: 0; font: 600 17px/1.4 Arial, sans-serif;
@@ -36,7 +35,6 @@
         max-width: 390px; margin: 11px auto 0;
         color: #826C71; font: 13px/1.65 Arial, sans-serif;
       }
-      @keyframes jb-boot-spin { to { transform: rotate(360deg); } }
       @keyframes jb-boot-auto-dismiss {
         to { opacity: 0; visibility: hidden; pointer-events: none; }
       }
@@ -51,7 +49,6 @@
       #jb-boot-fallback a { padding: 12px 22px; background: #7D1837; color: #fff; font-size: 13px; text-decoration: none; }
       #root:not(:empty) + #jb-boot-fallback { display: none; }
       @media (prefers-reduced-motion: reduce) {
-        #jb-boot-splash .jb-boot-spinner { animation: none; border-style: dashed; }
         #jb-boot-splash { animation-duration: 1ms; }
       }
     </style>
@@ -61,6 +58,7 @@
     <meta name="twitter:title" content="Jame Bouquets — Handmade Gifts" />
     <meta name="twitter:description" content="Handmade ribbon flower bouquets, personalized gifts and keepsakes." />
     <meta name="twitter:image" content="https://jamebouquets.vercel.app/social-preview.svg" />
+    <link rel="preload" as="image" href="/loading-bouquet-girl.gif" type="image/gif" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Lora:wght@400;500;600&family=Playfair+Display:ital,wght@0,400..800;1,400..800&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
@@ -68,7 +66,8 @@
   <body class="bg-[#FAF8F5] text-stone-800 antialiased selection:bg-rose-100 selection:text-rose-900 font-sans">
     <div id="jb-boot-splash" role="status" aria-live="polite" aria-label="Loading Jame Bouquets">
       <div>
-        <span class="jb-boot-spinner" aria-hidden="true"></span>
+        <img class="jb-boot-character" src="/loading-bouquet-girl.gif" width="112" height="112"
+             alt="" aria-hidden="true" decoding="async" fetchpriority="high" />
         <p class="jb-boot-caption">Loading...</p>
         <p class="jb-boot-subcaption">Please give us a second, we're preparing your bouquets - Jame Bouquets</p>
       </div>
