@@ -86,7 +86,9 @@ export interface CropPosition { x: number; y: number }
 export type TextSlot = 'hero.eyebrow' | 'hero.heading' | 'hero.accentLine' | 'hero.description' | 'hero.button' |
   'custom.eyebrow' | 'custom.heading' | 'custom.accentLine' | 'custom.description' | 'custom.button' |
   'story.eyebrow' | 'story.heading' | 'story.accentLine' | 'story.description' |
-  'footer.description' | 'shop.eyebrow' | 'shop.heading' | 'shop.description';
+  'footer.description' | 'footer.orderNote' |
+  'collections.eyebrow' | 'collections.heading' | 'collections.sideLabel' |
+  'shop.eyebrow' | 'shop.heading' | 'shop.description';
 export const TEXT_SLOTS: { id: TextSlot; label: string }[] = [
   { id: 'hero.eyebrow', label: 'Hero label' }, { id: 'hero.heading', label: 'Hero headline' },
   { id: 'hero.accentLine', label: 'Hero accent line' }, { id: 'hero.description', label: 'Hero paragraph' },
@@ -98,6 +100,10 @@ export const TEXT_SLOTS: { id: TextSlot; label: string }[] = [
   { id: 'story.heading', label: 'Our craft headline' }, { id: 'story.accentLine', label: 'Our craft accent' },
   { id: 'story.description', label: 'Our craft paragraph' },
   { id: 'footer.description', label: 'Footer description' },
+  { id: 'footer.orderNote', label: 'Footer ordering note' },
+  { id: 'collections.eyebrow', label: 'Collections label' },
+  { id: 'collections.heading', label: 'Collections headline' },
+  { id: 'collections.sideLabel', label: 'Collections side label' },
   { id: 'shop.eyebrow', label: 'Shop label' }, { id: 'shop.heading', label: 'Shop heading' },
   { id: 'shop.description', label: 'Shop description' },
 ];
