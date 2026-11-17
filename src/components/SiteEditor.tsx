@@ -199,12 +199,21 @@ export default function SiteEditor({
     setUploadingKey(block.id); setError('');
     try {
       const result = await uploadImageToCloudinary(file, 'jame_bouquets_collections');
-      if (gallery) updateBlock(block.id, { images: [...new Set([...block.images, result.url])].slice(0, 8) });
-      else {
-        rememberSuperseded(block.imageUrl, result.url);
-        updateBlock(block.id, { imageUrl: result.url });
+      if (gallery) {
+        const index = block.images.length;
+        openCrop(`block:${block.id}:gallery:${index}`, 'gallery image', result.url, '', 1,
+          cropped => update(prev => ({
+            ...prev,blocks:prev.blocks.map(item => item.id === block.id
+              ? {...item,images:[...item.images,cropped].slice(0,8)} : item),
+          })));
+      } else {
+        openCrop(`block:${block.id}:image`, 'section image', result.url, '', 4/3,
+          cropped => {
+            rememberSuperseded(block.imageUrl,cropped);
+            updateBlock(block.id,{imageUrl:cropped});
+          });
       }
-      setNotice('Photo uploaded to your draft. Publish when ready.');
+      setNotice('Photo uploaded. Save the crop before saving or publishing.');
     } catch (err: any) { setError(err?.message || 'Could not upload the photo.'); }
     finally { setUploadingKey(null); }
   };
@@ -279,9 +288,12 @@ export default function SiteEditor({
     setUploadingKey(key); setError(''); setNotice('');
     try {
       const response = await uploadImageToCloudinary(file, 'jame_bouquets_collections');
-      rememberSuperseded(draft.collections.cards.find(card => card.categoryKey === key)?.imageUrl, response.url);
-      updateCard(key, { imageUrl: response.url });
-      setNotice('Photo uploaded. Save and publish to show it to customers.');
+      openCrop(`collection:${key}`, `collection ${key}`, response.url, '', 4/3,
+        cropped => {
+          rememberSuperseded(draft.collections.cards.find(card => card.categoryKey === key)?.imageUrl, cropped);
+          updateCard(key, {imageUrl:cropped,imagePosition:'center'});
+        });
+      setNotice('Photo uploaded. Crop and save the image to your draft.');
     } catch (err: any) { setError(err?.message || 'Could not upload this category photo.'); }
     finally { setUploadingKey(null); }
   };
@@ -344,9 +356,13 @@ export default function SiteEditor({
     setUploadingKey('val-' + field); setError(''); setNotice('');
     try {
       const uploaded = await uploadImageToCloudinary(file, 'jame_bouquets_themes');
-      rememberSuperseded(draft.valentines[field], uploaded.url);
-      update(prev => ({ ...prev, valentines: { ...prev.valentines, [field]: uploaded.url } }));
-      setNotice(uploaded.reused ? 'Already in Cloudinary — reused the existing image.' : 'Uploaded to Cloudinary. Preview your changes and publish when ready.');
+      openCrop(`valentines:${field}`, `Valentine ${field}`, uploaded.url, '',
+        field === 'heroMobileImageUrl' ? 9/16 : field === 'footerSceneUrl' ? 16/5 : 16/9,
+        cropped => {
+          rememberSuperseded(draft.valentines[field],cropped);
+          update(prev => ({ ...prev,valentines:{...prev.valentines,[field]:cropped} }));
+        });
+      setNotice('Valentine photo uploaded. Crop before saving your draft.');
     } catch (err: any) {
       setError(err?.message || 'Could not upload the Valentine image.');
     } finally { setUploadingKey(null); }
@@ -1812,6 +1828,14 @@ export default function SiteEditor({
                           <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
                             disabled={Boolean(uploadingKey)} onChange={e => { void uploadBlockPhoto(currentBlock, e.target.files?.[0]); e.target.value = ''; }}/>
                         </label>
+                        {currentBlock.imageUrl && (
+                          <button type="button" className="w-full rounded border border-stone-300 bg-stone-50 px-3 py-3 text-xs font-semibold"
+                            onClick={() => editExistingCrop(
+                              `block:${currentBlock.id}:image`, 'Section image',
+                              currentBlock.imageUrl, 4/3,
+                              cropped => updateBlock(currentBlock.id,{imageUrl:cropped}),
+                            )}>Edit / Re-crop section photo</button>
+                        )}
                         {currentBlock.imageUrl && <button type="button" className="text-xs text-stone-600 underline"
                           onClick={() => updateBlock(currentBlock.id, { imageUrl: '' })}>Remove photo from this section</button>}
                       </div>
@@ -1823,6 +1847,16 @@ export default function SiteEditor({
                           {currentBlock.images.map((url, index) => (
                             <div key={url + index} className="relative overflow-hidden">
                               <img src={url} alt={`Gallery photo ${index + 1}`} className="aspect-square w-full object-cover"/>
+                              <button type="button" aria-label={`Edit crop for gallery photo ${index + 1}`}
+                                onClick={() => editExistingCrop(
+                                  `block:${currentBlock.id}:gallery:${index}`,
+                                  `Gallery photo ${index + 1}`,url,1,
+                                  cropped => update(prev => ({
+                                    ...prev,blocks:prev.blocks.map(item=>item.id===currentBlock.id
+                                      ? {...item,images:item.images.map((photo,i)=>i===index?cropped:photo)}:item),
+                                  })),
+                                )}
+                                className="absolute bottom-1 left-1 rounded bg-stone-900/90 p-1 text-[10px] text-white">Crop</button>
                               <button type="button" aria-label={`Remove gallery photo ${index + 1}`}
                                 onClick={() => updateBlock(currentBlock.id, { images: currentBlock.images.filter((_, i) => i !== index) })}
                                 className="absolute right-1 top-1 bg-stone-900/90 p-1 text-white"><X className="h-3 w-3"/></button>
@@ -2012,11 +2046,19 @@ export default function SiteEditor({
                           }}/>
                       </label>
                       {activeCard.imageUrl && (
+                        <button type="button" className="w-full rounded border border-stone-300 bg-stone-50 px-3 py-3 text-xs font-semibold"
+                          onClick={() => editExistingCrop(
+                            `collection:${activeCard.categoryKey}`, 'Category cover photo',
+                            activeCard.imageUrl, 4/3,
+                            cropped => updateCard(activeCard.categoryKey,{imageUrl:cropped,imagePosition:'center'}),
+                          )}>Edit / Re-crop category photo</button>
+                      )}
+                      {activeCard.imageUrl && (
                         <button type="button" className="text-xs text-stone-500 underline" onClick={() => { rememberSuperseded(activeCard.imageUrl, ''); updateCard(activeCard.categoryKey, { imageUrl: '' }); }}>
                           Remove custom cover
                         </button>
                       )}
-                      {option('Photo position', activeCard.imagePosition, ['center', 'top', 'bottom', 'left', 'right'].map(id => ({ id, label: id })), v => updateCard(activeCard.categoryKey, { imagePosition: v }))}
+                      <p className="text-[11px] text-stone-500">Drag the crop in the visual editor instead of using positioning settings.</p>
                     </div>
                     {option('Product count', activeCard.countMode, [
                       { id: 'auto', label: 'Automatic from products' }, { id: 'custom', label: 'Custom label' },
