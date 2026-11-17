@@ -13,6 +13,8 @@ import RichText from './RichText';
 import StudioErrorBoundary from './StudioErrorBoundary';
 import RichTextEditor from './RichTextEditor';
 import ImageCropControls from './ImageCropControls';
+import VisualCropDialog, { type CropTask } from './VisualCropDialog';
+import { originalCloudinaryUrl } from '../services/visualCrop';
 import type { RibbonBouquet } from '../types';
 import {
   DEFAULT_SITE_CONTENT, DEFAULT_CATEGORIES, FONT_LABELS, FONT_STACKS,
@@ -44,6 +46,7 @@ export default function SiteEditor({
   const [revision, setRevision] = useState(0);
   const [busy, setBusy] = useState(false);
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const [cropTask, setCropTask] = useState<CropTask | null>(null);
   const [dirty, setDirty] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -96,6 +99,34 @@ export default function SiteEditor({
     setDirty(true);
     setNotice('');
     setError('');
+  };
+  /** Image crops are kept as Cloudinary URL transforms; the original URL stays
+   * in the draft so future recrops never compound quality loss. */
+  const openCrop = (
+    key: string, label: string, original: string, currentUrl: string,
+    ratio: number, apply: (cropped: string) => void,
+  ) => {
+    const source = draft.originalImages[key] && draft.originalImages[key] === originalCloudinaryUrl(currentUrl)
+      ? draft.originalImages[key] : originalCloudinaryUrl(original);
+    if (!source) { setError('Upload the image to Cloudinary before cropping.'); return; }
+    setCropTask({
+      key, label, original: source, currentUrl, ratio,
+      onSave: (cropped, base) => {
+        apply(cropped);
+        update(prev => ({
+          ...prev, originalImages: { ...prev.originalImages, [key]: base },
+        }));
+        setNotice('Crop saved to draft. Use Save draft, then Publish to update the live website.');
+      },
+    });
+  };
+  const editExistingCrop = (
+    key: string, label: string, url: string, ratio: number,
+    apply: (cropped: string) => void,
+  ) => {
+    if (!url) return;
+    const original = draft.originalImages[key] || originalCloudinaryUrl(url);
+    openCrop(key,label,original,url,ratio,apply);
   };
   const updateText = (group: 'hero' | 'shop' | 'custom' | 'story', field: string, value: string) =>
     update(prev => ({ ...prev, [group]: { ...prev[group], [field]: value } }));
@@ -270,15 +301,14 @@ export default function SiteEditor({
     setUploadingKey('theme-' + id); setError(''); setNotice('');
     try {
       const upload = await uploadImageToCloudinary(file, 'jame_bouquets_themes');
-      rememberSuperseded(draft.themeMedia[id], upload.url);
-      update(prev => ({ ...prev, themeMedia: { ...prev.themeMedia, [id]: upload.url } }));
-      if (upload.width && upload.height) {
+      openCrop(`hero:desktop:${id}`, `${id} desktop hero`, upload.url, '',
+        16/9, cropped => {
+          rememberSuperseded(draft.themeMedia[id], cropped);
+          update(prev => ({ ...prev, themeMedia: { ...prev.themeMedia, [id]: cropped } }));
+        });
+      if (upload.width && upload.height)
         setHeroAssetInfo({ url: upload.url, width: upload.width, height: upload.height });
-      }
-      setNotice(upload.reused ? 'This image was already saved in Cloudinary. Reused the existing asset without a duplicate upload.' :
-        upload.width && upload.width < 2000 && id === 'valentines'
-        ? 'Uploaded, but this photo may be soft on large screens. For the sharpest Valentine hero, upload an original at least 2400 pixels wide before publishing.'
-        : 'Hero background uploaded to Cloudinary. Preview, then Publish to show customers.');
+      setNotice('Image uploaded. Crop it visually and save the crop to your draft.');
     } catch (err: any) {
       setError(err?.message || 'Could not upload seasonal photo.');
     } finally { setUploadingKey(null); }
@@ -291,12 +321,15 @@ export default function SiteEditor({
     setUploadingKey(`hero-mobile-${id}`); setError('');
     try {
       const uploaded = await uploadImageToCloudinary(file, 'jame_bouquets_themes');
-      rememberSuperseded(draft.themeMobileMedia[id], uploaded.url);
-      update(prev => ({
-        ...prev, themeMobileMedia: { ...prev.themeMobileMedia, [id]: uploaded.url },
-        ...(id === 'valentines' ? { valentines: { ...prev.valentines, heroMobileImageUrl: uploaded.url } } : {}),
-      }));
-      setNotice(uploaded.reused ? 'Identical image reused from Cloudinary.' : 'Mobile hero ready. Publish to apply it.');
+      openCrop(`hero:mobile:${id}`, `${id} mobile hero`, uploaded.url, '',
+        9/16, cropped => {
+          rememberSuperseded(draft.themeMobileMedia[id], cropped);
+          update(prev => ({
+            ...prev, themeMobileMedia: { ...prev.themeMobileMedia, [id]: cropped },
+            ...(id === 'valentines' ? { valentines: { ...prev.valentines, heroMobileImageUrl: cropped } } : {}),
+          }));
+        });
+      setNotice('Mobile image uploaded. Drag to crop and save it to your draft.');
     } catch (err: any) { setError(err?.message || 'Mobile photo upload failed.'); }
     finally { setUploadingKey(null); }
   };
@@ -328,11 +361,17 @@ export default function SiteEditor({
     const id = draft.theme;
     try {
       const uploaded = await uploadImageToCloudinary(file, 'jame_bouquets_themes');
-      rememberSuperseded(draft.themeExtras[id][field], uploaded.url);
-      update(prev => ({ ...prev, themeExtras: {
-        ...prev.themeExtras, [id]: { ...prev.themeExtras[id], [field]: uploaded.url },
-      } }));
-      setNotice(uploaded.reused ? 'Photo already exists in Cloudinary. Reused it.' : 'Theme image ready. Publish to show customers.');
+      const ratio = field.includes('Mobile') ? 9/16
+        : field.startsWith('nav') ? 7
+        : field.startsWith('footer') ? 16/5 : 16/9;
+      openCrop(`detail:${id}:${field}`, `${id} ${field}`, uploaded.url, '', ratio,
+        cropped => {
+          rememberSuperseded(draft.themeExtras[id][field], cropped);
+          update(prev => ({ ...prev, themeExtras: {
+            ...prev.themeExtras, [id]: { ...prev.themeExtras[id], [field]: cropped },
+          } }));
+        });
+      setNotice('Theme image uploaded. Adjust the crop and save it to your draft.');
     } catch (err: any) { setError(err?.message || 'Theme media could not be uploaded.'); }
     finally { setUploadingKey(null); }
   };
@@ -344,11 +383,14 @@ export default function SiteEditor({
     setUploadingKey(`banner-${id}`); setError('');
     try {
       const uploaded = await uploadImageToCloudinary(file, 'jame_bouquets_themes');
-      rememberSuperseded(draft.themeBanners[id].imageUrl, uploaded.url);
-      update(prev => ({ ...prev, themeBanners: {
-        ...prev.themeBanners, [id]: { ...prev.themeBanners[id], imageUrl: uploaded.url },
-      } }));
-      setNotice(uploaded.reused ? 'Existing Cloudinary photo reused.' : 'Banner photo uploaded. Publish when ready.');
+      openCrop(`banner:${id}`, `${id} banner`, uploaded.url, '', 5,
+        cropped => {
+          rememberSuperseded(draft.themeBanners[id].imageUrl, cropped);
+          update(prev => ({ ...prev, themeBanners: {
+            ...prev.themeBanners, [id]: { ...prev.themeBanners[id], imageUrl: cropped },
+          } }));
+        });
+      setNotice('Banner uploaded. Drag to crop; save the crop before publishing.');
     } catch (err: any) { setError(err?.message || 'Banner photo upload failed.'); }
     finally { setUploadingKey(null); }
   };
@@ -2299,6 +2341,7 @@ export default function SiteEditor({
           <p className="mt-4 text-center text-xs text-stone-500">Preview sizes are approximate. Verify the published design on a real phone before launch.</p>
         </main>
       </div>
+      {cropTask && <VisualCropDialog task={cropTask} onClose={() => setCropTask(null)}/>}
     </div>
   );
 }
