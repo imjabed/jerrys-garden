@@ -618,6 +618,40 @@ export default function SiteEditor({
             </button>
           </nav>
           <div ref={inspectorRef} className="min-h-0 min-w-0 flex-1 space-y-5 overflow-y-auto p-4 pb-12 sm:p-6">
+            {focusedPreview && (
+              <div className="rounded-xl border border-stone-200 bg-[#FBF8F4] p-3">
+                <p className="mb-2 text-xs font-semibold text-stone-900">
+                  Selected: {focusedPreview === 'header' ? 'Navbar' : labels[focusedPreview] || focusedPreview}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(focusedPreview === 'banner' ? [['banner','Banner editor']] :
+                    focusedPreview === 'header' ? [['theme-detail','Navbar design'],['branding','Brand settings']] :
+                    focusedPreview === 'hero' ? [['text','Edit text'],['hero','Background image'],['appearance','Colours & fonts'],['effects','Motion']] :
+                    focusedPreview === 'collections' ? [['collections','Category cards'],['appearance','Colours']] :
+                    focusedPreview === 'shop' ? [['text','Edit text'],['sections','Page layout']] :
+                    focusedPreview === 'custom' ? [['text','Edit text'],['theme-detail','Background & images'],['appearance','Colours']] :
+                    focusedPreview === 'story' ? [['text','Edit text'],['appearance','Colours']] :
+                    focusedPreview === 'footer' ? [['theme-detail','Footer design'],['text','Footer text']] :
+                    focusedPreview === 'block' ? [['blocks','Edit section'],['sections','Move / show / hide']] :
+                    [['sections','Arrange sections']] as string[][]
+                  ).map(([target,label]) => (
+                    <button key={target} type="button" onClick={() => {
+                      setPanel(target as Panel);
+                      if (['blocks','sections'].includes(target)) setShowAdvanced(true);
+                      if (target === 'text') setTextSlot(
+                        focusedPreview === 'custom' ? 'custom.heading' :
+                        focusedPreview === 'story' ? 'story.heading' :
+                        focusedPreview === 'footer' ? 'footer.description' :
+                        focusedPreview === 'shop' ? 'shop.heading' : 'hero.heading'
+                      );
+                    }} className={`rounded border px-3 py-2 text-[11px] font-semibold ${panel === target
+                      ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-300 bg-white text-stone-800 hover:bg-stone-100'}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {panel === 'banner' && (
               <>
                 <div>
