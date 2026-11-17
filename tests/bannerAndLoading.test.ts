@@ -92,26 +92,33 @@ test('Unsafe or out-of-range banner styling is sanitized with legacy defaults re
   assert.equal(older.themeBanners.winter.typography.text.font, 'inherit');
 });
 
-test('Boot splash respects minimum 2s but never waits an unbounded time for a cold backend', () => {
+test('Minimal loader cannot get stuck waiting for a cold backend', () => {
   assert.equal(MIN_STOREFRONT_SPLASH_MS, 2000);
-  assert.ok(MAX_STOREFRONT_SPLASH_MS > MIN_STOREFRONT_SPLASH_MS);
+  assert.equal(MAX_STOREFRONT_SPLASH_MS, 2450);
   assert.equal(remainingMinimumSplashMs(0), 2000);
   assert.equal(remainingMinimumSplashMs(1900), 100);
   assert.equal(remainingMinimumSplashMs(4000), 0);
-  const defaults = { editorRoute: false, minimumElapsed: false,
-    themeSettled: true, catalogSettled: true, maximumElapsed: false };
-  assert.equal(shouldRevealStorefront(defaults), false);
-  assert.equal(shouldRevealStorefront({ ...defaults, minimumElapsed: true }), true);
-  assert.equal(shouldRevealStorefront({ ...defaults, minimumElapsed: true, themeSettled: false }), false);
-  assert.equal(shouldRevealStorefront({ ...defaults, minimumElapsed: true, catalogSettled: false }), false);
-  assert.equal(shouldRevealStorefront({ ...defaults, minimumElapsed: true,
-    themeSettled: false, catalogSettled: false, maximumElapsed: true }), true);
-  assert.equal(shouldRevealStorefront({ ...defaults, editorRoute: true }), true);
+  const initial = { editorRoute: false, minimumElapsed: false, maximumElapsed: false };
+  assert.equal(shouldRevealStorefront(initial), false);
+  assert.equal(shouldRevealStorefront({ ...initial, minimumElapsed: true }), true);
+  assert.equal(shouldRevealStorefront({ ...initial, maximumElapsed: true }), true);
+  assert.equal(shouldRevealStorefront({ ...initial, editorRoute: true }), true);
 });
 
-test('The initial HTML contains an immediate branded splash before React root', () => {
-  const document = readFileSync('index.html', 'utf8');
-  assert.ok(document.indexOf('id="jb-boot-splash"') < document.indexOf('id="root"'));
-  assert.match(document, /Jame Bouquets/);
-  assert.match(document, /Taking longer than expected/);
+test('HTML loader has lightweight circle, exact copy, independent CSS timeout and fallback', () => {
+  const markup = readFileSync('index.html', 'utf8');
+  assert.ok(markup.indexOf('id="jb-boot-splash"') < markup.indexOf('id="root"'));
+  assert.match(markup, /class="jb-boot-spinner"/);
+  assert.match(markup, /Loading\.\.\./);
+  assert.match(markup, /Please give us a second, we're preparing your bouquets - Jame Bouquets/);
+  assert.match(markup, /jb-boot-auto-dismiss \.2s ease 2\.45s forwards/);
+  assert.match(markup, /id="jb-boot-fallback"/);
+  assert.doesNotMatch(markup, /jb-boot-title|jb-boot-mark|jb-boot-retry/);
+});
+
+test('App no longer delays loader behind theme or catalogue network promises', () => {
+  const app = readFileSync('src/App.tsx', 'utf8');
+  const entry = readFileSync('src/main.tsx', 'utf8');
+  assert.doesNotMatch(app, /setThemeFetchSettled|maximumSplashElapsed|catalogSettled:/);
+  assert.match(entry, /scheduleSplashDismiss\(\)/);
 });
