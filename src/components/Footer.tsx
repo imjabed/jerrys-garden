@@ -57,13 +57,18 @@ export default function Footer({
           aria-hidden="true">
           <div className="jb-festival-sky absolute inset-0"/>
           {footerMode === 'image' && themeExtras?.footerImageUrl ? (
-            <img src={themeExtras.footerImageUrl} alt="" draggable={false}
-              loading="lazy" decoding="async"
-              className="jb-festival-real-image absolute inset-0 h-full w-full object-contain object-bottom"
-              style={{
-                objectPosition: `${themeExtras.footerImageCrop.x}% ${themeExtras.footerImageCrop.y}%`,
-              }}
-              onError={event => { event.currentTarget.style.display = 'none'; }}/>
+            <picture className="absolute inset-0">
+              {themeExtras.footerMobileImageUrl &&
+                <source media="(max-width: 680px)" srcSet={themeExtras.footerMobileImageUrl}/>}
+              <img src={themeExtras.footerImageUrl} alt="" draggable={false}
+                loading="lazy" decoding="async"
+                className="jb-festival-real-image h-full w-full object-contain object-bottom"
+                style={{
+                  '--jb-footer-desktop-crop': `${themeExtras.footerImageCrop.x}% ${themeExtras.footerImageCrop.y}%`,
+                  '--jb-footer-mobile-crop': `${themeExtras.footerMobileCrop.x}% ${themeExtras.footerMobileCrop.y}%`,
+                } as import('react').CSSProperties}
+                onError={event => { event.currentTarget.style.display = 'none'; }}/>
+            </picture>
           ) : (
             <div className="jb-festival-silhouette absolute inset-0"
               style={{
