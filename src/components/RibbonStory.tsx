@@ -21,8 +21,8 @@ export default function RibbonStory({ content = DEFAULT_SITE_CONTENT.story, head
       <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-end">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-6">{content.eyebrow}</p>
-            <h2 className="site-editable-heading font-serif font-normal leading-[1.12] tracking-tight text-stone-900" style={{ fontSize: `clamp(${2.15 * headingScale}rem, ${4.4 * headingScale}vw, ${3.8 * headingScale}rem)` }} ><RichText value={content.heading} presentation={textPresentations?.['story.heading']}/><span className="italic" style={{ color: 'var(--site-accent, #9D777C)' }}>{content.accentLine}</span></h2>
+            <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-6"><RichText value={content.eyebrow} presentation={textPresentations?.['story.eyebrow']}/></p>
+            <h2 className="site-editable-heading font-serif font-normal leading-[1.12] tracking-tight text-stone-900" style={{ fontSize: `clamp(${2.15 * headingScale}rem, ${4.4 * headingScale}vw, ${3.8 * headingScale}rem)` }} ><RichText value={content.heading} presentation={textPresentations?.['story.heading']}/><span className="jb-accent-copy" style={{ color: 'var(--site-accent, #9D777C)' }}><RichText value={content.accentLine} presentation={textPresentations?.['story.accentLine']}/></span></h2>
           </div>
           <div>
             <p className="site-body-copy leading-7 text-stone-600 max-w-md"><RichText value={content.description} presentation={textPresentations?.['story.description']}/></p>
