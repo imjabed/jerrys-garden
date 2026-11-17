@@ -874,6 +874,14 @@ export default function SiteEditor({
                       }}/>
                   </label>
                   {draft.themeBanners[bannerTheme].imageUrl && (
+                    <button type="button" className="w-full rounded border border-stone-400 bg-stone-50 px-4 py-3 text-xs font-semibold hover:bg-stone-100"
+                      onClick={() => editExistingCrop(
+                        `banner:${bannerTheme}`, `${bannerTheme} banner`,
+                        draft.themeBanners[bannerTheme].imageUrl, 5,
+                        cropped => updateBanner(bannerTheme, {imageUrl:cropped}),
+                      )}>Edit / Re-crop banner photo</button>
+                  )}
+                  {draft.themeBanners[bannerTheme].imageUrl && (
                     <button type="button" onClick={() => {
                       rememberSuperseded(draft.themeBanners[bannerTheme].imageUrl, '');
                       updateBanner(bannerTheme, { imageUrl: '' });
@@ -957,9 +965,16 @@ export default function SiteEditor({
                           Remove navbar image (use theme colour)
                         </button>
                       )}
-                      <ImageCropControls title="Desktop navbar crop"
-                        value={draft.themeExtras[draft.theme].navImageCrop}
-                        onChange={value => updateThemeCrop('navImageCrop',value)}/>
+                      {draft.themeExtras[draft.theme].navImageUrl && (
+                        <button type="button" className="w-full rounded border border-stone-300 bg-stone-50 px-3 py-3 text-xs font-semibold hover:bg-stone-100"
+                          onClick={() => editExistingCrop(
+                            `detail:${draft.theme}:navImageUrl`, 'Desktop navbar crop',
+                            draft.themeExtras[draft.theme].navImageUrl, 7,
+                            cropped => update(prev => ({...prev,themeExtras:{
+                              ...prev.themeExtras,[prev.theme]:{...prev.themeExtras[prev.theme],navImageUrl:cropped},
+                            }})),
+                          )}>Edit / Re-crop desktop navbar crop</button>
+                      )}
                       <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 border border-stone-300 p-3 text-xs">
                         <UploadCloud className="h-4 w-4"/>
                         {uploadingKey === 'theme-detail-navMobileImageUrl' ? 'Uploading…' : 'Optional: upload mobile navbar image'}
@@ -974,9 +989,16 @@ export default function SiteEditor({
                           Remove mobile navbar image
                         </button>
                       )}
-                      <ImageCropControls title="Mobile navbar crop"
-                        value={draft.themeExtras[draft.theme].navMobileCrop}
-                        onChange={value => updateThemeCrop('navMobileCrop',value)}/>
+                      {draft.themeExtras[draft.theme].navMobileImageUrl && (
+                        <button type="button" className="w-full rounded border border-stone-300 bg-stone-50 px-3 py-3 text-xs font-semibold hover:bg-stone-100"
+                          onClick={() => editExistingCrop(
+                            `detail:${draft.theme}:navMobileImageUrl`, 'Mobile navbar crop',
+                            draft.themeExtras[draft.theme].navMobileImageUrl, 5,
+                            cropped => update(prev => ({...prev,themeExtras:{
+                              ...prev.themeExtras,[prev.theme]:{...prev.themeExtras[prev.theme],navMobileImageUrl:cropped},
+                            }})),
+                          )}>Edit / Re-crop mobile navbar crop</button>
+                      )}
                       <label className="block space-y-2 text-xs">
                         <span>Navbar photo visibility · {Math.round(draft.themeExtras[draft.theme].navImageOpacity*100)}%</span>
                         <input type="range" min="0" max="1" step=".05" className="w-full accent-stone-900"
@@ -1010,9 +1032,16 @@ export default function SiteEditor({
                             updateThemeExtra({ customImageUrl: '' });
                           }}>Remove custom-order background</button>
                       )}
-                      <ImageCropControls title="Desktop custom-order image crop"
-                        value={draft.themeExtras[draft.theme].customCrop.desktop}
-                        onChange={value => updateThemeCrop('customCrop',value,'desktop')}/>
+                      {draft.themeExtras[draft.theme].customImageUrl && (
+                        <button type="button" className="w-full rounded border border-stone-300 bg-stone-50 px-3 py-3 text-xs font-semibold hover:bg-stone-100"
+                          onClick={() => editExistingCrop(
+                            `detail:${draft.theme}:customImageUrl`, 'Desktop custom-order image crop',
+                            draft.themeExtras[draft.theme].customImageUrl, 16/9,
+                            cropped => update(prev => ({...prev,themeExtras:{
+                              ...prev.themeExtras,[prev.theme]:{...prev.themeExtras[prev.theme],customImageUrl:cropped},
+                            }})),
+                          )}>Edit / Re-crop desktop custom-order image crop</button>
+                      )}
                       <p className="text-[11px] text-stone-500">Mobile background can differ from desktop. A plain theme colour is used when no image is set.</p>
                       {draft.themeExtras[draft.theme].customMobileImageUrl && (
                         <img src={draft.themeExtras[draft.theme].customMobileImageUrl} alt="Mobile custom-order backdrop"
@@ -1033,9 +1062,16 @@ export default function SiteEditor({
                           Remove mobile custom-order photo
                         </button>
                       )}
-                      <ImageCropControls title="Mobile custom-order image crop"
-                        value={draft.themeExtras[draft.theme].customCrop.mobile}
-                        onChange={value => updateThemeCrop('customCrop',value,'mobile')}/>
+                      {draft.themeExtras[draft.theme].customMobileImageUrl && (
+                        <button type="button" className="w-full rounded border border-stone-300 bg-stone-50 px-3 py-3 text-xs font-semibold hover:bg-stone-100"
+                          onClick={() => editExistingCrop(
+                            `detail:${draft.theme}:customMobileImageUrl`, 'Mobile custom-order image crop',
+                            draft.themeExtras[draft.theme].customMobileImageUrl, 9/16,
+                            cropped => update(prev => ({...prev,themeExtras:{
+                              ...prev.themeExtras,[prev.theme]:{...prev.themeExtras[prev.theme],customMobileImageUrl:cropped},
+                            }})),
+                          )}>Edit / Re-crop mobile custom-order image crop</button>
+                      )}
                       <label className="block space-y-2 text-xs">
                         <span>Text overlay · {Math.round(draft.themeExtras[draft.theme].customOverlay * 100)}%</span>
                         <input type="range" min=".15" max=".95" step=".05" value={draft.themeExtras[draft.theme].customOverlay}
@@ -1373,9 +1409,13 @@ export default function SiteEditor({
                     Desktop: 2560 × 1440 preferred. Mobile: 1080 × 1920 preferred.
                     Changing this image does not touch product photographs.
                   </p>
-                  <ImageCropControls title="Desktop · Left/Right/Up/Down crop"
-                    value={draft.heroCrop[photoTheme].desktop}
-                    onChange={value => updateHeroCrop(photoTheme, 'desktop', value)}/>
+                  {draft.themeMedia[photoTheme] && (
+                    <button type="button" className="w-full rounded border border-stone-300 bg-stone-50 px-4 py-3 text-xs font-semibold hover:bg-stone-100"
+                      onClick={() => editExistingCrop(
+                        `hero:desktop:${photoTheme}`, `${photoTheme} desktop hero`, draft.themeMedia[photoTheme], 16/9,
+                        cropped => update(prev => ({...prev,themeMedia:{...prev.themeMedia,[photoTheme]:cropped}})),
+                      )}>Edit / Re-crop desktop hero</button>
+                  )}
                   <div className="border-t border-stone-200 pt-5">
                     <h3 className="font-serif text-xl">Mobile hero background</h3>
                     <p className="mt-2 text-xs leading-5 text-stone-500">
@@ -1420,9 +1460,18 @@ export default function SiteEditor({
                         }}>Use desktop background on mobile instead</button>
                     )}
                     <div className="mt-4">
-                      <ImageCropControls title="Mobile · Left/Right/Up/Down crop"
-                        value={draft.heroCrop[photoTheme].mobile}
-                        onChange={value => updateHeroCrop(photoTheme, 'mobile', value)}/>
+                      {(photoTheme === 'valentines' ? draft.valentines.heroMobileImageUrl : draft.themeMobileMedia[photoTheme]) && (
+                        <button type="button" className="w-full rounded border border-stone-300 bg-stone-50 px-4 py-3 text-xs font-semibold hover:bg-stone-100"
+                          onClick={() => editExistingCrop(
+                            `hero:mobile:${photoTheme}`, `${photoTheme} mobile hero`,
+                            photoTheme === 'valentines' ? draft.valentines.heroMobileImageUrl : draft.themeMobileMedia[photoTheme],
+                            9/16,
+                            cropped => update(prev => ({
+                              ...prev,themeMobileMedia:{...prev.themeMobileMedia,[photoTheme]:cropped},
+                              ...(photoTheme === 'valentines' ? {valentines:{...prev.valentines,heroMobileImageUrl:cropped}} : {}),
+                            })),
+                          )}>Edit / Re-crop mobile hero</button>
+                      )}
                     </div>
                   </div>
                   {photoTheme !== draft.theme && (
