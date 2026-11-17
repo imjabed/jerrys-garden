@@ -1268,8 +1268,10 @@
 .site-shell[data-site-theme="winter"] .jb-hero-surface .jb-hero-copy > p {
   color:var(--jb-hero-ink, #FFF7EA) !important;
 }
-.site-shell[data-site-theme="winter"] .jb-hero-surface h1 span {
-  color:var(--jb-hero-accent, #D8B270) !important;
+/* Scope theme accent to the decorative wrapper, never every RichText span.
+   Owner-assigned per-word colour must win in the hero headline. */
+.site-shell[data-site-theme="winter"] .jb-hero-surface h1 > .jb-accent-copy {
+  color:var(--jb-hero-accent, #D8B270);
 }
 .site-shell[data-site-theme="winter"] .jb-hero-surface .site-outline-button {
   background:var(--site-button, #D8B270) !important; border-color:var(--site-button, #D8B270) !important;
