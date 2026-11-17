@@ -73,13 +73,38 @@ export interface ThemeBanner {
   imageUrl: string;
   imageOpacity: number;
 }
+export interface CropPosition { x: number; y: number }
+export type TextSlot = 'hero.eyebrow' | 'hero.heading' | 'hero.accentLine' | 'hero.description' |
+  'custom.eyebrow' | 'custom.heading' | 'custom.accentLine' | 'custom.description' |
+  'story.heading' | 'story.description' | 'footer.description' | 'shop.heading' | 'shop.description';
+export const TEXT_SLOTS: { id: TextSlot; label: string }[] = [
+  { id: 'hero.eyebrow', label: 'Hero label' }, { id: 'hero.heading', label: 'Hero headline' },
+  { id: 'hero.accentLine', label: 'Hero accent line' }, { id: 'hero.description', label: 'Hero paragraph' },
+  { id: 'custom.eyebrow', label: 'Custom-order label' }, { id: 'custom.heading', label: 'Custom-order headline' },
+  { id: 'custom.accentLine', label: 'Custom-order accent' }, { id: 'custom.description', label: 'Custom-order paragraph' },
+  { id: 'story.heading', label: 'Our craft headline' }, { id: 'story.description', label: 'Our craft paragraph' },
+  { id: 'footer.description', label: 'Footer description' }, { id: 'shop.heading', label: 'Shop heading' },
+  { id: 'shop.description', label: 'Shop description' },
+];
+export interface TextPresentation {
+  font: FontId | 'inherit'; size: number; align: 'left' | 'center' | 'right';
+  bold: boolean; italic: boolean;
+}
 export interface ThemeExtras {
   customImageUrl: string;
+  customMobileImageUrl: string;
+  customCrop: { desktop: CropPosition; mobile: CropPosition };
   customImagePosition: number;
   customOverlay: number;
   footerSceneUrl: string;
   footerSceneEnabled: boolean;
   footerSceneColor: string;
+  footerMode: 'silhouette' | 'image' | 'none';
+  footerImageUrl: string;
+  footerImageCrop: CropPosition;
+  navImageUrl: string;
+  navImageCrop: CropPosition;
+  navImageOpacity: number;
   footerTagline: string;
   navBackground: string;
   navText: string;
@@ -264,7 +289,11 @@ export interface CategoryCardConfig {
 export interface SiteContent {
   theme: ThemeId;
   themeMedia: Record<ThemeId, string>;
+  themeMobileMedia: Record<ThemeId, string>;
+  heroCrop: Record<ThemeId, { desktop: CropPosition; mobile: CropPosition }>;
   heroImagePosition: Record<ThemeId, number>;
+  textPresentations: Record<ThemeId, Record<TextSlot, TextPresentation>>;
+  winterAssetsReady: boolean;
   offers: Record<SeasonalThemeId, SeasonalOffer>;
   valentines: ValentinesDesign;
   themeBanners: Record<ThemeId, ThemeBanner>;
@@ -345,7 +374,14 @@ const defaultThemeAppearance = () => Object.fromEntries(THEME_PRESETS.map(p => [
   ...p.appearance, headingScale: 1, bodyScale: 1,
 }])) as Record<ThemeId, SiteContent['appearance']>;
 const defaultThemeExtras = () => Object.fromEntries(THEME_PRESETS.map(p => [p.id, {
-  customImageUrl: '', customImagePosition: 60, customOverlay: .72,
+  customImageUrl: '', customMobileImageUrl: '',
+  customCrop: { desktop: { x: 50, y: 60 }, mobile: { x: 50, y: 60 } },
+  customImagePosition: 60, customOverlay: .72,
+  footerMode: p.id === 'winter' ? 'image' : p.id === 'default' ? 'none' : 'silhouette',
+  footerImageUrl: p.id === 'winter' ? 'https://res.cloudinary.com/ajq29txd/image/upload/v1794900853/Packing_Santa.webp' : '',
+  footerImageCrop: { x: 50, y: 50 },
+  navImageUrl: p.id === 'winter' ? 'https://res.cloudinary.com/ajq29txd/image/upload/v1794900853/NavBar.png' : '',
+  navImageCrop: { x: 50, y: 50 }, navImageOpacity: .6,
   footerSceneUrl: '', footerSceneEnabled: p.id !== 'default',
   footerSceneColor: p.id === 'winter' ? '#071729' : p.id === 'eid' ? '#072E27'
     : p.id === 'puja' ? '#691318' : p.id === 'valentines' ? '#4B1024' : '#292524',
@@ -384,7 +420,18 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
     hero: { ...MASTER_COPY.hero }, custom: { ...MASTER_COPY.custom },
     story: { ...MASTER_COPY.story }, footer: { ...MASTER_COPY.footer },
   }])) as Record<ThemeId, ThemeCopy>,
-  themeMedia: { default: '', valentines: '', puja: '', winter: '', eid: '' },
+  themeMedia: { default: '', valentines: '', puja: '', winter: 'https://res.cloudinary.com/ajq29txd/image/upload/v1794900853/Hero_Desktop.png', eid: '' },
+  themeMobileMedia: { default: '', valentines: '', puja: '', winter: 'https://res.cloudinary.com/ajq29txd/image/upload/v1794900852/Hero_Mobile.png', eid: '' },
+  heroCrop: Object.fromEntries(ALL_THEME_IDS.map(id => [id, {
+    desktop: { x: 50, y: id === 'winter' ? 50 : 75 },
+    mobile: { x: 50, y: id === 'winter' ? 50 : 75 },
+  }])) as Record<ThemeId, { desktop: CropPosition; mobile: CropPosition }>,
+  winterAssetsReady: true,
+  textPresentations: Object.fromEntries(ALL_THEME_IDS.map(id =>
+    [id, Object.fromEntries(TEXT_SLOTS.map(slot => [slot.id, {
+      font: 'inherit', size: 0, align: 'left', bold: false, italic: false,
+    }]))],
+  )) as Record<ThemeId, Record<TextSlot, TextPresentation>>,
   heroImagePosition: { default: 50, valentines: 76, puja: 76, winter: 76, eid: 76 },
   offers: {
     valentines: { enabled: false, percent: 14, headline: 'A little more love, for less.', code: '', detail: 'Valentine gifting week' },
@@ -458,6 +505,10 @@ const numberRange = (value: unknown, fallback: number, min: number, max: number)
   typeof value === 'number' && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
 const font = (value: unknown, fallback: FontId): FontId =>
   typeof value === 'string' && Object.prototype.hasOwnProperty.call(FONT_STACKS, value) ? value as FontId : fallback;
+const crop = (raw: any, fallback: CropPosition): CropPosition => ({
+  x: numberRange(raw?.x, fallback.x, 0, 100),
+  y: numberRange(raw?.y, fallback.y, 0, 100),
+});
 const fieldText = (obj: any, key: string, fallback: string, max = 140) => copyText(obj?.[key], fallback, max);
 
 export function sanitizeSiteContent(value: unknown): SiteContent {
@@ -515,9 +566,33 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
   // Existing customers who used the retired New Year preset move to Winter.
   const requestedTheme = raw.theme === 'new-year' ? 'winter' : raw.theme;
   const theme: ThemeId = THEME_PRESETS.some(p => p.id === requestedTheme) ? requestedTheme : d.theme;
+  const migrateWinter = raw.winterAssetsReady !== true;
   const themeMedia = Object.fromEntries(ALL_THEME_IDS.map(id =>
-    [id, safeEditorImage(raw.themeMedia?.[id])],
+    [id, id === 'winter' && migrateWinter
+      ? safeEditorImage(raw.themeMedia?.[id]) || d.themeMedia.winter
+      : safeEditorImage(raw.themeMedia?.[id] ?? d.themeMedia[id])],
   )) as SiteContent['themeMedia'];
+  const themeMobileMedia = Object.fromEntries(ALL_THEME_IDS.map(id =>
+    [id, id === 'winter' && migrateWinter
+      ? safeEditorImage(raw.themeMobileMedia?.[id]) || d.themeMobileMedia.winter
+      : safeEditorImage(raw.themeMobileMedia?.[id] ?? d.themeMobileMedia[id])],
+  )) as SiteContent['themeMobileMedia'];
+  const heroCrop = Object.fromEntries(ALL_THEME_IDS.map(id => [id, {
+    desktop: crop(raw.heroCrop?.[id]?.desktop,
+      { x: 50, y: numberRange(raw.heroImagePosition?.[id], d.heroImagePosition[id], 0, 100) }),
+    mobile: crop(raw.heroCrop?.[id]?.mobile, d.heroCrop[id].mobile),
+  }])) as SiteContent['heroCrop'];
+  const textPresentations = Object.fromEntries(ALL_THEME_IDS.map(id => [
+    id, Object.fromEntries(TEXT_SLOTS.map(({ id: slot }) => {
+      const current = raw.textPresentations?.[id]?.[slot] || {};
+      return [slot, {
+        font: current.font === 'inherit' ? 'inherit' : font(current.font, 'inter'),
+        size: numberRange(current.size, 0, 0, 96),
+        align: ['left', 'center', 'right'].includes(current.align) ? current.align : 'left',
+        bold: current.bold === true, italic: current.italic === true,
+      }];
+    })),
+  ])) as SiteContent['textPresentations'];
   const heroImagePosition = Object.fromEntries(ALL_THEME_IDS.map(id =>
     [id, numberRange(raw.heroImagePosition?.[id], d.heroImagePosition[id], 0, 100)],
   )) as SiteContent['heroImagePosition'];
@@ -587,9 +662,25 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
     const fallback = d.themeExtras[id];
     return [id, {
       customImageUrl: safeEditorImage(source?.customImageUrl),
+      customMobileImageUrl: safeEditorImage(source?.customMobileImageUrl),
+      customCrop: {
+        desktop: crop(source?.customCrop?.desktop, { x: 50, y: numberRange(source?.customImagePosition, fallback.customImagePosition, 0, 100) }),
+        mobile: crop(source?.customCrop?.mobile, fallback.customCrop.mobile),
+      },
       customImagePosition: numberRange(source?.customImagePosition, fallback.customImagePosition, 0, 100),
       customOverlay: numberRange(source?.customOverlay, fallback.customOverlay, .15, .95),
       footerSceneUrl: safeEditorImage(source?.footerSceneUrl),
+      footerMode: ['silhouette', 'image', 'none'].includes(source?.footerMode)
+        ? source.footerMode : fallback.footerMode,
+      footerImageUrl: id === 'winter' && migrateWinter
+        ? safeEditorImage(source?.footerImageUrl) || fallback.footerImageUrl
+        : safeEditorImage(source?.footerImageUrl ?? fallback.footerImageUrl),
+      footerImageCrop: crop(source?.footerImageCrop, fallback.footerImageCrop),
+      navImageUrl: id === 'winter' && migrateWinter
+        ? safeEditorImage(source?.navImageUrl) || fallback.navImageUrl
+        : safeEditorImage(source?.navImageUrl ?? fallback.navImageUrl),
+      navImageCrop: crop(source?.navImageCrop, fallback.navImageCrop),
+      navImageOpacity: numberRange(source?.navImageOpacity, fallback.navImageOpacity, 0, 1),
       footerSceneEnabled: source?.footerSceneEnabled === undefined ? fallback.footerSceneEnabled : source.footerSceneEnabled === true,
       footerSceneColor: hex(source?.footerSceneColor, fallback.footerSceneColor),
       footerTagline: fieldText(source, 'footerTagline', fallback.footerTagline, 150),
@@ -602,7 +693,8 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
   })) as SiteContent['themeExtras'];
   const fx = raw.effects || {};
   const content: SiteContent = {
-    theme, themeMedia, heroImagePosition, offers, valentines,
+    theme, themeMedia, themeMobileMedia, heroCrop, textPresentations, winterAssetsReady: true,
+    heroImagePosition, offers, valentines,
     themeBanners, themeExtras,
     themeAppearance: {} as SiteContent['themeAppearance'],
     themeCopy: {} as SiteContent['themeCopy'],
