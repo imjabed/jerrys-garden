@@ -38,21 +38,21 @@ export default function Hero({
         ${seasonal ? 'jb-hero-seasonal-layout lg:grid-cols-1' : 'lg:min-h-[620px] lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]'}`}>
         <div className={`jb-hero-copy min-w-0 ${seasonal ? 'jb-hero-seasonal-copy' : ''}`}>
           <p className="mb-5 text-[10px] uppercase tracking-[0.26em] text-stone-600 sm:mb-7">
-            <RichText value={content.eyebrow} presentation={textPresentations?.['hero.eyebrow']}/>
+            <RichText value={content.eyebrow} presentation={textPresentations?.['hero.eyebrow']} editorSlot={previewDevice ? 'hero.eyebrow' : undefined}/>
           </p>
           <h1 className="site-editable-heading font-serif font-normal leading-[1.07] tracking-tight text-stone-900"
             style={{ fontSize: `clamp(${(seasonal ? 2.6 : 3.15) * headingScale}rem, ${(seasonal ? 5.5 : 6.5) * headingScale}vw, ${(seasonal ? 5.2 : 6) * headingScale}rem)` }}>
-            <RichText value={content.heading} presentation={textPresentations?.['hero.heading']}/>
-            <span className="italic" style={{ color: 'var(--site-accent, #9D777C)' }}>
-              <RichText value={content.accentLine} presentation={textPresentations?.['hero.accentLine']}/>
+            <RichText value={content.heading} presentation={textPresentations?.['hero.heading']} editorSlot={previewDevice ? 'hero.heading' : undefined}/>
+            <span className="jb-accent-copy" style={{ color: 'var(--site-accent, #9D777C)' }}>
+              <RichText value={content.accentLine} presentation={textPresentations?.['hero.accentLine']} editorSlot={previewDevice ? 'hero.accentLine' : undefined}/>
             </span>
           </h1>
           <p className="site-body-copy mt-5 max-w-sm leading-relaxed text-stone-700 sm:mt-7">
-            <RichText value={content.description} presentation={textPresentations?.['hero.description']}/>
+            <RichText value={content.description} presentation={textPresentations?.['hero.description']} editorSlot={previewDevice ? 'hero.description' : undefined}/>
           </p>
           <button type="button" onClick={onExploreClick}
             className="site-outline-button mt-7 inline-flex min-h-11 items-center gap-3 border-b pb-2 text-xs font-semibold uppercase tracking-[0.13em] transition-all hover:gap-5 sm:mt-9">
-            {content.button} <ArrowRight className="h-4 w-4"/>
+            <RichText value={content.button} presentation={textPresentations?.['hero.button']} editorSlot={previewDevice ? 'hero.button' : undefined} inline/> <ArrowRight className="h-4 w-4"/>
           </button>
 
           {showOffer && offer && (
