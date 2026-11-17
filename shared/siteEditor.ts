@@ -684,7 +684,7 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
           const style = source?.typography?.[field] || {};
           const original = fallback.typography[field];
           return [field, {
-            font: style.font === 'inherit' ? 'inherit' : font(style.font, original.font === 'inherit' ? 'inter' : original.font),
+            font: style.font == null || style.font === 'inherit' ? 'inherit' : font(style.font, original.font === 'inherit' ? 'inter' : original.font),
             size: numberRange(style.size, original.size, 0, 96),
             align: ['left','center','right'].includes(style.align) ? style.align : original.align,
             bold: style.bold === true,
