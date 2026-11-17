@@ -68,6 +68,7 @@ import CustomerReviewsSection from './components/CustomerReviewsSection';
 import StorePolicies, { type PolicyType } from './components/StorePolicies';
 import CollectionShowcase from './components/CollectionShowcase';
 import SiteEditor from './components/SiteEditor';
+import StudioErrorBoundary from './components/StudioErrorBoundary';
 import CustomPageBlock from './components/CustomPageBlock';
 import { DEFAULT_SITE_CONTENT, FONT_STACKS, safeEditorLink } from '../shared/siteEditor';
 import type { SiteContent } from '../shared/siteEditor';
@@ -547,8 +548,10 @@ export default function App() {
       {/* Separate, admin-only no-code editing workspace. */}
       {editorRoute ? (
         isOwner ? (
-          <SiteEditor products={bouquets} onPublished={setSiteContent}
-            onExit={() => window.location.assign('/?owner=dashboard')}/>
+          <StudioErrorBoundary label="Website Studio">
+            <SiteEditor products={bouquets} onPublished={setSiteContent}
+              onExit={() => window.location.assign('/?owner=dashboard')}/>
+          </StudioErrorBoundary>
         ) : (
           <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#F4F0EB] px-6 text-center">
             <h1 className="font-serif text-3xl text-stone-900">Jame Bouquets Studio</h1>
