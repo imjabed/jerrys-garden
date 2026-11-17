@@ -850,6 +850,22 @@ export default function SiteEditor({
                   <>
                     <div className="space-y-3 rounded-xl border border-stone-200 p-4">
                       <h3 className="font-serif text-xl">Navigation</h3>
+                      <p className="text-[11px] leading-5 text-stone-600">
+                        Edit all navigation labels for this theme. These changes appear
+                        on desktop links and the mobile menu.
+                      </p>
+                      {([
+                        ['shop','Shop link'],['custom','Custom-order link'],['track','Order-tracking link'],
+                        ['story','Our Craft link'],['signIn','Sign-in link'],
+                      ] as const).map(([key,label]) => input(
+                        label, draft.navigationLabels[draft.theme][key],
+                        value => update(prev => ({
+                          ...prev, navigationLabels: {
+                            ...prev.navigationLabels,
+                            [prev.theme]: { ...prev.navigationLabels[prev.theme], [key]: value },
+                          },
+                        })),
+                      ))}
                       {colour('Navbar background', draft.themeExtras[draft.theme].navBackground,
                         v => updateThemeExtra({ navBackground: v }))}
                       {colour('Navbar text', draft.themeExtras[draft.theme].navText,
@@ -2087,17 +2103,17 @@ export default function SiteEditor({
                       </button>
                     </div>
                   : <span className="relative z-10 text-xs" style={{color:draft.themeExtras[draft.theme].navText}}>
-                      HOME · SHOP · ABOUT
+                      {draft.navigationLabels[draft.theme].shop} · {draft.navigationLabels[draft.theme].story}
                     </span>}
               </div>
               {previewMenuOpen && device !== 'desktop' && (
                 <div data-preview-menu-control className="jb-editor-preview-menu">
                   {([
-                    ['Shop Products', 'shop'],
-                    ['Custom Event Bouquets', 'custom'],
-                    ['Track My Order', 'header'],
-                    ['Our Craft', 'story'],
-                    ['Account / Sign In', 'header'],
+                    [draft.navigationLabels[draft.theme].shop, 'shop'],
+                    [draft.navigationLabels[draft.theme].custom, 'custom'],
+                    [draft.navigationLabels[draft.theme].track, 'header'],
+                    [draft.navigationLabels[draft.theme].story, 'story'],
+                    [draft.navigationLabels[draft.theme].signIn, 'header'],
                   ] as const).map(([title, section]) => (
                     <button type="button" key={title} onClick={() => {
                       setPreviewMenuOpen(false);
