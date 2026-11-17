@@ -309,7 +309,7 @@ export default function SiteEditor({
       setError(err?.message || 'Could not upload the Valentine image.');
     } finally { setUploadingKey(null); }
   };
-  const uploadThemeDetail = async (field: 'customImageUrl' | 'customMobileImageUrl' | 'footerSceneUrl' | 'footerImageUrl' | 'navImageUrl', file?: File) => {
+  const uploadThemeDetail = async (field: 'customImageUrl' | 'customMobileImageUrl' | 'footerSceneUrl' | 'footerImageUrl' | 'footerMobileImageUrl' | 'navImageUrl' | 'navMobileImageUrl', file?: File) => {
     if (!file) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
       setError('Choose a JPEG, PNG or WebP image under 5 MB.'); return;
@@ -350,7 +350,7 @@ export default function SiteEditor({
     update(prev => ({ ...prev, themeExtras: { ...prev.themeExtras,
       [prev.theme]: { ...prev.themeExtras[prev.theme], ...patch },
     } }));
-  const updateThemeCrop = (field: 'customCrop' | 'navImageCrop' | 'footerImageCrop',
+  const updateThemeCrop = (field: 'customCrop' | 'navImageCrop' | 'navMobileCrop' | 'footerImageCrop' | 'footerMobileCrop',
     value: CropPosition, mode?: 'desktop' | 'mobile') =>
     update(prev => {
       const id = prev.theme;
@@ -685,9 +685,26 @@ export default function SiteEditor({
                           Remove navbar image (use theme colour)
                         </button>
                       )}
-                      <ImageCropControls title="Navbar image positioning"
+                      <ImageCropControls title="Desktop navbar crop"
                         value={draft.themeExtras[draft.theme].navImageCrop}
                         onChange={value => updateThemeCrop('navImageCrop',value)}/>
+                      <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 border border-stone-300 p-3 text-xs">
+                        <UploadCloud className="h-4 w-4"/>
+                        {uploadingKey === 'theme-detail-navMobileImageUrl' ? 'Uploading…' : 'Optional: upload mobile navbar image'}
+                        <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+                          disabled={Boolean(uploadingKey)} onChange={e=>{
+                            void uploadThemeDetail('navMobileImageUrl',e.target.files?.[0]);e.target.value='';
+                          }}/>
+                      </label>
+                      {draft.themeExtras[draft.theme].navMobileImageUrl && (
+                        <button type="button" className="text-xs text-red-700 underline"
+                          onClick={()=>{rememberSuperseded(draft.themeExtras[draft.theme].navMobileImageUrl,'');updateThemeExtra({navMobileImageUrl:''});}}>
+                          Remove mobile navbar image
+                        </button>
+                      )}
+                      <ImageCropControls title="Mobile navbar crop"
+                        value={draft.themeExtras[draft.theme].navMobileCrop}
+                        onChange={value => updateThemeCrop('navMobileCrop',value)}/>
                       <label className="block space-y-2 text-xs">
                         <span>Navbar photo visibility · {Math.round(draft.themeExtras[draft.theme].navImageOpacity*100)}%</span>
                         <input type="range" min="0" max="1" step=".05" className="w-full accent-stone-900"
@@ -792,9 +809,26 @@ export default function SiteEditor({
                               Clear footer artwork
                             </button>
                           )}
-                          <ImageCropControls title="Footer image position"
+                          <ImageCropControls title="Desktop footer crop"
                             value={draft.themeExtras[draft.theme].footerImageCrop}
                             onChange={value=>updateThemeCrop('footerImageCrop',value)}/>
+                          <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 border border-stone-300 p-3 text-xs">
+                            <UploadCloud className="h-4 w-4"/>
+                            {uploadingKey === 'theme-detail-footerMobileImageUrl' ? 'Uploading…' : 'Optional: upload mobile footer artwork'}
+                            <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
+                              disabled={Boolean(uploadingKey)} onChange={e=>{
+                                void uploadThemeDetail('footerMobileImageUrl',e.target.files?.[0]);e.target.value='';
+                              }}/>
+                          </label>
+                          {draft.themeExtras[draft.theme].footerMobileImageUrl && (
+                            <button type="button" className="text-xs text-red-700 underline"
+                              onClick={()=>{rememberSuperseded(draft.themeExtras[draft.theme].footerMobileImageUrl,'');updateThemeExtra({footerMobileImageUrl:''});}}>
+                              Remove mobile footer image
+                            </button>
+                          )}
+                          <ImageCropControls title="Mobile footer crop"
+                            value={draft.themeExtras[draft.theme].footerMobileCrop}
+                            onChange={value=>updateThemeCrop('footerMobileCrop',value)}/>
                         </div>
                       )}
                       {colour('Silhouette / floor colour', draft.themeExtras[draft.theme].footerSceneColor,
