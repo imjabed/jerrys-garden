@@ -59,7 +59,7 @@ test('Default keeps its product card while rendering a separately editable photo
   assert.match(html, /Featured piece/);
   assert.match(html, /jb-hero-with-image/);
   assert.match(html, /f_auto,q_auto/);
-  assert.match(html, /object-position:50% 25%/);
+  assert.match(html, /--jb-photo-crop-desktop:50% 25%/);
 });
 
 test('Parallax is independent of seasonal decoration and opt-in', () => {
