@@ -33,7 +33,7 @@ import {
   Tag
 } from 'lucide-react';
 import { Order, OrderStatus, RibbonBouquet, StoreSettings, UserAccount, Coupon } from '../types';
-import { PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS, DEFAULT_CUSTOM_SIZE_FLOWERS, validateCustomSizeFlowers } from '../../shared/productSizes';
+import { PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS, productSizeFor, discountPercent, DEFAULT_CUSTOM_SIZE_FLOWERS, validateCustomSizeFlowers } from '../../shared/productSizes';
 import CustomerInsights from './CustomerInsights';
 import ReviewModerationPanel from './ReviewModerationPanel';
 import { isCloudinaryUrl, uploadImageToCloudinary } from '../services/cloudinary';
@@ -410,7 +410,7 @@ export default function OwnerDashboard({
                             <p className="font-medium text-stone-800">
                               {order.orderType === 'Custom' && order.customDetails
                                 ? `${order.customDetails.occasion} · ${order.customDetails.flowerCount} flowers`
-                                : order.items.map(it => `${it.quantity}x ${it.bouquet.title}${it.selectedSize ? ' (' + PRODUCT_SIZE_LABELS[it.selectedSize] + ')' : ''}`).join(', ')}
+                                : order.items.map(it => `${it.quantity}x ${it.bouquet.title}${it.selectedSize ? ' (' + (productSizeFor(it.bouquet, it.selectedSize)?.name || PRODUCT_SIZE_LABELS[it.selectedSize]) + ')' : ''}`).join(', ')}
                             </p>
                             <p className="text-[10px] text-stone-400">
                               {order.items.reduce((sum, it) => sum + (it.bouquet.flowerCount * it.quantity), 0)} Items
@@ -518,17 +518,20 @@ export default function OwnerDashboard({
                           Cloudinary
                         </span>
                       )}
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${b.inStock ? 'bg-emerald-500 text-white' : 'bg-stone-500 text-white'}`}>
-                        {b.inStock ? 'In Stock' : 'Out of Stock'}
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${b.inStock && b.stockLeft !== 0 ? 'bg-emerald-500 text-white' : 'bg-stone-500 text-white'}`}>
+                        {b.inStock && b.stockLeft !== 0 ? 'In Stock' : 'Out of Stock'}
                       </span>
                     </div>
                   </div>
 
                   <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
                     <div>
-                      <span className="text-[10px] text-stone-400 uppercase font-bold">{b.category} • {b.flowerCount} Blooms</span>
+                      <span className="text-[10px] text-stone-400 uppercase font-bold">{b.category}{b.stockLeft !== undefined && ` · ${b.stockLeft} left`}</span>
                       <h4 className="font-serif font-bold text-stone-900 text-sm line-clamp-1">{b.title}</h4>
-                      <p className="text-xs font-bold text-stone-900 mt-1">₹{b.price} <span className="text-[10px] font-normal text-stone-400 line-through">₹{b.originalPrice}</span></p>
+                      <p className="text-xs font-bold text-stone-900 mt-1">₹{b.price} {discountPercent(b.price, b.originalPrice) > 0 && <>
+                        <span className="text-[10px] font-normal text-stone-400 line-through">₹{b.originalPrice}</span>
+                        <span className="ml-1 rounded bg-rose-100 px-1 py-0.5 text-[10px] text-rose-800">{discountPercent(b.price, b.originalPrice)}% off</span>
+                      </>}</p>
                       <p className="text-[11px] text-stone-500 line-clamp-2 mt-1">{b.description}</p>
                     </div>
 

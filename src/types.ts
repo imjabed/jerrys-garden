@@ -7,6 +7,8 @@ export interface RibbonBouquet {
   title: string;
   price: number;
   originalPrice?: number;
+  deliveryCost?: number;
+  stockLeft?: number;
   imageUrl: string;
   description: string;
   ribbonColors: string[];

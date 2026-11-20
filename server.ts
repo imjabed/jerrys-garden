@@ -8,7 +8,7 @@ import { estimateCustomBouquet, indiaDate, minimumWrappers } from './shared/cust
 import { isValidCustomDeliveryDate, isValidCustomPhone, isValidCustomEmail } from './shared/customOrderValidation.js';
 import { isServiceableCity, isValidOptionalDeliveryDate, SERVICE_CITY } from './shared/orderRules.js';
 import { customerReviewId, reviewerDisplayName, reviewInputError } from './shared/reviewRules.js';
-import { PRODUCT_SIZE_LABELS, PRODUCT_SIZE_KEYS, isProductSize, isBouquetCategory, isValidProductSizeOption, normalizeProductSizes, productSizeFor, customSizeMap, validateCustomSizeFlowers } from './shared/productSizes.js';
+import { PRODUCT_SIZE_LABELS, PRODUCT_SIZE_KEYS, isProductSize, hasProductSizes, productDeliveryTotal, isValidProductSizeOption, normalizeProductSizes, productSizeFor, customSizeMap, validateCustomSizeFlowers } from './shared/productSizes.js';
 import { DEFAULT_SITE_CONTENT, sanitizeSiteContent } from './shared/siteEditor.js';
 import type { SiteContent } from './shared/siteEditor.js';
 import {
@@ -302,9 +302,9 @@ async function resolveCouponItems(items: any[], database: any) {
     const product = await database.collection('products').findOne({ id: productId });
     if (product) {
       const size = item?.selectedSize || item?.bouquet?.selectedSize || 'M';
-      const variant = isBouquetCategory(String(product.category || ''))
+      const variant = hasProductSizes({ category: product.category, sizeOptions: product.sizeOptions })
         ? productSizeFor(product as any, size) : null;
-      if (isBouquetCategory(String(product.category || '')) && !variant) continue;
+      if (hasProductSizes({ category: product.category, sizeOptions: product.sizeOptions }) && !variant) continue;
       pricedItems.push({
         productId: String(product.id || productId), quantity,
         price: variant ? variant.price : Number(product.price || 0),
@@ -500,8 +500,9 @@ async function startServer() {
       const database = await getMongoDb();
       // Fail closed: don't delete when references cannot be verified.
       if (!database) return { status: 'failed', warning: 'Image cleanup could not check database references.' };
-      const imageRefs = await database.collection('products').find({}, { projection: { imageUrl: 1 } }).toArray();
-      if (imageRefs.some(doc => managedCloudinaryId(doc.imageUrl, folder) === publicId)) return { status: 'skipped' };
+      const imageRefs = await database.collection('products').find({}, { projection: { imageUrl: 1, 'sizeOptions.images': 1 } }).toArray();
+      if (imageRefs.some(doc => [doc.imageUrl, ...(doc.sizeOptions ?? []).flatMap((option: any) => option.images ?? [])]
+        .some(url => managedCloudinaryId(url, folder) === publicId))) return { status: 'skipped' };
       const currentSettings = await database.collection('settings').findOne({ key: 'store_settings' });
       if (managedCloudinaryId(currentSettings?.data?.logoUrl, folder) === publicId) return { status: 'skipped' };
       const siteContent = await database.collection('site_content').findOne({ key: 'homepage' });
@@ -993,8 +994,12 @@ async function startServer() {
       if (!bouquet || !bouquet.id || !bouquet.title || typeof bouquet.price !== 'number' || bouquet.price < 0) return res.status(400).json({ success: false, error: 'Valid bouquet data is required.' });
       const database = await getMongoDb();
       if (!database) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable.' });
-      const category = String(bouquet.category || '');
-      if (isBouquetCategory(category)) {
+      if ((bouquet.stockLeft !== undefined && (!Number.isSafeInteger(bouquet.stockLeft) || bouquet.stockLeft < 0))
+        || (bouquet.deliveryCost !== undefined && (!Number.isFinite(bouquet.deliveryCost) || bouquet.deliveryCost < 0
+          || Math.abs(bouquet.deliveryCost * 100 - Math.round(bouquet.deliveryCost * 100)) > 0.000001))) {
+        return res.status(400).json({ success: false, error: 'Enter a valid stock quantity and delivery cost.' });
+      }
+      if (hasProductSizes(bouquet)) {
         if (!Array.isArray(bouquet.sizeOptions) || bouquet.sizeOptions.length < 1
             || bouquet.sizeOptions.length > 4
             || bouquet.sizeOptions.some((option: unknown) => !isValidProductSizeOption(option))
@@ -1007,6 +1012,8 @@ async function startServer() {
         const first = bouquet.sizeOptions.find((option: any) => option.size === 'M' && option.available) || bouquet.sizeOptions.find((option: any) => option.available);
         bouquet.price = first.price;
         bouquet.flowerCount = first.flowerCount;
+        if (first.name) bouquet.originalPrice = first.originalPrice ?? null;
+        if (first.images?.length) bouquet.imageUrl = first.images[0];
       } else bouquet.sizeOptions = [];
       const previous = await database.collection('products').findOne({ id: bouquet.id });
       const saved = await mongoSaveBouquet(bouquet);
@@ -1428,6 +1435,7 @@ async function startServer() {
       if (!database) return res.status(503).json({ success: false, error: 'Orders are temporarily unavailable. Please try again in a moment.' });
       const normalizedItems: any[] = [];
       const quantityByVariant = new Map<string, number>();
+      const stockReservations = new Map<string, { quantity: number; updatedAt: string | undefined }>();
       for (const raw of rawItems) {
         const id = String(raw?.bouquet?.id || raw?.productId || '').trim();
         const quantity = Number(raw?.quantity);
@@ -1435,7 +1443,7 @@ async function startServer() {
         const product = await database.collection('products').findOne({ id });
         if (!product) return res.status(400).json({ success: false, error: 'A selected product is no longer available.' });
         if (product.inStock === false) return res.status(409).json({ success: false, error: `${product.title || 'A selected product'} is currently out of stock.` });
-        const bouquetProduct = isBouquetCategory(String(product.category || ''));
+        const bouquetProduct = hasProductSizes({ category: product.category, sizeOptions: product.sizeOptions });
         const selectedSize = raw.selectedSize || 'M';
         const variant = bouquetProduct ? productSizeFor(product as any, selectedSize) : null;
         if (bouquetProduct && !variant) {
@@ -1447,11 +1455,20 @@ async function startServer() {
           return res.status(400).json({ success: false, error: 'Maximum 20 pieces per product size per order.' });
         }
         quantityByVariant.set(cartKey, totalForVariant);
-        const itemSnapshot = variant ? { ...product, flowerCount: variant.flowerCount, price: variant.price } : product;
+        if (Number.isSafeInteger(product.stockLeft)) {
+          const requested = (stockReservations.get(id)?.quantity ?? 0) + quantity;
+          if (requested > product.stockLeft) {
+            return res.status(409).json({ success: false, error: `Only ${product.stockLeft} left in stock for ${product.title}.` });
+          }
+          stockReservations.set(id, { quantity: requested, updatedAt: product.updatedAt });
+        }
+        const itemSnapshot = variant ? {
+          ...product, flowerCount: variant.flowerCount, price: variant.price, imageUrl: variant.images?.[0] || product.imageUrl,
+        } : product;
         normalizedItems.push({ bouquet: itemSnapshot, quantity, selectedSize: variant?.size });
       }
       const subtotal = normalizedItems.reduce((sum, item) => sum + Number(item.bouquet.price || 0) * item.quantity, 0);
-      const deliveryFee = 0;
+      const deliveryFee = productDeliveryTotal(normalizedItems);
       const codHandlingCharge = 0;
       let discountAmount = 0;
       const couponCode = String(body.couponCode || '').trim().toUpperCase();
@@ -1465,7 +1482,7 @@ async function startServer() {
         discountAmount = calculateCouponDiscount(couponDoc, couponItems);
         if (discountAmount <= 0) return res.status(400).json({ success: false, error: 'This coupon does not apply to the selected products.' });
       }
-      const totalAmount = Math.max(0, subtotal - discountAmount);
+      const totalAmount = Math.round((Math.max(0, subtotal - discountAmount) + deliveryFee) * 100) / 100;
       const now = new Date().toISOString();
       const id = `ord-${crypto.randomUUID()}`;
       const orderNumber = `JB-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
@@ -1487,15 +1504,16 @@ async function startServer() {
           paidAt: '',
         },
       };
-      const saved = await mongoCreateOrder(order);
+      const saved = await mongoCreateOrder(order, stockReservations);
+      if (saved === false) return res.status(409).json({ success: false, error: 'Product stock or pricing changed. Refresh your bag and try again.' });
       if (!saved) return res.status(503).json({ success: false, error: 'Order could not be saved. Please try again.' });
       if (safeCustomer.email) {
         try {
-          const rows = normalizedItems.map((item: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${String(item.bouquet.title)}${item.selectedSize ? ' (' + PRODUCT_SIZE_LABELS[item.selectedSize as keyof typeof PRODUCT_SIZE_LABELS] + ', ' + item.bouquet.flowerCount + ' flowers)' : ''}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">₹${Number(item.bouquet.price) * item.quantity}</td></tr>`).join('');
+          const rows = normalizedItems.map((item: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${String(item.bouquet.title)}${item.selectedSize ? ' (' + (productSizeFor(item.bouquet, item.selectedSize)?.name || PRODUCT_SIZE_LABELS[item.selectedSize as keyof typeof PRODUCT_SIZE_LABELS]) + ', ' + item.bouquet.flowerCount + ' flowers)' : ''}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">₹${Number(item.bouquet.price) * item.quantity}</td></tr>`).join('');
           await sendEmailWithAgentMail({
             to: safeCustomer.email,
             subject: `Jame Bouquets — Order Placed ${order.orderNumber}`,
-            html: `<div style="font-family:Georgia,serif;max-width:640px;margin:auto;padding:28px;color:#292524"><h1>Jame Bouquets</h1><h2>Order Placed!</h2><p>Thank you for your order <strong>${order.orderNumber}</strong>.</p><p>Our team will contact you by phone to confirm your order and discuss payment. No payment is required on the website.</p><table style="width:100%"><tbody>${rows}</tbody></table><p>Products subtotal: ₹${subtotal}</p><p><strong>Phone:</strong> ${safeCustomer.phone}</p><p><strong>Delivery address:</strong> ${safeCustomer.deliveryAddress}, ${safeCustomer.city} - ${safeCustomer.pincode}</p></div>`,
+            html: `<div style="font-family:Georgia,serif;max-width:640px;margin:auto;padding:28px;color:#292524"><h1>Jame Bouquets</h1><h2>Order Placed!</h2><p>Thank you for your order <strong>${order.orderNumber}</strong>.</p><p>Our team will contact you by phone to confirm your order and discuss payment. No payment is required on the website.</p><table style="width:100%"><tbody>${rows}</tbody></table><p>Products subtotal: ₹${subtotal}</p><p>Delivery: ₹${deliveryFee} · Total: ₹${totalAmount}</p><p><strong>Phone:</strong> ${safeCustomer.phone}</p><p><strong>Delivery address:</strong> ${safeCustomer.deliveryAddress}, ${safeCustomer.city} - ${safeCustomer.pincode}</p></div>`,
           });
         } catch (emailErr) { console.error("[Jame Bouquets] Order confirmation email failed:", emailErr); }
       }

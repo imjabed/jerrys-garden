@@ -590,7 +590,10 @@ export async function mongoFindOrderForCustomer(orderNumber: string, customerEma
   return order;
 }
 
-export async function mongoCreateOrder(order: any) {
+export async function mongoCreateOrder(
+  order: any,
+  stockReservations = new Map<string, { quantity: number; updatedAt: string | undefined }>(),
+) {
   const database = await getMongoDb();
   if (!database) return null;
 
@@ -600,7 +603,30 @@ export async function mongoCreateOrder(order: any) {
     updatedAt: now,
   };
 
-  await database.collection('orders').updateOne({ id: order.id }, { $set: newOrder }, { upsert: true });
+  if (!stockReservations.size) {
+    await database.collection('orders').updateOne({ id: order.id }, { $set: newOrder }, { upsert: true });
+    return newOrder;
+  }
+
+  if (!client) return null;
+  const unavailable = new Error('Stock changed');
+  try {
+    await client.withSession(session => session.withTransaction(async () => {
+      for (const [id, { quantity, updatedAt }] of stockReservations) {
+        const product = await database.collection('products').findOneAndUpdate(
+          { id, inStock: { $ne: false }, stockLeft: { $gte: quantity }, updatedAt: updatedAt ?? { $exists: false } },
+          { $inc: { stockLeft: -quantity } },
+          { session, returnDocument: 'after' },
+        );
+        if (!product) throw unavailable;
+        await database.collection('bouquets').updateOne({ id }, { $set: { stockLeft: product.stockLeft } }, { session });
+      }
+      await database.collection('orders').insertOne(newOrder, { session });
+    }));
+  } catch (error) {
+    if (error === unavailable) return false;
+    throw error;
+  }
 
   return newOrder;
 }

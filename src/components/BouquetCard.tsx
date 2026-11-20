@@ -2,7 +2,7 @@ import { useState, type ChangeEvent } from 'react';
 import { ShoppingBag, Eye, Camera, Loader2, Cloud, Star } from 'lucide-react';
 import type { ReviewSummary } from '../services/api';
 import { RibbonBouquet } from '../types';
-import { isBouquetCategory, normalizeProductSizes } from '../../shared/productSizes';
+import { hasProductSizes, discountPercent, normalizeProductSizes } from '../../shared/productSizes';
 import { uploadImageToCloudinary, isCloudinaryUrl } from '../services/cloudinary';
 
 interface BouquetCardProps {
@@ -26,9 +26,13 @@ export default function BouquetCard({
   reviewSummary,
 }: BouquetCardProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const sizedOptions = isBouquetCategory(bouquet.category)
+  const sizedOptions = hasProductSizes(bouquet)
     ? normalizeProductSizes(bouquet).filter(option => option.available) : [];
-  const startingPrice = sizedOptions.length ? Math.min(...sizedOptions.map(v => v.price)) : bouquet.price;
+  const startingOption = sizedOptions.reduce<(typeof sizedOptions)[number] | undefined>(
+    (lowest, option) => !lowest || option.price < lowest.price ? option : lowest, undefined);
+  const startingPrice = startingOption?.price ?? bouquet.price;
+  const originalPrice = startingOption?.originalPrice ?? (!startingOption?.name && startingPrice === bouquet.price ? bouquet.originalPrice : undefined);
+  const discount = discountPercent(startingPrice, originalPrice);
   const [justUploaded, setJustUploaded] = useState(false);
 
   const handlePhotoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -99,7 +103,7 @@ export default function BouquetCard({
           )}
         </div>
 
-        {bouquet.inStock === false && (
+        {(bouquet.inStock === false || bouquet.stockLeft === 0) && (
           <div className="absolute inset-0 flex items-center justify-center bg-stone-950/30 z-10 pointer-events-none">
             <span className="bg-white/95 px-3 py-2 text-xs font-medium text-stone-900">Currently unavailable</span>
           </div>
@@ -180,13 +184,16 @@ export default function BouquetCard({
               <span className="text-sm sm:text-lg font-medium text-stone-900">
                 {sizedOptions.length > 1 ? 'From ' : ''}₹{startingPrice.toLocaleString('en-IN')}
               </span>
-              {bouquet.originalPrice && bouquet.originalPrice > bouquet.price && (
+              {originalPrice && originalPrice > startingPrice && (
                 <span className="hidden sm:inline text-xs text-stone-400 line-through">
-                  ₹{bouquet.originalPrice}
+                  ₹{originalPrice}
                 </span>
               )}
             </div>
-
+            <div className="mt-1 flex flex-wrap gap-1 text-[10px] font-semibold">
+              {discount > 0 && <span className="rounded bg-rose-100 px-1.5 py-0.5 text-rose-800">{discount}% off</span>}
+              {bouquet.deliveryCost === 0 && <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-800">Free Delivery</span>}
+            </div>
           </div>
 
           <a href={`/products/${encodeURIComponent(bouquet.id)}`}
