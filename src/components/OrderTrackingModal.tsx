@@ -1,4 +1,4 @@
-import { PRODUCT_SIZE_LABELS } from '../../shared/productSizes';
+import { PRODUCT_SIZE_LABELS, productSizeFor } from '../../shared/productSizes';
 import { useState, useEffect, type FormEvent } from 'react';
 import { X, Search, CheckCircle2, Clock, Truck, XCircle, PackageCheck, MapPin, Calendar, Phone, ArrowRight, MessageCircle } from 'lucide-react';
 import { Order, OrderStatus, StoreSettings, UserAccount } from '../types';
@@ -298,7 +298,7 @@ export default function OrderTrackingModal({
                         <p className="font-bold text-stone-900 truncate">{item.bouquet.title}</p>
                         <p className="text-stone-500 text-[11px]">
                           {selectedOrder.orderType === 'Custom' ? `${item.bouquet.flowerCount} custom flowers · Enquiry` :
-                            `${item.quantity} piece(s) · ${item.selectedSize ? PRODUCT_SIZE_LABELS[item.selectedSize] + ' · ' : ''}${item.bouquet.category.toLowerCase().includes('keychain') ? 'Handmade keepsake' : item.bouquet.flowerCount + ' handmade flowers'}`}
+                            `${item.quantity} piece(s) · ${item.selectedSize ? (productSizeFor(item.bouquet, item.selectedSize)?.name || PRODUCT_SIZE_LABELS[item.selectedSize]) + ' · ' : ''}${item.bouquet.category.toLowerCase().includes('keychain') ? 'Handmade keepsake' : item.bouquet.flowerCount + ' handmade flowers'}`}
                         </p>
                       </div>
                       <span className="font-bold text-stone-900 text-xs shrink-0">

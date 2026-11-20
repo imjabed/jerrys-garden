@@ -1,9 +1,11 @@
 import { useState, type FormEvent, type ChangeEvent } from 'react';
-import { X, Upload, Image as ImageIcon, Sparkles, Check, Trash2, Cloud, Loader2 } from 'lucide-react';
+import { X, Sparkles, Check, Loader2 } from 'lucide-react';
 import { RibbonBouquet } from '../types';
-import { PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS, normalizeProductSizes, isBouquetCategory } from '../../shared/productSizes';
+import { PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS, normalizeProductSizes, discountPercent, isValidProductSizeOption } from '../../shared/productSizes';
 import type { ProductSizeKey, ProductSizeOption } from '../../shared/productSizes';
-import { uploadImageToCloudinary, isCloudinaryUrl } from '../services/cloudinary';
+import { uploadImageToCloudinary } from '../services/cloudinary';
+
+const fieldClass = 'mt-1 block w-full rounded-lg border border-stone-300 bg-white px-3 py-2';
 
 interface BouquetEditorModalProps {
   isOpen: boolean;
@@ -23,23 +25,31 @@ export default function BouquetEditorModal({
   const [saveError, setSaveError] = useState('');
 
   const [title, setTitle] = useState(bouquetToEdit?.title || '');
-  const [price, setPrice] = useState(bouquetToEdit?.price?.toString() || '');
-  const [originalPrice, setOriginalPrice] = useState(bouquetToEdit?.originalPrice?.toString() || '');
-  const [imageUrl, setImageUrl] = useState(bouquetToEdit?.imageUrl || '');
+  const [stockLeft, setStockLeft] = useState(bouquetToEdit?.stockLeft?.toString() ?? '');
+  const [deliveryCost, setDeliveryCost] = useState(String(bouquetToEdit?.deliveryCost ?? 0));
   const [description, setDescription] = useState(bouquetToEdit?.description || '');
   const [ribbonColorsText, setRibbonColorsText] = useState(
     bouquetToEdit?.ribbonColors.join(', ') || ''
   );
-  const [flowerCount, setFlowerCount] = useState(bouquetToEdit?.flowerCount?.toString() || '1');
-  const [sizeRows, setSizeRows] = useState<Record<ProductSizeKey, { enabled: boolean; flowers: string; price: string }>>(() => {
+  const [sizeRows, setSizeRows] = useState(() => {
     const existing = bouquetToEdit ? normalizeProductSizes(bouquetToEdit) : [];
+    const cover = existing.find(row => row.available && row.size === 'M') ?? existing.find(row => row.available);
     return Object.fromEntries(PRODUCT_SIZE_KEYS.map(key => {
       const row = existing.find(v => v.size === key);
-      return [key, { enabled: Boolean(row?.available || (!bouquetToEdit && key === 'M')),
-        flowers: String(row?.flowerCount || (key === 'M' ? bouquetToEdit?.flowerCount || 1 : '')),
-        price: String(row?.price || (key === 'M' ? bouquetToEdit?.price || '' : '')) }];
-    })) as Record<ProductSizeKey, { enabled: boolean; flowers: string; price: string }>;
+      const legacyCover = row && row === cover;
+      const legacyOriginal = legacyCover && (bouquetToEdit?.originalPrice ?? 0) > row.price ? bouquetToEdit?.originalPrice : undefined;
+      return [key, {
+        enabled: row?.available ?? (!bouquetToEdit && key === 'S'),
+        name: row?.name ?? PRODUCT_SIZE_LABELS[key],
+        flowers: String(row?.flowerCount ?? ''),
+        price: String(row?.price ?? ''),
+        originalPrice: String(row?.originalPrice ?? legacyOriginal ?? ''),
+        images: row?.images?.length ? row.images : row && bouquetToEdit?.imageUrl ? [bouquetToEdit.imageUrl] : [],
+      }];
+    })) as Record<ProductSizeKey, { enabled: boolean; name: string; flowers: string; price: string; originalPrice: string; images: string[] }>;
   });
+  const updateRow = (key: ProductSizeKey, patch: Partial<typeof sizeRows[ProductSizeKey]>) =>
+    setSizeRows(previous => ({ ...previous, [key]: { ...previous[key], ...patch } }));
   const [category, setCategory] = useState<RibbonBouquet['category']>(bouquetToEdit?.category || 'Ribbon Bouquets');
   const [whatsInsideText, setWhatsInsideText] = useState((bouquetToEdit?.whatsInside || []).join('\n'));
   const [featured, setFeatured] = useState(bouquetToEdit?.featured ?? true);
@@ -51,33 +61,25 @@ export default function BouquetEditorModal({
 
   if (!isOpen) return null;
 
-  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setIsUploading(true);
-      setUploadError(null);
-      const res = await uploadImageToCloudinary(file);
-      setImageUrl(res.url);
-    } catch (err: any) {
-      console.error('Cloudinary upload error:', err);
-      setUploadError(err.message || 'Failed to upload photo to Cloudinary.');
-    } finally {
-      setIsUploading(false);
+  const handleFileUpload = async (key: ProductSizeKey, e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []) as File[];
+    e.target.value = '';
+    if (!files.length) return;
+    setUploadError(null);
+    if (sizeRows[key].images.length + files.length > 12) {
+      setUploadError('Choose up to 12 photos per category.');
+      return;
     }
-  };
-
-  const handleTransferToCloudinary = async () => {
-    if (!imageUrl || isCloudinaryUrl(imageUrl)) return;
+    setIsUploading(true);
     try {
-      setIsUploading(true);
-      setUploadError(null);
-      const res = await uploadImageToCloudinary(imageUrl);
-      setImageUrl(res.url);
+      for (const file of files) {
+        const { url } = await uploadImageToCloudinary(file);
+        setSizeRows(previous => ({ ...previous, [key]: {
+          ...previous[key], images: [...previous[key].images, url],
+        } }));
+      }
     } catch (err: any) {
-      console.error('Transfer to Cloudinary error:', err);
-      setUploadError(err.message || 'Failed to upload URL image to Cloudinary.');
+      setUploadError(err.message || 'Failed to upload photo.');
     } finally {
       setIsUploading(false);
     }
@@ -85,13 +87,14 @@ export default function BouquetEditorModal({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (isSaving) return;
+    if (isSaving || isUploading) return;
     setSaveError('');
-    if (!title || !price || !imageUrl) {
-      setSaveError('Please enter a product name, price, and a real product photo.');
+    if (!title.trim()) { setSaveError('Enter a product name.'); return; }
+    if ((stockLeft !== '' && (!Number.isSafeInteger(Number(stockLeft)) || Number(stockLeft) < 0))
+      || deliveryCost === '' || !Number.isFinite(Number(deliveryCost)) || Number(deliveryCost) < 0) {
+      setSaveError('Enter a valid stock quantity and delivery cost.');
       return;
     }
-
     if (description.trim().length < 12) { setSaveError('Add a product description of at least 12 characters.'); return; }
     const colors = ribbonColorsText
       .split(',')
@@ -99,32 +102,35 @@ export default function BouquetEditorModal({
       .filter(Boolean);
 
     const sizeOptions: ProductSizeOption[] = [];
-    if (isBouquetCategory(category)) {
-      for (const key of PRODUCT_SIZE_KEYS) {
-        const row = sizeRows[key];
-        if (!row.enabled) continue;
-        const count = Number(row.flowers);
-        const cost = Number(row.price || (key === 'M' ? price : ''));
-        if (!Number.isInteger(count) || count < 1 || count > 500 || !Number.isFinite(cost) || cost <= 0 || cost > 500000) {
-          setSaveError(`Enter a valid flower count (1–500) and price for ${PRODUCT_SIZE_LABELS[key]}.`);
-          return;
-        }
-        sizeOptions.push({ size: key, flowerCount: count, price: cost, available: true });
+    for (const size of PRODUCT_SIZE_KEYS) {
+      const row = sizeRows[size];
+      if (!row.enabled) continue;
+      const option = {
+        size, name: row.name.trim(), flowerCount: Number(row.flowers), price: Number(row.price),
+        originalPrice: row.originalPrice ? Number(row.originalPrice) : undefined,
+        images: row.images, available: true,
+      };
+      if (!isValidProductSizeOption(option) || !option.images.length) {
+        setSaveError(`Check the name, flower count, prices and photos for ${row.name || PRODUCT_SIZE_LABELS[size]}. A strikethrough price must exceed the selling price.`);
+        return;
       }
-      if (!sizeOptions.length) { setSaveError('Enable at least one bouquet size with a valid count and price.'); return; }
+      sizeOptions.push(option);
     }
     const defaultOption = sizeOptions.find(item => item.size === 'M') || sizeOptions[0];
+    if (!defaultOption) { setSaveError('Enable at least one product category.'); return; }
     const saved: RibbonBouquet = {
       id: bouquetToEdit?.id || `bouq-${Date.now()}`,
       title: title.trim(),
-      price: defaultOption ? defaultOption.price : Number(price),
-      originalPrice: originalPrice ? Number(originalPrice) : undefined,
-      imageUrl: imageUrl.trim(),
+      price: defaultOption.price,
+      originalPrice: defaultOption.originalPrice,
+      imageUrl: defaultOption.images![0],
+      deliveryCost: Number(deliveryCost),
+      stockLeft: stockLeft === '' || Number(stockLeft) === bouquetToEdit?.stockLeft ? undefined : Number(stockLeft),
       description: description.trim(),
       ribbonColors: colors.length > 0 ? colors : ['Custom Ribbon Colors'],
       ribbonMaterial: bouquetToEdit?.ribbonMaterial || 'Handcrafted',
-      flowerCount: defaultOption ? defaultOption.flowerCount : Number(flowerCount) || 1,
-      sizeOptions: isBouquetCategory(category) ? sizeOptions : [],
+      flowerCount: defaultOption.flowerCount,
+      sizeOptions,
       category: category.trim() || 'Other',
       whatsInside: whatsInsideText.split('\n').map(item => item.trim()).filter(Boolean),
       featured,
@@ -189,175 +195,57 @@ export default function BouquetEditorModal({
             />
           </div>
 
-          {/* Pricing Row */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-stone-700 mb-1">
-                Selling Price (₹) *
-              </label>
-              <input
-                type="number"
-                required
-                min="1"
-                placeholder="899"
-                value={price}
-                onChange={(e) => { setPrice(e.target.value); setSizeRows(prev => ({ ...prev, M: { ...prev.M, price: e.target.value } })); }}
-                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white font-bold text-stone-900"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-stone-700 mb-1">
-                Original Price (₹ strikethrough)
-              </label>
-              <input
-                type="number"
-                placeholder="1099"
-                value={originalPrice}
-                onChange={(e) => setOriginalPrice(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
-              />
-            </div>
-
-            <div className="col-span-2 sm:col-span-1">
-              <label className="block text-xs font-bold text-stone-700 mb-1">
-                Flowers / Pieces
-              </label>
-              <input
-                type="number"
-                min="1"
-                placeholder="18"
-                value={flowerCount}
-                onChange={(e) => setFlowerCount(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
-              />
-            </div>
+          <div className="grid grid-cols-2 gap-3">
+            <label>Stock Left
+              <input className={fieldClass} type="number" min="0" step="1" required={!isEditing}
+                placeholder="Quantity" value={stockLeft} onChange={event => setStockLeft(event.target.value)} />
+            </label>
+            <label>Delivery Cost (₹)
+              <input className={fieldClass} type="number" min="0" step="0.01" required
+                value={deliveryCost} onChange={event => setDeliveryCost(event.target.value)} />
+              {deliveryCost !== '' && Number(deliveryCost) === 0 && <span className="mt-1 block text-emerald-700">Free Delivery</span>}
+            </label>
           </div>
-
-          {isBouquetCategory(category) && (
-            <section className="space-y-3 border border-stone-200 bg-[#FAF8F5] p-4 sm:p-5" aria-label="Product size choices">
-              <h3 className="font-serif text-xl text-stone-900">Available sizes & prices</h3>
-              <p className="text-xs leading-5 text-stone-600">
-                Set how many flowers and the selling price for each size. Only enabled sizes are orderable.
-                Existing products initially retain their current price as Medium until you configure the others.
-              </p>
-              {PRODUCT_SIZE_KEYS.map(size => (
-                <div key={size} className="grid grid-cols-2 items-end gap-3 border-t border-stone-200 pt-3">
-                  <label className="col-span-2 flex items-center gap-2 text-xs font-medium text-stone-800">
-                    <input type="checkbox" checked={sizeRows[size].enabled} onChange={event =>
-                      setSizeRows(previous => ({ ...previous, [size]: { ...previous[size], enabled: event.target.checked } }))}/>
-                    {PRODUCT_SIZE_LABELS[size]} ({size})
-                  </label>
-                  <label className="text-[11px] text-stone-600">Flower count
-                    <input type="number" min="1" max="500" step="1" disabled={!sizeRows[size].enabled}
-                      required={sizeRows[size].enabled} value={sizeRows[size].flowers}
-                      onChange={event => setSizeRows(previous => ({...previous, [size]: { ...previous[size], flowers: event.target.value }}))}
-                      className="mt-1 w-full border border-stone-300 bg-white px-2 py-2 text-xs disabled:opacity-40"/>
-                  </label>
-                  <label className="text-[11px] text-stone-600">Price (₹)
-                    <input type="number" min="1" max="500000" step="1" disabled={!sizeRows[size].enabled}
-                      required={sizeRows[size].enabled} value={sizeRows[size].price}
-                      onChange={event => setSizeRows(previous => ({...previous, [size]: { ...previous[size], price: event.target.value }}))}
-                      className="mt-1 w-full border border-stone-300 bg-white px-2 py-2 text-xs disabled:opacity-40"/>
-                  </label>
-                </div>
-              ))}
-            </section>
-          )}
-
-          {/* Image Upload / URL */}
-          <div className="space-y-2 p-4 bg-stone-50 rounded-2xl border border-stone-200">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-stone-700">
-                Product Photo *
-              </label>
-              <span className="text-[10px] text-rose-600 font-medium flex items-center gap-1">
-                <Cloud className="w-3 h-3 text-sky-500" />
-                Cloudinary Storage
-              </span>
-            </div>
-            
-            <div className="flex gap-2">
-              <input
-                type="url"
-                placeholder="Paste image URL or upload photo below..."
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                className="flex-1 px-3 py-2 text-xs rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"
-              />
-              
-              <label className="px-3.5 py-2 rounded-xl bg-stone-900 hover:bg-black text-white font-medium text-xs flex items-center gap-1.5 cursor-pointer shrink-0 shadow-xs transition-colors">
-                <Upload className="w-3.5 h-3.5 text-stone-300" />
-                <span>{isUploading ? 'Uploading...' : 'Upload Photo'}</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  disabled={isUploading}
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </label>
-            </div>
-
-            {/* Upload progress & error notices */}
-            {isUploading && (
-              <div className="flex items-center gap-2 p-2 bg-sky-50 border border-sky-200 rounded-xl text-xs text-sky-800 animate-pulse">
-                <Loader2 className="w-4 h-4 animate-spin text-sky-600 shrink-0" />
-                <span>Uploading photo directly to Cloudinary...</span>
-              </div>
-            )}
-
-            {uploadError && (
-              <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
-                {uploadError}
-              </div>
-            )}
-
-            <p className="text-xs leading-5 text-stone-500">Use photographs of your actual handmade products. Stock images can misrepresent the finished item.</p>
-
-            {/* Live Image Preview */}
-            {imageUrl && (
-              <div className="mt-2.5 p-2.5 bg-white rounded-xl border border-stone-200 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={imageUrl}
-                    alt="Bouquet Preview"
-                    referrerPolicy="no-referrer"
-                    className="w-16 h-16 rounded-lg object-cover border border-stone-200 shadow-xs"
-                  />
-                  <div>
-                    <span className="text-[11px] text-emerald-700 font-semibold block">
-                      ✓ Exact Photo Loaded
-                    </span>
-                    {isCloudinaryUrl(imageUrl) ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200 mt-1 font-medium">
-                        <Cloud className="w-3 h-3 text-sky-500" />
-                        Saved in Cloudinary
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleTransferToCloudinary}
-                        disabled={isUploading}
-                        className="text-[10px] text-rose-600 hover:text-rose-700 underline font-medium mt-1 block cursor-pointer"
-                      >
-                        Transfer to Cloudinary Storage
-                      </button>
-                    )}
+          <section className="space-y-3 rounded-xl border border-stone-200 bg-stone-50 p-4" aria-label="Product categories">
+            <h3 className="font-serif text-xl text-stone-900">Product categories</h3>
+            {PRODUCT_SIZE_KEYS.map(size => {
+              const row = sizeRows[size];
+              const discount = discountPercent(Number(row.price), Number(row.originalPrice));
+              return <fieldset key={size} className="space-y-3 border-t border-stone-200 pt-3">
+                <label className="flex items-center gap-2 font-medium">
+                  <input type="checkbox" checked={row.enabled} onChange={event => updateRow(size, { enabled: event.target.checked })} />
+                  {row.name || PRODUCT_SIZE_LABELS[size]}
+                </label>
+                {row.enabled && <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label>Category name<input className={fieldClass} required maxLength={60} value={row.name}
+                      onChange={event => updateRow(size, { name: event.target.value })} /></label>
+                    <label>Flower count<input className={fieldClass} type="number" required min="1" max="500"
+                      value={row.flowers} onChange={event => updateRow(size, { flowers: event.target.value })} /></label>
+                    <label>Selling Price (₹)<input className={fieldClass} type="number" required min="0.01" max="500000" step="0.01"
+                      value={row.price} onChange={event => updateRow(size, { price: event.target.value })} /></label>
+                    <label>Strikethrough Price (₹)<input className={fieldClass} type="number" min="0.01" max="500000" step="0.01"
+                      value={row.originalPrice} onChange={event => updateRow(size, { originalPrice: event.target.value })} /></label>
                   </div>
-                </div>
-
-                <a
-                  href={imageUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] text-stone-500 hover:text-stone-800 underline shrink-0"
-                >
-                  View Full Image
-                </a>
-              </div>
-            )}
-          </div>
+                  {discount > 0 && <p className="rounded bg-rose-100 px-3 py-1.5 font-medium text-rose-800">{discount}% off</p>}
+                  <div className="flex flex-wrap gap-2">
+                    {row.images.map((url, index) => <div key={index} className="relative">
+                      <img src={url} alt={`${row.name} photo ${index + 1}`} className="h-16 w-16 rounded object-cover" />
+                      <button type="button" disabled={isUploading} aria-label={`Remove photo ${index + 1}`}
+                        onClick={() => updateRow(size, { images: row.images.filter((_, i) => i !== index) })}
+                        className="absolute right-0 top-0 rounded bg-white p-1 text-stone-800"><X className="h-3 w-3" /></button>
+                    </div>)}
+                  </div>
+                  <label className="block font-medium">{row.name} photos
+                    <input className="mt-1 block w-full" type="file" accept="image/*" multiple disabled={isUploading}
+                      onChange={event => void handleFileUpload(size, event)} />
+                  </label>
+                </>}
+              </fieldset>;
+            })}
+            {isUploading && <p role="status">Uploading photos…</p>}
+            {uploadError && <p role="alert" className="text-red-700">{uploadError}</p>}
+          </section>
 
           {/* Description */}
           <div>
@@ -424,7 +312,7 @@ export default function BouquetEditorModal({
                 className="rounded text-rose-600 focus:ring-rose-500 w-4 h-4"
               />
               <label htmlFor="inStockCheck" className="text-xs font-bold text-stone-700 cursor-pointer">
-                In Stock & Available
+                {inStock ? 'In Stock' : 'Out of Stock'}
               </label>
             </div>
 

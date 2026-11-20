@@ -1,3 +1,4 @@
+import { productDeliveryTotal } from '../../shared/productSizes';
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, CheckCircle2, X } from 'lucide-react';
 import { CartItem, CustomerDetails, Order, StoreSettings, UserAccount } from '../types';
@@ -41,6 +42,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
   const cartKey = cartItems.map(item => `${item.bouquet.id}:${item.selectedSize || 'ONE'}:${item.quantity}`).join('|');
   const couponIsCurrent = Boolean(appliedCoupon && appliedCoupon.email === customer.email.trim().toLowerCase() && appliedCoupon.items === cartKey);
   const validCoupon = couponIsCurrent ? appliedCoupon : null;
+  const deliveryFee = productDeliveryTotal(cartItems);
   const discount = validCoupon?.discount || 0;
   const update = (key: keyof CustomerDetails, value: string) => {
     setCustomer(prev => ({ ...prev, [key]: value }));
@@ -91,7 +93,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
         id: '', orderNumber: '', createdAt: now, updatedAt: now,
         status: 'Order Placed', items: cartItems, subtotal,
         couponCode: validCoupon?.code,
-        deliveryFee: 0, codHandlingCharge: 0, totalAmount: subtotal,
+        deliveryFee, codHandlingCharge: 0, totalAmount: Math.max(0, subtotal - discount) + deliveryFee,
         customer, payment: { method: 'CONTACT_LATER', paymentStatus: 'Not Required', paidAt: '' },
       });
       setSubmittedOrder(saved);
@@ -170,8 +172,9 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
               <span>{cartItems.reduce((n, item) => n + item.quantity, 0)} item(s) · Product subtotal</span>
               <span className="font-medium text-stone-900">₹{subtotal.toLocaleString('en-IN')}</span>
             </div>
+            <div className="mt-2 flex justify-between text-sm text-stone-700"><span>Delivery</span><span>{deliveryFee === 0 ? 'Free Delivery' : `₹${deliveryFee.toLocaleString('en-IN')}`}</span></div>
             {validCoupon && <div className="mt-2 flex justify-between text-sm text-emerald-800"><span>Offer discount</span><span>−₹{discount.toLocaleString('en-IN')}</span></div>}
-            <div className="mt-2 flex justify-between text-sm font-medium text-stone-900"><span>Estimated product total</span><span>₹{Math.max(0, subtotal - discount).toLocaleString('en-IN')}</span></div>
+            <div className="mt-2 flex justify-between text-sm font-medium text-stone-900"><span>Estimated total</span><span>₹{(Math.max(0, subtotal - discount) + deliveryFee).toLocaleString('en-IN')}</span></div>
             <p className="mt-2 text-[11px] leading-5 text-stone-500">No payment is taken online. Our team confirms your order, delivery and final amount before proceeding.</p>
             {error && <p role="alert" className="mt-4 text-sm text-red-700">{error}</p>}
             <button disabled={busy} type="submit" className="mt-7 flex w-full items-center justify-center gap-2 bg-stone-900 px-6 py-4 text-xs uppercase tracking-widest text-white transition hover:bg-stone-700 disabled:opacity-60">

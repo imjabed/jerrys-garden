@@ -1,4 +1,4 @@
-import { PRODUCT_SIZE_LABELS } from '../../shared/productSizes';
+import { PRODUCT_SIZE_LABELS, productSizeFor } from '../../shared/productSizes';
 import { X, Phone, Mail, MapPin, Calendar, Clock, QrCode, CheckCircle2, XCircle, AlertCircle, MessageCircle, ExternalLink, Printer, Banknote } from 'lucide-react';
 import { Order, OrderStatus } from '../types';
 
@@ -232,7 +232,7 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus }: Or
                     <div>
                       <h4 className="font-bold text-stone-900">{item.bouquet.title}</h4>
                       <p className="text-[11px] text-stone-500">
-                        Qty: <strong className="text-stone-800">{item.quantity}</strong> × ₹{item.bouquet.price} • {item.selectedSize ? PRODUCT_SIZE_LABELS[item.selectedSize] + ' · ' : ''}{item.bouquet.flowerCount} Pieces
+                        Qty: <strong className="text-stone-800">{item.quantity}</strong> × ₹{item.bouquet.price} • {item.selectedSize ? (productSizeFor(item.bouquet, item.selectedSize)?.name || PRODUCT_SIZE_LABELS[item.selectedSize]) + ' · ' : ''}{item.bouquet.flowerCount} flowers
                       </p>
                     </div>
                   </div>
@@ -250,6 +250,11 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus }: Or
                 ? `₹${order.customDetails.estimatedMin.toLocaleString('en-IN')} – ₹${order.customDetails.estimatedMax.toLocaleString('en-IN')}`
                 : `₹${order.subtotal}`}</strong>
             </div>
+            {order.orderType !== 'Custom' && <>
+              <div className="mt-2 flex justify-between text-sm"><span>Delivery</span><strong>{order.deliveryFee ? `₹${order.deliveryFee}` : 'Free Delivery'}</strong></div>
+              {Boolean(order.discountAmount) && <div className="mt-2 flex justify-between text-sm"><span>Offer discount</span><strong>−₹{order.discountAmount}</strong></div>}
+              <div className="mt-2 flex justify-between text-sm"><span>Total</span><strong>₹{order.totalAmount}</strong></div>
+            </>}
           </div>
 
         </div>

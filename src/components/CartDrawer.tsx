@@ -1,6 +1,6 @@
 import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck } from 'lucide-react';
 import { CartItem } from '../types';
-import { PRODUCT_SIZE_LABELS } from '../../shared/productSizes';
+import { PRODUCT_SIZE_LABELS, productSizeFor, productDeliveryTotal } from '../../shared/productSizes';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -9,8 +9,6 @@ interface CartDrawerProps {
   onUpdateQuantity: (index: number, newQty: number) => void;
   onRemoveItem: (index: number) => void;
   onCheckout: () => void;
-  deliveryFee: number;
-  freeDeliveryThreshold: number;
 }
 
 export default function CartDrawer({
@@ -20,16 +18,11 @@ export default function CartDrawer({
   onUpdateQuantity,
   onRemoveItem,
   onCheckout,
-  deliveryFee,
-  freeDeliveryThreshold,
 }: CartDrawerProps) {
   if (!isOpen) return null;
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.bouquet.price * item.quantity, 0);
-  const isFreeDelivery = subtotal >= freeDeliveryThreshold;
-  const finalDeliveryFee = subtotal === 0 || isFreeDelivery ? 0 : deliveryFee;
-  const total = subtotal;
-  const remainingForFreeDelivery = Math.max(0, freeDeliveryThreshold - subtotal);
+  const deliveryFee = productDeliveryTotal(cartItems);
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden animate-in fade-in duration-200">
@@ -112,7 +105,7 @@ export default function CartDrawer({
 
                       {/* Price & Flower Count */}
                       <p className="text-[11px] text-stone-500 mt-0.5">
-                        {item.selectedSize && !item.bouquet.category.toLowerCase().includes('keychain') ? `${PRODUCT_SIZE_LABELS[item.selectedSize]} · ${item.bouquet.flowerCount} flowers` : item.bouquet.category.toLowerCase().includes('keychain') ? 'Handmade keepsake' : `${item.bouquet.flowerCount} handmade flowers`}
+                        {item.selectedSize ? `${productSizeFor(item.bouquet, item.selectedSize)?.name || PRODUCT_SIZE_LABELS[item.selectedSize]} · ${item.bouquet.flowerCount} flowers` : item.bouquet.category.toLowerCase().includes('keychain') ? 'Handmade keepsake' : `${item.bouquet.flowerCount} handmade flowers`}
                       </p>
                     </div>
 
@@ -153,6 +146,9 @@ export default function CartDrawer({
             <div className="p-6 border-t border-stone-200 bg-white space-y-4">
               <div className="flex justify-between text-sm text-stone-800">
                 <span>Products subtotal</span><strong>₹{subtotal}</strong>
+              </div>
+              <div className="flex justify-between text-sm text-stone-800">
+                <span>Delivery</span><strong>{deliveryFee === 0 ? 'Free Delivery' : `₹${deliveryFee}`}</strong>
               </div>
               <p className="text-xs text-stone-500">No payment now. We'll call to confirm your order.</p>
               <button

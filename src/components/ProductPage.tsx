@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, ChevronRight, Heart, Minus, Plus, ShoppingBag, Star } from 'lucide-react';
 import type { RibbonBouquet } from '../types';
 import type { ProductSizeKey } from '../../shared/productSizes';
-import { PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS, isBouquetCategory, normalizeProductSizes, productSizeFor } from '../../shared/productSizes';
+import { PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS, hasProductSizes, discountPercent, normalizeProductSizes, productSizeFor } from '../../shared/productSizes';
 import ProductReviews from './ProductReviews';
 import type { ReviewSummary } from '../services/api';
 
@@ -24,11 +24,12 @@ export default function ProductPage({
   onSelectProduct, onBackToShop, onAddToCart, onBuyNow, onSignIn, onReviewSubmitted,
 }: Props) {
   const options = useMemo(() => normalizeProductSizes(product), [product]);
-  const isBouquet = isBouquetCategory(product.category);
+  const isBouquet = hasProductSizes(product);
   const [selectedSize, setSelectedSize] = useState<ProductSizeKey>('M');
   const [quantity, setQuantity] = useState(1);
   const [notice, setNotice] = useState('');
   const [showFullImage, setShowFullImage] = useState(false);
+  const [photoIndex, setPhotoIndex] = useState(0);
 
   useEffect(() => {
     const first = options.find(x => x.size === 'M' && x.available) || options.find(x => x.available);
@@ -36,12 +37,19 @@ export default function ProductPage({
     setQuantity(1);
     setNotice('');
     setShowFullImage(false);
+    setPhotoIndex(0);
   }, [product.id]);
 
   const chosen = productSizeFor(product, selectedSize);
   const chosenPrice = isBouquet ? chosen?.price : product.price;
-  const chosenFlowers = isBouquet ? chosen?.flowerCount : product.flowerCount;
-  const canBuy = product.inStock !== false && (!isBouquet || Boolean(chosen));
+  const originalPrice = isBouquet
+    ? chosen?.originalPrice ?? (chosen?.price === product.price && !chosen?.name ? product.originalPrice : undefined)
+    : product.originalPrice;
+  const discount = discountPercent(chosenPrice ?? 0, originalPrice);
+  const photos = chosen?.images?.length ? chosen.images : product.imageUrl ? [product.imageUrl] : [];
+  const photo = photos[photoIndex] ?? photos[0];
+  const maxQuantity = Math.min(20, product.stockLeft ?? 20);
+  const canBuy = product.inStock !== false && maxQuantity > 0 && (!isBouquet || Boolean(chosen));
   const rating = reviewSummaries[product.id];
   const recommendations = useMemo(() => {
     const viewed = recentlyViewed.filter(id => id !== product.id);
@@ -62,10 +70,11 @@ export default function ProductPage({
   const add = (immediate: boolean) => {
     if (!canBuy) return;
     const size = isBouquet ? selectedSize : undefined;
-    if (immediate) onBuyNow(product, quantity, size);
+    const requestedQuantity = Math.min(quantity, maxQuantity);
+    if (immediate) onBuyNow(product, requestedQuantity, size);
     else {
-      onAddToCart(product, quantity, size);
-      setNotice(`${quantity} ${quantity === 1 ? 'piece' : 'pieces'} added to your bag.`);
+      onAddToCart(product, requestedQuantity, size);
+      setNotice(`${requestedQuantity} ${requestedQuantity === 1 ? 'piece' : 'pieces'} added to your bag.`);
     }
   };
 
@@ -84,14 +93,20 @@ export default function ProductPage({
             <button type="button" onClick={() => setShowFullImage(v => !v)}
               className="relative flex w-full items-center justify-center overflow-hidden border border-stone-200 bg-[#EEEAE5]"
               aria-label={showFullImage ? 'Fit product photo' : 'Enlarge product photo'}>
-              {product.imageUrl ? <img src={product.imageUrl} alt={product.title}
+              {photo ? <img src={photo} alt={product.title}
                 className={`w-full object-contain transition-all duration-300 ${showFullImage ? 'max-h-[80vh]' : 'aspect-[4/5] max-h-[650px]'}`}/>
                 : <div className="flex aspect-[4/5] w-full items-center justify-center font-serif text-xl text-stone-400">Photograph unavailable</div>}
               <span className="absolute bottom-4 right-4 border border-stone-200 bg-white/90 px-3 py-2 text-[11px] text-stone-800">
                 {showFullImage ? 'Fit image' : 'View larger'}
               </span>
             </button>
-            <p className="mt-3 text-xs text-stone-500">Handmade in Berhampore · Photo represents the featured arrangement</p>
+            {photos.length > 1 && <div className="mt-3 flex flex-wrap gap-2" aria-label="Category photos">
+              {photos.map((url, index) => <button key={index} type="button" aria-label={`View photo ${index + 1}`}
+                aria-pressed={photoIndex === index} onClick={() => { setPhotoIndex(index); setShowFullImage(false); }}
+                className={`border-2 ${photoIndex === index ? 'border-stone-900' : 'border-transparent'}`}>
+                <img src={url} alt="" className="h-14 w-14 object-cover" />
+              </button>)}
+            </div>}
           </div>
 
           <div className="min-w-0">
@@ -107,27 +122,31 @@ export default function ProductPage({
             </div>}
             <p className="mt-5 border-b border-stone-200 pb-5 text-3xl font-medium">
               {chosenPrice ? `₹${chosenPrice.toLocaleString('en-IN')}` : 'Select a size'}
-              {!isBouquet && product.originalPrice && product.originalPrice > product.price && (
-                <span className="ml-3 text-base font-normal text-stone-400 line-through">₹{product.originalPrice.toLocaleString('en-IN')}</span>
+              {originalPrice && originalPrice > (chosenPrice ?? 0) && chosenPrice && (
+                <span className="ml-3 text-base font-normal text-stone-400 line-through">₹{originalPrice.toLocaleString('en-IN')}</span>
               )}
             </p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+              {discount > 0 && <span className="rounded bg-rose-100 px-3 py-1.5 text-rose-800">{discount}% off</span>}
+              {product.deliveryCost === 0 && <span className="rounded bg-emerald-100 px-3 py-1.5 text-emerald-800">Free Delivery</span>}
+              {(product.deliveryCost ?? 0) > 0 && <span className="px-3 py-1.5">₹{product.deliveryCost} delivery per piece</span>}
+            </div>
             <p className="mt-6 text-sm leading-7 text-stone-700">{product.description}</p>
 
             {isBouquet && (
               <section className="mt-8" aria-label="Bouquet size selection">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h2 className="text-sm font-semibold text-stone-900">Choose your size</h2>
-                  {chosen && <span className="text-xs text-stone-600">{chosen.flowerCount} handmade flowers</span>}
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {PRODUCT_SIZE_KEYS.map(key => {
                     const option = options.find(x => x.size === key && x.available);
                     const chosenKey = selectedSize === key && Boolean(option);
                     return <button key={key} type="button" disabled={!option || product.inStock === false}
-                      onClick={() => setSelectedSize(key)}
+                      onClick={() => { setSelectedSize(key); setPhotoIndex(0); setShowFullImage(false); }}
                       aria-pressed={chosenKey}
                       className={`min-h-[94px] border p-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-stone-800 ${chosenKey ? 'border-stone-900 bg-stone-900 text-white' : option ? 'border-stone-300 bg-white text-stone-900 hover:border-stone-900' : 'border-stone-200 bg-stone-100 text-stone-400 cursor-not-allowed'}`}>
-                      <span className="block text-xs font-semibold">{PRODUCT_SIZE_LABELS[key]}</span>
+                      <span className="block text-xs font-semibold">{option?.name || PRODUCT_SIZE_LABELS[key]}</span>
                       <span className="mt-1.5 block text-[11px]">{option ? `${option.flowerCount} flowers` : 'Not available'}</span>
                       {option && <span className="mt-2 block text-xs font-medium">₹{option.price.toLocaleString('en-IN')}</span>}
                     </button>;
@@ -145,8 +164,8 @@ export default function ProductPage({
               <div className="flex items-center border border-stone-300 bg-white">
                 <button type="button" disabled={quantity <= 1} onClick={() => setQuantity(v => Math.max(1, v - 1))}
                   aria-label="Decrease quantity" className="p-3 disabled:opacity-30"><Minus className="h-4 w-4"/></button>
-                <span className="w-10 text-center text-sm font-semibold" aria-live="polite">{quantity}</span>
-                <button type="button" disabled={quantity >= 20} onClick={() => setQuantity(v => Math.min(20, v + 1))}
+                <span className="w-10 text-center text-sm font-semibold" aria-live="polite">{Math.min(quantity, Math.max(1, maxQuantity))}</span>
+                <button type="button" disabled={quantity >= maxQuantity} onClick={() => setQuantity(v => Math.min(maxQuantity, v + 1))}
                   aria-label="Increase quantity" className="p-3 disabled:opacity-30"><Plus className="h-4 w-4"/></button>
               </div>
               <span className="text-sm text-stone-600">Total <strong className="text-stone-900">₹{((chosenPrice || 0) * quantity).toLocaleString('en-IN')}</strong></span>
@@ -155,7 +174,7 @@ export default function ProductPage({
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <button type="button" onClick={() => add(true)} disabled={!canBuy}
                 className="flex min-h-13 items-center justify-center gap-2 bg-stone-900 px-6 py-4 text-xs font-semibold uppercase tracking-[0.13em] text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-stone-300">
-                {product.inStock === false ? 'Unavailable' : 'Order this piece'} <ArrowRight className="h-4 w-4"/>
+                {!canBuy ? 'Unavailable' : 'Order this piece'} <ArrowRight className="h-4 w-4"/>
               </button>
               <button type="button" onClick={() => add(false)} disabled={!canBuy}
                 className="flex min-h-13 items-center justify-center gap-2 border border-stone-900 px-6 py-4 text-xs font-semibold uppercase tracking-[0.13em] hover:bg-stone-100 disabled:opacity-40">
@@ -199,7 +218,7 @@ export default function ProductPage({
             </p>
             <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">
               {recommendations.map(item => {
-                const variants = isBouquetCategory(item.category) ? normalizeProductSizes(item).filter(v => v.available) : [];
+                const variants = hasProductSizes(item) ? normalizeProductSizes(item).filter(v => v.available) : [];
                 const minimum = variants.length ? Math.min(...variants.map(v => v.price)) : item.price;
                 const summary = reviewSummaries[item.id];
                 return <button key={item.id} type="button" onClick={() => onSelectProduct(item.id)}

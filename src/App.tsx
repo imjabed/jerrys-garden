@@ -50,7 +50,7 @@ import ThemeBanner from './components/ThemeBanner';
 import RichText from './components/RichText';
 import BouquetCard from './components/BouquetCard';
 import ProductPage from './components/ProductPage';
-import { PRODUCT_SIZE_LABELS, normalizeProductSizes, productSizeFor, isBouquetCategory } from '../shared/productSizes';
+import { PRODUCT_SIZE_LABELS, normalizeProductSizes, productSizeFor, hasProductSizes } from '../shared/productSizes';
 import type { ProductSizeKey } from '../shared/productSizes';
 import CartDrawer from './components/CartDrawer';
 import CheckoutModal from './components/CheckoutModal';
@@ -285,16 +285,22 @@ export default function App() {
 
   // Cart operations
   const handleAddToCart = (bouquet: RibbonBouquet, quantity = 1, selectedSize?: ProductSizeKey) => {
-    const needsSize = isBouquetCategory(bouquet.category);
+    const needsSize = hasProductSizes(bouquet);
     const size = needsSize ? selectedSize || normalizeProductSizes(bouquet).find(v => v.available)?.size : undefined;
     const variant = needsSize ? productSizeFor(bouquet, size) : null;
     if (needsSize && !variant) { showToast('Select an available size for this product.'); return; }
-    const chosenBouquet = variant ? { ...bouquet, price: variant.price, flowerCount: variant.flowerCount } : bouquet;
-    if (bouquet.inStock === false) { showToast('This piece is currently unavailable.'); return; }
+    const chosenBouquet = variant ? { ...bouquet, price: variant.price, flowerCount: variant.flowerCount, imageUrl: variant.images?.[0] || bouquet.imageUrl } : bouquet;
+    if (bouquet.inStock === false || bouquet.stockLeft === 0) { showToast('This piece is currently unavailable.'); return; }
     const existingIndex = cart.findIndex(item => item.bouquet.id === bouquet.id && item.selectedSize === size);
     const alreadyInBag = existingIndex >= 0 ? cart[existingIndex].quantity : 0;
     if (!Number.isInteger(quantity) || quantity < 1 || alreadyInBag + quantity > 20) {
       showToast('Maximum 20 pieces of each product per order.');
+      return;
+    }
+
+    const productQuantity = cart.reduce((sum, item) => sum + (item.bouquet.id === bouquet.id ? item.quantity : 0), 0);
+    if (bouquet.stockLeft !== undefined && productQuantity + quantity > bouquet.stockLeft) {
+      showToast(`Only ${bouquet.stockLeft} left in stock.`);
       return;
     }
 
@@ -323,6 +329,12 @@ export default function App() {
       return;
     }
     if (newQty > 20) { showToast('Maximum 20 pieces per product.'); return; }
+    const product = cart[index].bouquet;
+    const otherQuantity = cart.reduce((sum, item, i) => sum + (i !== index && item.bouquet.id === product.id ? item.quantity : 0), 0);
+    if (product.stockLeft !== undefined && newQty + otherQuantity > product.stockLeft) {
+      showToast(`Only ${product.stockLeft} left in stock.`);
+      return;
+    }
     const updated = cart.map((item, i) => i === index ? { ...item, quantity: newQty } : item);
     updateCart(updated);
   };
@@ -335,12 +347,12 @@ export default function App() {
 
   // Quick Buy (add & open checkout immediately)
   const handleQuickBuy = (bouquet: RibbonBouquet, quantity = 1, selectedSize?: ProductSizeKey) => {
-    if (bouquet.inStock === false) { showToast('This piece is currently unavailable.'); return; }
-    const needsSize = isBouquetCategory(bouquet.category);
+    if (bouquet.inStock === false || bouquet.stockLeft === 0) { showToast('This piece is currently unavailable.'); return; }
+    const needsSize = hasProductSizes(bouquet);
     const size = needsSize ? selectedSize || normalizeProductSizes(bouquet).find(v => v.available)?.size : undefined;
     const variant = needsSize ? productSizeFor(bouquet, size) : null;
     if (needsSize && !variant) { showToast('Select an available size first.'); return; }
-    const selectedProduct = variant ? { ...bouquet, price: variant.price, flowerCount: variant.flowerCount } : bouquet;
+    const selectedProduct = variant ? { ...bouquet, price: variant.price, flowerCount: variant.flowerCount, imageUrl: variant.images?.[0] || bouquet.imageUrl } : bouquet;
     setDirectBuyItems([{ bouquet: selectedProduct, quantity, selectedSize: size }]);
     setCheckoutModalOpen(true);
   };
@@ -371,6 +383,7 @@ export default function App() {
   const handleSaveBouquet = async (saved: RibbonBouquet) => {
     const outcome = await apiSaveBouquet(saved);
     if (!outcome.success) { showToast(outcome.error || 'Could not save bouquet. Please try again.'); return false; }
+    saved = outcome.bouquet ?? saved;
     setBouquets((current) => { const i = current.findIndex(b => b.id === saved.id); if (i < 0) return [saved, ...current]; const next = [...current]; next[i] = saved; return next; });
     showToast(outcome.cleanupWarning || `Bouquet "${saved.title}" saved to catalog!`);
     return true;
@@ -387,11 +400,19 @@ export default function App() {
   const handleUpdateBouquetImage = async (bouquetId: string, newImageUrl: string) => {
     const current = bouquets.find((b) => b.id === bouquetId);
     if (!current) return;
-    const updatedBouquet = { ...current, imageUrl: newImageUrl };
+    const enabled = current.sizeOptions?.filter(option => option.available);
+    const cover = enabled?.find(option => option.size === 'M') ?? enabled?.[0];
+    const updatedBouquet = {
+      ...current, imageUrl: newImageUrl, stockLeft: undefined,
+      sizeOptions: current.sizeOptions?.map(option => option === cover
+        ? { ...option, images: [newImageUrl, ...(option.images?.slice(1) ?? [])] } : option),
+    };
     const outcome = await apiSaveBouquet(updatedBouquet);
     if (!outcome.success) { showToast(outcome.error || 'Could not save bouquet image. Please try again.'); return; }
-    setBouquets((items) => items.map((b) => b.id === bouquetId ? updatedBouquet : b));
-    updateCart(cart.map((item) => item.bouquet.id === bouquetId ? { ...item, bouquet: updatedBouquet } : item));
+    setBouquets((items) => items.map((b) => b.id === bouquetId ? outcome.bouquet ?? updatedBouquet : b));
+    updateCart(cart.map((item) => item.bouquet.id === bouquetId ? { ...item, bouquet: {
+      ...item.bouquet, imageUrl: productSizeFor(updatedBouquet, item.selectedSize)?.images?.[0] || newImageUrl,
+    } } : item));
     // Product page displays the updated catalog record.
     showToast(outcome.cleanupWarning || 'Photo updated successfully.');
   };
@@ -849,8 +870,6 @@ export default function App() {
             setDirectBuyItems(null);
             setCheckoutModalOpen(true);
           }}
-          deliveryFee={storeSettings.deliveryFee}
-          freeDeliveryThreshold={storeSettings.freeDeliveryThreshold}
         />
       )}
 

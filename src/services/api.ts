@@ -304,13 +304,14 @@ export async function apiModerateReview(id: string, status: ReviewModerationStat
 export interface ProductMutationResponse {
   success: boolean;
   cleanupWarning?: string;
+  bouquet?: RibbonBouquet;
   error?: string;
 }
 export async function apiSaveBouquet(bouquet: RibbonBouquet): Promise<ProductMutationResponse> {
   try {
     const res = await fetch(`${API_URL}/api/bouquets`, { method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify(bouquet) });
     const data = await res.json().catch(() => ({}));
-    return { success: Boolean(res.ok && data.success), cleanupWarning: data.cleanupWarning, error: data.error };
+    return { success: Boolean(res.ok && data.success), bouquet: normalizeCatalogProducts([data.bouquet])[0], cleanupWarning: data.cleanupWarning, error: data.error };
   } catch (err: any) { return { success: false, error: err?.message || 'Unable to save product.' }; }
 }
 
