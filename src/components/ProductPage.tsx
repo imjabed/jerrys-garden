@@ -4,6 +4,7 @@ import type { RibbonBouquet } from '../types';
 import type { ProductSizeKey } from '../../shared/productSizes';
 import { PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS, hasProductSizes, discountPercent, normalizeProductSizes, productSizeFor } from '../../shared/productSizes';
 import ProductReviews from './ProductReviews';
+import { apiShippingQuote, apiShippingServiceability } from '../services/api';
 import type { ReviewSummary } from '../services/api';
 
 interface Props {
@@ -30,6 +31,32 @@ export default function ProductPage({
   const [notice, setNotice] = useState('');
   const [showFullImage, setShowFullImage] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [deliveryPin, setDeliveryPin] = useState(() => { try { return localStorage.getItem('jb_delivery_pin') || ''; } catch { return ''; } });
+  const [courierMessage, setCourierMessage] = useState('');
+  const [courierBusy, setCourierBusy] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    setCourierMessage('');
+    if (!/^[0-9]{6}$/.test(deliveryPin)) return;
+    try { localStorage.setItem('jb_delivery_pin', deliveryPin); } catch {}
+    if (!product.parcelWeightGrams || product.parcelWeightGrams <= 0) {
+      setCourierMessage('Courier estimate pending: packed weight is not configured.');
+      return;
+    }
+    setCourierBusy(true);
+    (async () => {
+      try {
+        const available = await apiShippingServiceability(deliveryPin);
+        if (!available.serviceable || !available.prepaid) throw new Error('Delivery is not available for this PIN.');
+        const quote = await apiShippingQuote(deliveryPin, Math.ceil(product.parcelWeightGrams));
+        if (!cancelled) setCourierMessage('Delhivery available · estimated shipping ₹' + quote.shippingCharge + ' · 4 days preparation + courier transit (date pending)');
+      } catch (error: any) {
+        if (!cancelled) setCourierMessage(error?.message || 'Courier estimate unavailable.');
+      } finally { if (!cancelled) setCourierBusy(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [deliveryPin, product.id, product.parcelWeightGrams]);
+
 
   useEffect(() => {
     const first = options.find(x => x.size === 'M' && x.available) || options.find(x => x.available);
@@ -128,9 +155,16 @@ export default function ProductPage({
             </p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
               {discount > 0 && <span className="rounded bg-rose-100 px-3 py-1.5 text-rose-800">{discount}% off</span>}
-              {product.deliveryCost === 0 && <span className="rounded bg-emerald-100 px-3 py-1.5 text-emerald-800">Free Delivery</span>}
-              {(product.deliveryCost ?? 0) > 0 && <span className="px-3 py-1.5">₹{product.deliveryCost} delivery per piece</span>}
+
             </div>
+            <section className="mt-4 border border-stone-200 p-3" aria-label="Check courier delivery">
+              <label className="block text-xs font-semibold text-stone-800" htmlFor="product-delivery-pin">Check delivery PIN code</label>
+              <input id="product-delivery-pin" inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={deliveryPin}
+                onChange={event => setDeliveryPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                placeholder="Enter six-digit PIN" className="mt-2 w-full border border-stone-300 px-3 py-2 text-sm" />
+              <p className="mt-2 text-xs text-stone-600" role="status">{courierBusy ? 'Checking Delhivery…' : courierMessage || 'Enter PIN to see courier availability and estimated shipping.'}</p>
+              <p className="mt-2 text-xs text-stone-500">Packed size: {product.parcelLengthCm || '—'} × {product.parcelWidthCm || '—'} × {product.parcelHeightCm || '—'} cm · {product.parcelWeightGrams || '—'} g</p>
+            </section>
             <p className="mt-6 text-sm leading-7 text-stone-700">{product.description}</p>
 
             {isBouquet && (
