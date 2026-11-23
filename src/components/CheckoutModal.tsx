@@ -3,8 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { ArrowRight, CheckCircle2, X } from 'lucide-react';
 import { CartItem, CustomerDetails, Order, StoreSettings, UserAccount } from '../types';
 import { apiValidateCoupon } from '../services/api';
-import { indiaDate } from '../../shared/customPricing';
-import { SERVICE_CITY, isServiceableCity, isValidOptionalDeliveryDate } from '../../shared/orderRules';
+import { SERVICE_CITY, isServiceableCity, isValidOptionalDeliveryDate, earliestDeliveryDate } from '../../shared/orderRules';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -79,7 +78,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
       return;
     }
     if (!isValidOptionalDeliveryDate(customer.deliveryDate)) {
-      setError('Choose a valid delivery date from today onwards, or leave it blank.');
+      setError('Please select a delivery date at least 6 days from today, or leave it blank.');
       return;
     }
     if (appliedCoupon && !couponIsCurrent) {
@@ -106,7 +105,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
     <label className="block text-[11px] tracking-wide text-stone-600">
       {label}{required && ' *'}
       <input
-        type={type} required={required} min={key === 'deliveryDate' ? indiaDate() : undefined}
+        type={type} required={required} min={key === 'deliveryDate' ? earliestDeliveryDate() : undefined}
         readOnly={key === 'city'} pattern={key === 'pincode' ? '[0-9]{6}' : undefined}
         value={String(customer[key] || '')}
         onChange={e => update(key, e.target.value)} placeholder={placeholder}
@@ -146,7 +145,6 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
               </div>
               {field('PIN code','pincode','text',true,'6-digit PIN')}
               {field('Preferred delivery date (optional)','deliveryDate','date')}
-              <div className="sm:col-span-2">{field('Special requests (optional)','specialInstructions','text',false,'Colours, wrapping, personalisation')}</div>
               <div className="sm:col-span-2">{field('Gift note (optional)','giftNote','text',false,'Your message')}</div>
             </div>
             <label className="mt-5 flex items-start gap-3 text-xs leading-5 text-stone-700">
