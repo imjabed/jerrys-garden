@@ -377,6 +377,7 @@ export async function apiGetSettings(): Promise<{ connected: boolean; settings: 
       deliveryFee: Number.isFinite(Number(s.deliveryFee)) ? Number(s.deliveryFee) : 0,
       freeDeliveryThreshold: Number.isFinite(Number(s.freeDeliveryThreshold)) ? Number(s.freeDeliveryThreshold) : 0,
       customSizeFlowers: s.customSizeFlowers,
+      productCategories: Array.isArray(s.productCategories) ? s.productCategories.filter((v: unknown) => typeof v === 'string') : undefined,
     };
     return { connected: true, settings };
   } catch { return { connected: false, settings: null }; }
