@@ -21,7 +21,7 @@ export default function Logo({ size = 'md', showSubtitle = true, logoUrl, brandN
   return (
     <div className="flex items-center gap-2.5 group cursor-pointer select-none">
       {logoUrl ? (
-        <img src={logoUrl} alt="" className={`block shrink-0 object-contain ${size === 'lg' ? 'h-14 w-14' : size === 'sm' ? 'h-8 w-8' : 'h-10 w-10'}`} />
+        <img src={logoUrl} alt="" className={`block shrink-0 rounded-full object-cover border border-white/20 ${size === 'lg' ? 'h-14 w-14' : size === 'sm' ? 'h-8 w-8' : 'h-10 w-10'}`} />
       ) : (
       // Default handcrafted emblem when no custom image is configured.
 
