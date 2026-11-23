@@ -1016,6 +1016,45 @@ async function startServer() {
     }
   });
 
+  // Read-only freight estimate; prices are approximate until carrier billing.
+  const shippingQuoteCache = new Map<string, { expires: number; value: any }>();
+  const getShippingQuote = async (pin: string, grams: number) => {
+    if (!/^\d{6}$/.test(pin) || !Number.isInteger(grams) || grams < 1 || grams > 100000)
+      throw new Error('INVALID_SHIPPING_INPUT');
+    const key = `${pin}:${grams}`;
+    const cached = shippingQuoteCache.get(key);
+    if (cached && cached.expires > Date.now()) return cached.value;
+    const token = process.env.DELHIVERY_API_TOKEN?.trim();
+    if (!token) throw new Error('COURIER_NOT_CONFIGURED');
+    const params = new URLSearchParams({ md: 'S', ss: 'Delivered', d_pin: pin, o_pin: '742101', cgm: String(grams), pt: 'Pre-paid' });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(`https://track.delhivery.com/api/kinko/v1/invoice/charges/.json?${params}`, {
+        headers: { Authorization: `Token ${token}`, Accept: 'application/json' }, signal: controller.signal,
+      });
+      if (!response.ok) throw new Error('COURIER_RATE_UNAVAILABLE');
+      const raw: any = await response.json();
+      const candidates = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [raw];
+      const amount = candidates.map((x: any) => Number(x?.total_amount)).find((x: number) => Number.isFinite(x) && x > 0);
+      if (amount === undefined) throw new Error('COURIER_RATE_UNAVAILABLE');
+      const result = { pincode: pin, originPincode: '742101', chargeableWeightGrams: grams, shippingCharge: Math.ceil(amount), currency: 'INR', estimatedDeliveryDate: null, preparationDays: 4, estimateStatus: 'rate_available_tat_pending', approximate: true };
+      if (shippingQuoteCache.size > 500) shippingQuoteCache.clear();
+      shippingQuoteCache.set(key, { expires: Date.now() + 300000, value: result });
+      return result;
+    } finally { clearTimeout(timer); }
+  };
+  app.get('/api/shipping/quote', async (req, res) => {
+    const pin = String(req.query.pincode || '').trim();
+    const grams = Number(req.query.weightGrams);
+    if (!/^\d{6}$/.test(pin) || !Number.isInteger(grams) || grams < 1 || grams > 100000)
+      return res.status(400).json({ success: false, error: 'Provide a six-digit PIN and packed weight in grams (1-100000).' });
+    if (!allowLoginAttempt(`shipping:${String(req.ip || 'unknown')}`, 40))
+      return res.status(429).json({ success: false, error: 'Too many shipping requests.' });
+    try { return res.json({ success: true, ...(await getShippingQuote(pin, grams)) }); }
+    catch { return res.status(502).json({ success: false, error: 'Delhivery shipping estimate is currently unavailable.' }); }
+  });
+
   app.get('/api/bouquets', async (req, res) => {
     try {
       const bouquets = await mongoGetBouquets();
