@@ -426,3 +426,20 @@ export async function apiAddStock(id: string, amount: number): Promise<{success:
     return await parseResponse<any>(res);
   } catch (error: any) { return { success: false, error: error.message }; }
 }
+
+export interface CourierQuote {
+  success: boolean;
+  pincode: string;
+  shippingCharge: number;
+  chargeableWeightGrams: number;
+  estimatedDeliveryDate: string | null;
+  preparationDays: number;
+  approximate: boolean;
+}
+export async function apiShippingQuote(pincode: string, weightGrams: number): Promise<CourierQuote> {
+  const params = new URLSearchParams({ pincode, weightGrams: String(weightGrams) });
+  return parseResponse<CourierQuote>(await fetch(`${API_URL}/api/shipping/quote?${params}`, { cache: 'no-store' }));
+}
+export async function apiShippingServiceability(pincode: string): Promise<{ success: boolean; serviceable: boolean; city: string | null; prepaid: boolean }> {
+  return parseResponse(await fetch(`${API_URL}/api/shipping/serviceability?pincode=${encodeURIComponent(pincode)}`, { cache: 'no-store' }));
+}
