@@ -10,7 +10,7 @@ export function isServiceableCity(input: unknown): boolean {
 
 export function earliestDeliveryDate(): string {
   const today = new Date(indiaDate() + 'T00:00:00Z');
-  today.setUTCDate(today.getUTCDate() + 6);
+  today.setUTCDate(today.getUTCDate() + 4);
   return today.toISOString().slice(0, 10);
 }
 
