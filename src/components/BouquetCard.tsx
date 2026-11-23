@@ -33,6 +33,15 @@ export default function BouquetCard({
   const discount = discountPercent(startingPrice, originalPrice);
   return (
     <div className="jb-product-card group bg-white border border-stone-200/60 hover:border-stone-300 transition-all duration-300 flex flex-col overflow-hidden relative">
+      {/* Labels sit above the image, never over the product photo. */}
+      <div className="flex min-h-10 flex-wrap items-center gap-1.5 border-b border-stone-100 bg-white px-2 py-2 sm:px-3">
+        {bouquet.featured && (
+          <span className="jb-featured-badge rounded-full bg-rose-600 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white sm:text-[10px]">Featured</span>
+        )}
+        <span className="rounded border border-stone-200 bg-stone-50 px-2 py-1 text-[9px] font-medium text-stone-800 sm:text-[10px]">
+          {(bouquet.category || '').toLowerCase().includes('keychain') ? 'Handmade keepsake' : 'Choose your size'}
+        </span>
+      </div>
       {/* Image container */}
       <div
         className="relative aspect-square sm:aspect-[4/5] overflow-hidden bg-stone-100 cursor-pointer"
@@ -49,28 +58,12 @@ export default function BouquetCard({
         />
         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
 
-        {/* Top badges */}
-        <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-col gap-1.5 items-start z-10">
-          {bouquet.featured && (
-            <span className="jb-featured-badge px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase bg-rose-600 text-white rounded-full shadow-xs">
-              Featured
-            </span>
-          )}
-          <span className="px-2 py-1 text-[10px] font-medium bg-white/95 text-stone-800 border border-stone-100">
-            {(bouquet.category || '').toLowerCase().includes('keychain') ? 'Handmade keepsake' : 'Choose your size'}
-          </span>
-        </div>
-
         {(bouquet.inStock === false || bouquet.stockLeft === 0) && (
           <div className="absolute inset-0 flex items-center justify-center bg-stone-950/30 z-10 pointer-events-none">
             <span className="bg-white/95 px-3 py-2 text-xs font-medium text-stone-900">Currently unavailable</span>
           </div>
         )}
-        {typeof bouquet.stockLeft === 'number' && bouquet.stockLeft > 0 && bouquet.stockLeft < 3 && (
-          <div className="absolute bottom-2 left-2 z-10 rounded bg-red-700 px-2 py-1 text-xs font-bold text-white" role="status">
-            Limited stock · {bouquet.stockLeft} left
-          </div>
-        )}
+
         {/* Ribbon Material pill */}
         <div className="hidden">
           <span className="px-2 py-0.5 text-[10px] font-medium bg-stone-900/75 backdrop-blur-xs text-stone-100 rounded-md">
@@ -87,6 +80,11 @@ export default function BouquetCard({
         </div>
       </div>
 
+      {typeof bouquet.stockLeft === 'number' && bouquet.stockLeft > 0 && bouquet.stockLeft < 3 && (
+        <div role="status" className="border-b border-red-100 bg-red-50 px-2 py-1 text-[9px] font-semibold text-red-700 sm:px-3 sm:py-1.5 sm:text-[11px]">
+          Limited stock · Only {bouquet.stockLeft} left
+        </div>
+      )}
       {/* Details container */}
       <div className="p-3 sm:p-5 flex-1 flex flex-col justify-between gap-2 sm:gap-4">
         <div>
