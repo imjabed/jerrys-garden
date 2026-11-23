@@ -1,9 +1,8 @@
-import { useState, type ChangeEvent } from 'react';
-import { ShoppingBag, Eye, Camera, Loader2, Cloud, Star } from 'lucide-react';
+import { useState } from 'react';
+import { ShoppingBag, Eye, Star } from 'lucide-react';
 import type { ReviewSummary } from '../services/api';
 import { RibbonBouquet } from '../types';
 import { hasProductSizes, discountPercent, normalizeProductSizes } from '../../shared/productSizes';
-import { uploadImageToCloudinary, isCloudinaryUrl } from '../services/cloudinary';
 
 interface BouquetCardProps {
   key?: string;
@@ -25,7 +24,6 @@ export default function BouquetCard({
   onUpdatePhoto,
   reviewSummary,
 }: BouquetCardProps) {
-  const [isUploading, setIsUploading] = useState(false);
   const sizedOptions = hasProductSizes(bouquet)
     ? normalizeProductSizes(bouquet).filter(option => option.available) : [];
   const startingOption = sizedOptions.reduce<(typeof sizedOptions)[number] | undefined>(
@@ -33,31 +31,6 @@ export default function BouquetCard({
   const startingPrice = startingOption?.price ?? bouquet.price;
   const originalPrice = startingOption?.originalPrice ?? (!startingOption?.name && startingPrice === bouquet.price ? bouquet.originalPrice : undefined);
   const discount = discountPercent(startingPrice, originalPrice);
-  const [justUploaded, setJustUploaded] = useState(false);
-
-  const handlePhotoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    e.stopPropagation();
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setIsUploading(true);
-      const res = await uploadImageToCloudinary(file);
-      if (onUpdatePhoto) {
-        onUpdatePhoto(bouquet.id, res.url);
-      }
-      setJustUploaded(true);
-      setTimeout(() => setJustUploaded(false), 4000);
-    } catch (err: any) {
-      console.error('Failed to upload image:', err);
-      alert(err.message || 'Failed to upload photo to Cloudinary.');
-    } finally {
-      setIsUploading(false);
-      // reset file input
-      e.target.value = '';
-    }
-  };
-
   return (
     <div className="jb-product-card group bg-white border border-stone-200/60 hover:border-stone-300 transition-all duration-300 flex flex-col overflow-hidden relative">
       {/* Image container */}
@@ -76,15 +49,6 @@ export default function BouquetCard({
         />
         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
 
-        {/* Uploading overlay */}
-        {isUploading && (
-          <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-xs flex flex-col items-center justify-center p-3 text-white text-center z-20">
-            <Loader2 className="w-6 h-6 animate-spin text-rose-400 mb-2" />
-            <p className="text-xs font-semibold">Uploading to Cloudinary...</p>
-            <p className="text-[10px] text-stone-300">Saving high-res photo</p>
-          </div>
-        )}
-
         {/* Top badges */}
         <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-col gap-1.5 items-start z-10">
           {bouquet.featured && (
@@ -95,12 +59,6 @@ export default function BouquetCard({
           <span className="px-2 py-1 text-[10px] font-medium bg-white/95 text-stone-800 border border-stone-100">
             {(bouquet.category || '').toLowerCase().includes('keychain') ? 'Handmade keepsake' : 'Choose your size'}
           </span>
-          {false && (isCloudinaryUrl(bouquet.imageUrl) || justUploaded) && (
-            <span className="px-2 py-0.5 text-[9px] font-bold bg-sky-600 text-white rounded-full shadow-xs flex items-center gap-1">
-              <Cloud className="w-2.5 h-2.5" />
-              Cloudinary Photo
-            </span>
-          )}
         </div>
 
         {(bouquet.inStock === false || bouquet.stockLeft === 0) && (
@@ -108,25 +66,6 @@ export default function BouquetCard({
             <span className="bg-white/95 px-3 py-2 text-xs font-medium text-stone-900">Currently unavailable</span>
           </div>
         )}
-        {/* Top-Right: Owner Photo Upload Trigger (Restricted) */}
-        {isOwner && (
-          <div className="absolute top-3 right-3 z-10" onClick={(e) => e.stopPropagation()}>
-            <label
-              title="Upload product image"
-              className="p-2 rounded-full bg-white/90 hover:bg-white text-stone-700 hover:text-rose-600 shadow-md border border-stone-200 backdrop-blur-xs flex items-center justify-center cursor-pointer transition-transform hover:scale-105"
-            >
-              <Camera className="w-3.5 h-3.5" />
-              <input
-                type="file"
-                accept="image/*"
-                disabled={isUploading}
-                onChange={handlePhotoUpload}
-                className="hidden"
-              />
-            </label>
-          </div>
-        )}
-
         {/* Ribbon Material pill */}
         <div className="hidden">
           <span className="px-2 py-0.5 text-[10px] font-medium bg-stone-900/75 backdrop-blur-xs text-stone-100 rounded-md">
