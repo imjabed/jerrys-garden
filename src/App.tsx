@@ -479,7 +479,7 @@ export default function App() {
     return false;
   };
 
-  const productCategories = Array.from(new Set(['Ribbon Bouquets', 'Pipecleaner Bouquets', 'Bouquet Keychains', 'Pipecleaner Keychains', 'Gift Combos', ...bouquets.map(b => b.category).filter(Boolean)]));
+  const productCategories = Array.from(new Set(storeSettings.productCategories ?? ['Ribbon Bouquets', 'Pipecleaner Bouquets', 'Bouquet Keychains', 'Pipecleaner Keychains', 'Gift Combos', 'Decor Items', ...bouquets.map(b => b.category).filter(Boolean)]));
 
   const filteredBouquets = bouquets.filter((b) => {
     const matchesCategory =
@@ -948,6 +948,7 @@ export default function App() {
             setBouquetToEdit(null);
           }}
           bouquetToEdit={bouquetToEdit}
+          productCategories={productCategories}
           onSave={handleSaveBouquet}
         />
       )}
