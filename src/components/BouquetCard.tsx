@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Star, ShoppingCart } from 'lucide-react';
-import type { ReviewSummary } from '../services/api';
+import { apiShippingQuote, apiShippingServiceability, type ReviewSummary } from '../services/api';
 import { RibbonBouquet } from '../types';
 import { hasProductSizes, discountPercent, normalizeProductSizes } from '../../shared/productSizes';
 
@@ -28,6 +29,22 @@ export default function BouquetCard({
   const startingPrice = startingOption?.price ?? bouquet.price;
   const originalPrice = startingOption?.originalPrice ?? (!startingOption?.name && startingPrice === bouquet.price ? bouquet.originalPrice : undefined);
   const discount = discountPercent(startingPrice, originalPrice);
+  const [shipping, setShipping] = useState<{ shippingCharge: number; estimatedDeliveryDate: string | null } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    let pin = '';
+    try { pin = localStorage.getItem('jb_delivery_pin') || ''; } catch {}
+    if (!/^[0-9]{6}$/.test(pin) || !bouquet.parcelWeightGrams) return;
+    (async () => {
+      try {
+        const service = await apiShippingServiceability(pin);
+        if (!service.serviceable || !service.prepaid) return;
+        const quote = await apiShippingQuote(pin, Math.ceil(bouquet.parcelWeightGrams!));
+        if (!cancelled) setShipping(quote);
+      } catch { /* No date or charge displayed without carrier confirmation. */ }
+    })();
+    return () => { cancelled = true; };
+  }, [bouquet.id, bouquet.parcelWeightGrams]);
   return (
     <div role="link" tabIndex={0} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(bouquet); } }} onClick={event => { if ((event.target as HTMLElement).closest("button")) return; onSelect(bouquet); }} className="jb-product-card group bg-white border border-stone-200/60 hover:border-stone-300 transition-all duration-300 flex flex-col overflow-hidden relative cursor-pointer no-underline">
       {/* Labels sit above the image, never over the product photo. */}
@@ -117,9 +134,10 @@ export default function BouquetCard({
                 {sizedOptions.length > 1 ? 'From ' : ''}₹{startingPrice.toLocaleString('en-IN')}
               </span>
             </div>
-            <div className="mt-1 flex flex-wrap gap-1 text-[10px] font-semibold">
-              {bouquet.deliveryCost === 0 && <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-800">Free Delivery</span>}
-            </div>
+            {shipping && <div className="mt-1.5">
+              <p className="text-[11px] font-semibold text-stone-800">{shipping.estimatedDeliveryDate ? 'Delivery within ' + new Date(shipping.estimatedDeliveryDate + 'T12:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'long', timeZone: 'UTC' }) : 'Delivery date pending'}</p>
+              <p className="mt-0.5 text-[10px] text-stone-600">Delivery Charge: <span className="line-through text-stone-400">₹{shipping.shippingCharge + 15}</span> <span className="font-semibold text-stone-900">₹{shipping.shippingCharge}</span></p>
+            </div>}
           </div>
           <div className="flex w-full gap-1.5">
             <button type="button" disabled={bouquet.inStock === false || bouquet.stockLeft === 0}
