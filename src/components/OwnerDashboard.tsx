@@ -112,6 +112,7 @@ export default function OwnerDashboard({
 
   // Editable settings form
   const [settingsForm, setSettingsForm] = useState<StoreSettings>(storeSettings);
+  const [newCategory, setNewCategory] = useState('');
   useEffect(() => setSettingsForm(storeSettings), [storeSettings]);
   const [settingsSavedMessage, setSettingsSavedMessage] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
@@ -617,6 +618,36 @@ export default function OwnerDashboard({
                   <span>Store settings updated</span>
                 </div>
               )}
+
+              <div className="rounded-2xl border border-stone-200 bg-white p-4 space-y-3">
+                <h4 className="font-serif text-lg text-stone-900">Product categories</h4>
+                <p className="text-xs text-stone-500">Add or remove categories, then click Save Store Settings below. Categories with existing products cannot be removed until those products are reassigned or deleted.</p>
+                <div className="flex flex-wrap gap-2">
+                  {(settingsForm.productCategories ?? ['Ribbon Bouquets', 'Pipecleaner Bouquets', 'Bouquet Keychains', 'Pipecleaner Keychains', 'Gift Combos', 'Decor Items']).map(name => {
+                    const used = bouquets.some(b => b.category.toLowerCase() === name.toLowerCase());
+                    return <span key={name} className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-stone-50 px-3 py-2 text-xs">
+                      {name}
+                      <button type="button" disabled={used} title={used ? 'Reassign or delete products in this category first' : 'Remove category'} aria-label={`Remove ${name}`}
+                        className="disabled:opacity-30 text-red-700"
+                        onClick={() => setSettingsForm(current => ({...current, productCategories: (current.productCategories ?? ['Ribbon Bouquets', 'Pipecleaner Bouquets', 'Bouquet Keychains', 'Pipecleaner Keychains', 'Gift Combos', 'Decor Items']).filter(item => item !== name)}))}>×</button>
+                    </span>;
+                  })}
+                </div>
+                <div className="flex gap-2">
+                  <input aria-label="New product category" maxLength={50} value={newCategory} onChange={e => setNewCategory(e.target.value)}
+                    placeholder="New category name" className="min-w-0 flex-1 rounded-lg border border-stone-300 px-3 py-2 text-sm"/>
+                  <button type="button" className="rounded-lg bg-stone-900 px-4 py-2 text-white disabled:opacity-40"
+                    disabled={!newCategory.trim() || newCategory.trim().length < 2}
+                    onClick={() => {
+                      const name = newCategory.trim();
+                      setSettingsForm(current => {
+                        const items = current.productCategories ?? ['Ribbon Bouquets', 'Pipecleaner Bouquets', 'Bouquet Keychains', 'Pipecleaner Keychains', 'Gift Combos', 'Decor Items'];
+                        return {...current, productCategories: items.some(item => item.toLowerCase() === name.toLowerCase()) ? items : [...items, name]};
+                      });
+                      setNewCategory('');
+                    }}>Add</button>
+                </div>
+              </div>
 
               <form onSubmit={handleSaveSettings} className="space-y-4 text-xs">
                 
