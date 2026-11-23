@@ -326,6 +326,8 @@ async function startServer() {
   const allowedOrigins = [
     'http://localhost:5173',
     'https://jamebouquets.vercel.app',
+    'https://jamebouquets.in',
+    'https://www.jamebouquets.in',
     'https://jerrys-garden.vercel.app',
     'https://jerrysgarden-iggf6pgbv-jabedsprojects.vercel.app',
     ...(process.env.FRONTEND_URL || '')
