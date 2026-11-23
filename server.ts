@@ -982,6 +982,40 @@ async function startServer() {
   });
 
   // Public catalogue read; writes require owner auth.
+  // Delhivery read-only serviceability. No shipment is created or charged.
+  app.get('/api/shipping/serviceability', async (req, res) => {
+    const pincode = String(req.query.pincode || '').trim();
+    if (!/^\\d{6}$/.test(pincode)) return res.status(400).json({ success: false, error: 'Enter a valid six-digit Indian PIN code.' });
+    const token = process.env.DELHIVERY_API_TOKEN?.trim();
+    if (!token) return res.status(503).json({ success: false, error: 'Courier service is not configured.' });
+    const environment = process.env.DELHIVERY_ENV === 'staging' ? 'staging' : 'production';
+    const host = environment === 'staging' ? 'https://staging-express.delhivery.com' : 'https://track.delhivery.com';
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      let response: Response;
+      try {
+        response = await fetch(`${host}/c/api/pin-codes/json/?filter_codes=${pincode}`, {
+          headers: { Authorization: `Token ${token}`, Accept: 'application/json' },
+          signal: controller.signal,
+        });
+      } finally { clearTimeout(timeout); }
+      if (!response.ok) {
+        console.warn('Delhivery serviceability HTTP status:', response.status);
+        return res.status(502).json({ success: false, error: response.status === 401 || response.status === 403 ? 'Delhivery API authentication failed.' : 'Courier availability could not be verified.' });
+      }
+      const data: any = await response.json();
+      const records = Array.isArray(data?.delivery_codes) ? data.delivery_codes : [];
+      const match = records.map((entry: any) => entry?.postal_code).find((entry: any) => String(entry?.pin) === pincode);
+      const serviceable = Boolean(match && !String(match.remarks || '').trim() && (match.pre_paid === 'Y' || match.cash === 'Y'));
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      return res.json({ success: true, pincode, serviceable, prepaid: match?.pre_paid === 'Y', cod: match?.cod === 'Y', city: match?.city || null, state: match?.state_code || null, preparationDays: 4, estimatedDeliveryDate: null, shippingCharge: null, estimateStatus: 'pending_courier_quote' });
+    } catch (error) {
+      console.warn('Delhivery serviceability request failed:', error instanceof Error ? error.message : 'unknown');
+      return res.status(502).json({ success: false, error: 'Courier availability is temporarily unavailable.' });
+    }
+  });
+
   app.get('/api/bouquets', async (req, res) => {
     try {
       const bouquets = await mongoGetBouquets();
