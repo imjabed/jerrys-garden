@@ -390,6 +390,8 @@ export default function App() {
     }
     if (!directBuyItems) updateCart([]);
     setOrders((current) => [result.order!, ...current]);
+    // Refresh authoritative inventory after successful checkout.
+    void apiGetBouquets().then(response => { if (response.connected) setBouquets(response.bouquets); });
     showToast(`Order #${result.order.orderNumber} placed successfully!`);
     return result.order;
   };
