@@ -19,7 +19,6 @@
         position: fixed; inset: 0; z-index: 2147483640;
         display: grid; place-items: center; padding: 24px;
         text-align: center; background: #FAF7F2; color: #542E3A;
-        animation: jb-boot-auto-dismiss .2s ease 2.45s forwards;
       }
       #jb-boot-splash.jb-boot-leaving {
         opacity: 0; visibility: hidden; pointer-events: none;
@@ -35,9 +34,6 @@
         max-width: 390px; margin: 11px auto 0;
         color: #826C71; font: 13px/1.65 Arial, sans-serif;
       }
-      @keyframes jb-boot-auto-dismiss {
-        to { opacity: 0; visibility: hidden; pointer-events: none; }
-      }
       #jb-boot-fallback {
         display: flex; min-height: 100vh; flex-direction: column;
         align-items: center; justify-content: center;
@@ -49,7 +45,6 @@
       #jb-boot-fallback a { padding: 12px 22px; background: #7D1837; color: #fff; font-size: 13px; text-decoration: none; }
       #root:not(:empty) + #jb-boot-fallback { display: none; }
       @media (prefers-reduced-motion: reduce) {
-        #jb-boot-splash { animation-duration: 1ms; }
       }
     </style>
     <link rel="icon" href="/favicon.png" type="image/png" sizes="96x96" />
@@ -82,14 +77,6 @@
       <p>Please check your internet connection or refresh the page.</p>
       <a href="/">Refresh the shop</a>
     </div>
-    <!-- Emergency removal is independent of the React app and backend.
-         The CSS animation is a second failsafe if scripts are delayed. -->
-    <script>
-      window.setTimeout(function () {
-        var loader = document.getElementById('jb-boot-splash');
-        if (loader) loader.remove();
-      }, location.pathname.startsWith('/admin/editor') ? 0 : 2450);
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
