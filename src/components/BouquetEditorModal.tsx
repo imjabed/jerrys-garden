@@ -12,6 +12,7 @@ interface BouquetEditorModalProps {
   onClose: () => void;
   bouquetToEdit?: RibbonBouquet | null;
   onSave: (bouquet: RibbonBouquet) => Promise<boolean>;
+  productCategories?: string[];
 }
 
 export default function BouquetEditorModal({
@@ -19,6 +20,7 @@ export default function BouquetEditorModal({
   onClose,
   bouquetToEdit,
   onSave,
+  productCategories = ['Ribbon Bouquets', 'Pipecleaner Bouquets', 'Bouquet Keychains', 'Pipecleaner Keychains', 'Gift Combos', 'Decor Items'],
 }: BouquetEditorModalProps) {
   const isEditing = Boolean(bouquetToEdit);
   const [isSaving, setIsSaving] = useState(false);
@@ -299,7 +301,7 @@ export default function BouquetEditorModal({
                 className="w-full px-3 py-2.5 text-xs border border-stone-300 bg-white focus:border-stone-700 outline-none"
               />
               <datalist id="product-category-options">
-                {['Ribbon Bouquets', 'Pipecleaner Bouquets', 'Bouquet Keychains', 'Pipecleaner Keychains', 'Gift Combos'].map(item => <option key={item} value={item}/>)}
+                {productCategories.map(item => <option key={item} value={item}/>)}
               </datalist>
             </div>
 
