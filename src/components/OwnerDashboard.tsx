@@ -44,6 +44,7 @@ import {
   apiGetCoupons,
   apiSaveCoupon,
   apiDeleteCoupon,
+  apiAddStock,
 } from '../services/api';
 
 interface OwnerDashboardProps {
@@ -54,6 +55,7 @@ interface OwnerDashboardProps {
   onOpenOrderDetails: (order: Order) => void;
   onOpenBouquetEditor: (bouquet?: RibbonBouquet) => void;
   onDeleteBouquet: (id: string) => void;
+  onStockUpdated: (bouquet: RibbonBouquet) => void;
   onUpdateSettings: (settings: StoreSettings) => Promise<boolean>;
   onLogoutOwner: () => void;
   onCloseDashboard: () => void;
@@ -68,12 +70,13 @@ export default function OwnerDashboard({
   onOpenOrderDetails,
   onOpenBouquetEditor,
   onDeleteBouquet,
+  onStockUpdated,
   onUpdateSettings,
   onLogoutOwner,
   onCloseDashboard,
   onOpenSiteEditor,
 }: OwnerDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'customers' | 'coupons' | 'reviews' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'stock' | 'customers' | 'coupons' | 'reviews' | 'settings'>('orders');
   const [statusFilter, setStatusFilter] = useState<'ALL' | OrderStatus>('ALL');
   const [orderSearch, setOrderSearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
@@ -113,6 +116,9 @@ export default function OwnerDashboard({
   // Editable settings form
   const [settingsForm, setSettingsForm] = useState<StoreSettings>(storeSettings);
   const [newCategory, setNewCategory] = useState('');
+  const [stockAmounts, setStockAmounts] = useState<Record<string, string>>({});
+  const [stockBusy, setStockBusy] = useState<string | null>(null);
+  const [stockDetail, setStockDetail] = useState<RibbonBouquet | null>(null);
   useEffect(() => setSettingsForm(storeSettings), [storeSettings]);
   const [settingsSavedMessage, setSettingsSavedMessage] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
@@ -313,6 +319,7 @@ export default function OwnerDashboard({
             ['orders', 'Orders', orders.length],
             ['customers', 'Customer insights', customers.length],
             ['catalog', 'Products', bouquets.length],
+            ['stock', 'Stock Manager', bouquets.filter(b => typeof b.stockLeft === 'number' && b.stockLeft < 3).length],
             ['coupons', 'Offers', coupons.length],
             ['reviews', 'Reviews', null],
             ['settings', 'Settings', null],
@@ -323,6 +330,58 @@ export default function OwnerDashboard({
             </button>
           ))}
         </nav>
+
+        {activeTab === 'stock' && (
+          <section className="space-y-4">
+            <h3 className="font-serif text-2xl">Stock Manager</h3>
+            <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white">
+              <table className="w-full min-w-[520px] text-left text-sm">
+                <thead className="bg-stone-100 text-xs uppercase"><tr><th className="p-3">Product name</th><th className="p-3">Category</th><th className="p-3">Stock</th><th className="p-3">Actions</th></tr></thead>
+                <tbody>{bouquets.map(b => (
+                  <tr key={b.id} className="border-t border-stone-100">
+                    <td className="p-3 font-medium">{b.title}</td>
+                    <td className="p-3">{b.category}</td>
+                    <td className={`p-3 font-bold ${typeof b.stockLeft === 'number' && b.stockLeft < 3 ? 'text-red-700' : 'text-stone-800'}`}>
+                      {b.stockLeft ?? 'Not set'} {typeof b.stockLeft === 'number' && b.stockLeft < 3 ? '· Limited stock' : ''}
+                    </td>
+                    <td className="p-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button type="button" className="underline text-xs" onClick={() => setStockDetail(b)}>View details</button>
+                        <input aria-label={`Add quantity for ${b.title}`} type="number" min="1" step="1" placeholder="Qty" className="w-16 rounded border px-2 py-1"
+                          value={stockAmounts[b.id] ?? ''} onChange={e => setStockAmounts(old => ({...old, [b.id]: e.target.value}))}/>
+                        <button type="button" disabled={stockBusy === b.id || !Number.isSafeInteger(Number(stockAmounts[b.id])) || Number(stockAmounts[b.id]) < 1}
+                          className="rounded bg-stone-900 px-3 py-1.5 text-xs text-white disabled:opacity-40"
+                          onClick={async () => {
+                            setStockBusy(b.id);
+                            const result = await apiAddStock(b.id, Number(stockAmounts[b.id]));
+                            setStockBusy(null);
+                            if (result.success && result.bouquet) { onStockUpdated(result.bouquet); setStockAmounts(old => ({...old, [b.id]: ''})); }
+                            else alert(result.error || 'Stock update failed');
+                          }}>Add stock</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+            {stockDetail && (
+              <div role="dialog" aria-modal="true" aria-label="Product details" className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" onClick={() => setStockDetail(null)}>
+                <div className="max-h-[85vh] w-full max-w-lg overflow-auto rounded-xl bg-white p-6" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-between"><h3 className="font-serif text-xl">{stockDetail.title}</h3><button type="button" onClick={() => setStockDetail(null)}>Close</button></div>
+                  <img src={stockDetail.imageUrl} alt={stockDetail.title} className="my-4 h-40 w-full object-contain"/>
+                  <p className="text-sm">Category: {stockDetail.category}</p>
+                  <p className="text-sm">Stock: {stockDetail.stockLeft ?? 'Not set'}</p>
+                  <p className="text-sm">Price: ₹{stockDetail.price}</p>
+                  <p className="text-sm">Delivery: ₹{stockDetail.deliveryCost ?? 0}</p>
+                  <p className="mt-2 text-sm">{stockDetail.description}</p>
+                  <p className="mt-2 text-sm">Variants: {stockDetail.ribbonColors?.join(', ')}</p>
+                  <div className="mt-3 space-y-1">{stockDetail.sizeOptions?.map(size => <p key={size.size} className="text-sm">{size.name || size.size}: ₹{size.price}, {size.flowerCount} flowers</p>)}</div>
+                  <button type="button" className="mt-4 rounded bg-stone-900 px-4 py-2 text-white" onClick={() => { setStockDetail(null); onOpenBouquetEditor(stockDetail); }}>Edit product details</button>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* TAB 1: ORDERS LIST & STATUS MANAGEMENT */}
         {activeTab === 'orders' && (
