@@ -31,12 +31,12 @@ export default function BouquetCard({
   return (
     <div role="link" tabIndex={0} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(bouquet); } }} onClick={event => { if ((event.target as HTMLElement).closest("button")) return; onSelect(bouquet); }} className="jb-product-card group bg-white border border-stone-200/60 hover:border-stone-300 transition-all duration-300 flex flex-col overflow-hidden relative cursor-pointer no-underline">
       {/* Labels sit above the image, never over the product photo. */}
-      <div className="flex min-h-8 flex-wrap items-center gap-1 border-b border-stone-100 bg-white px-2 py-1.5 sm:px-3">
+      <div className="relative flex min-h-9 items-center justify-between gap-1 border-b border-stone-100 bg-white px-2 py-1 sm:px-3">
         {bouquet.featured && (
           <span className="jb-featured-badge rounded-full bg-rose-600 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white sm:text-[10px]">Featured</span>
         )}
         {discount > 0 && (
-          <span className="rounded-full bg-red-700 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white sm:text-[10px]">{discount}% off</span>
+          <span className="ml-auto flex h-8 w-8 shrink-0 flex-col items-center justify-center rounded-full bg-red-700 text-center text-[9px] font-extrabold leading-[1.05] text-white sm:h-9 sm:w-9 sm:text-[10px]">{discount}%<span className="text-[7px] uppercase sm:text-[8px]">off</span></span>
         )}
       </div>
       {/* Image container */}
