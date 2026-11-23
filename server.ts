@@ -1454,7 +1454,7 @@ async function startServer() {
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(c.email).trim())) return res.status(400).json({ success: false, error: 'A valid customer email is required.' });
       if (!/^\d{6}$/.test(String(c.pincode).replace(/\s/g, ''))) return res.status(400).json({ success: false, error: 'A valid 6-digit pincode is required.' });
       if (!isServiceableCity(c.city)) return res.status(400).json({ success: false, error: 'We currently deliver within Berhampore only. Please enter a local delivery address.' });
-      if (!isValidOptionalDeliveryDate(c.deliveryDate)) return res.status(400).json({ success: false, error: 'Choose a valid preferred date from today onwards, or leave it blank.' });
+      if (!isValidOptionalDeliveryDate(c.deliveryDate)) return res.status(400).json({ success: false, error: 'Choose a preferred date at least 6 days from today, or leave it blank.' });
       // Requested date is optional; our team confirms availability by phone.
       const database = await getMongoDb();
       if (!database) return res.status(503).json({ success: false, error: 'Orders are temporarily unavailable. Please try again in a moment.' });
