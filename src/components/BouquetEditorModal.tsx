@@ -28,6 +28,10 @@ export default function BouquetEditorModal({
 
   const [title, setTitle] = useState(bouquetToEdit?.title || '');
   const [stockLeft, setStockLeft] = useState(bouquetToEdit?.stockLeft?.toString() ?? '');
+  const [parcelHeight, setParcelHeight] = useState(String(bouquetToEdit?.parcelHeightCm ?? ''));
+  const [parcelWidth, setParcelWidth] = useState(String(bouquetToEdit?.parcelWidthCm ?? ''));
+  const [parcelLength, setParcelLength] = useState(String(bouquetToEdit?.parcelLengthCm ?? ''));
+  const [parcelWeight, setParcelWeight] = useState(String(bouquetToEdit?.parcelWeightGrams ?? ''));
   const [deliveryCost, setDeliveryCost] = useState(String(bouquetToEdit?.deliveryCost ?? 0));
   const [description, setDescription] = useState(bouquetToEdit?.description || '');
   const [ribbonColorsText, setRibbonColorsText] = useState(
@@ -97,6 +101,9 @@ export default function BouquetEditorModal({
       setSaveError('Enter a valid stock quantity and delivery cost.');
       return;
     }
+    if ([parcelHeight, parcelWidth, parcelLength, parcelWeight].some(v => v !== '' && (!Number.isFinite(Number(v)) || Number(v) <= 0))) {
+      setSaveError('Packed parcel measurements must be positive numbers.'); return;
+    }
     if (description.trim().length < 12) { setSaveError('Add a product description of at least 12 characters.'); return; }
     const colors = ribbonColorsText
       .split(',')
@@ -128,6 +135,10 @@ export default function BouquetEditorModal({
       imageUrl: defaultOption.images![0],
       deliveryCost: Number(deliveryCost),
       stockLeft: Number(stockLeft),
+      parcelHeightCm: parcelHeight ? Number(parcelHeight) : undefined,
+      parcelWidthCm: parcelWidth ? Number(parcelWidth) : undefined,
+      parcelLengthCm: parcelLength ? Number(parcelLength) : undefined,
+      parcelWeightGrams: parcelWeight ? Number(parcelWeight) : undefined,
       description: description.trim(),
       ribbonColors: colors.length > 0 ? colors : ['Custom Ribbon Colors'],
       ribbonMaterial: bouquetToEdit?.ribbonMaterial || 'Handcrafted',
@@ -208,6 +219,21 @@ export default function BouquetEditorModal({
               {deliveryCost !== '' && Number(deliveryCost) === 0 && <span className="mt-1 block text-emerald-700">Free Delivery</span>}
             </label>
           </div>
+          <section className="space-y-3 rounded-xl border border-stone-200 bg-stone-50 p-4" aria-label="Packed parcel specifications">
+            <h3 className="font-semibold text-stone-900">Packed parcel measurements (for courier estimates)</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {([
+                ['Height (cm)', parcelHeight, setParcelHeight],
+                ['Width (cm)', parcelWidth, setParcelWidth],
+                ['Length (cm)', parcelLength, setParcelLength],
+                ['Weight (grams)', parcelWeight, setParcelWeight],
+              ] as const).map(([label, value, setter]) => (
+                <label key={label} className="text-xs text-stone-700">{label}
+                  <input className={fieldClass} type="number" min="0.01" step="any" value={value} onChange={e => setter(e.target.value)} placeholder="Enter packed measurement" />
+                </label>
+              ))}
+            </div>
+          </section>
           <section className="space-y-3 rounded-xl border border-stone-200 bg-stone-50 p-4" aria-label="Product categories">
             <h3 className="font-serif text-xl text-stone-900">Product categories</h3>
             {PRODUCT_SIZE_KEYS.map(size => {
