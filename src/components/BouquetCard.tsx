@@ -128,6 +128,6 @@ export default function BouquetCard({
 
         </div>
       </div>
-    </div>
+    </a>
   );
 }
