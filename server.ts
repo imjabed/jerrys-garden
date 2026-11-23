@@ -1050,7 +1050,40 @@ async function startServer() {
       const candidates = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [raw];
       const amount = candidates.map((x: any) => Number(x?.total_amount)).find((x: number) => Number.isFinite(x) && x > 0);
       if (amount === undefined) throw new Error('COURIER_RATE_UNAVAILABLE');
-      const result = { pincode: pin, originPincode: '742101', chargeableWeightGrams: grams, shippingCharge: Math.ceil(amount), currency: 'INR', estimatedDeliveryDate: null, preparationDays: 4, estimateStatus: 'rate_available_tat_pending', approximate: true };
+      // TAT is requested for the expected dispatch date, after four preparation days.
+      // Never manufacture a delivery promise when Delhivery omits or rejects the TAT.
+      const todayIndia = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+      const dateParts = todayIndia.match(/(\d{4})-(\d{2})-(\d{2})/);
+      const baseDate = dateParts ? new Date(Date.UTC(Number(dateParts[1]), Number(dateParts[2]) - 1, Number(dateParts[3]))) : new Date();
+      const dispatchDate = new Date(baseDate.getTime() + 4 * 86400000);
+      const dateISO = (date: Date) => date.toISOString().slice(0, 10);
+      let estimatedDeliveryDate: string | null = null;
+      let transitDays: number | null = null;
+      try {
+        const tatParams = new URLSearchParams({
+          origin_pin: '742101', destination_pin: pin, mot: 'S', pdt: 'B2C',
+          expected_pickup_date: dateISO(dispatchDate) + ' 10:00',
+        });
+        const tatController = new AbortController();
+        const tatTimeout = setTimeout(() => tatController.abort(), 7000);
+        try {
+          const tatResponse = await fetch(`https://track.delhivery.com/api/dc/expected_tat?${tatParams}`, {
+            headers: { Authorization: `Token ${token}`, Accept: 'application/json' },
+            signal: tatController.signal,
+          });
+          if (tatResponse.ok) {
+            const tat: any = await tatResponse.json();
+            const days = Number(tat?.data?.tat);
+            if (tat?.success === true && Number.isInteger(days) && days >= 0 && days <= 30) {
+              transitDays = days;
+              estimatedDeliveryDate = dateISO(new Date(dispatchDate.getTime() + days * 86400000));
+            }
+          }
+        } finally { clearTimeout(tatTimeout); }
+      } catch (error) {
+        console.warn('Delhivery TAT unavailable:', error instanceof Error ? error.message : 'unknown');
+      }
+      const result = { pincode: pin, originPincode: '742101', chargeableWeightGrams: grams, shippingCharge: Math.ceil(amount), currency: 'INR', estimatedDeliveryDate, transitDays, preparationDays: 4, estimateStatus: estimatedDeliveryDate ? 'estimated' : 'rate_available_tat_pending', approximate: true };
       if (shippingQuoteCache.size > 500) shippingQuoteCache.clear();
       shippingQuoteCache.set(key, { expires: Date.now() + 300000, value: result });
       return result;
