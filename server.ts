@@ -836,6 +836,7 @@ async function startServer() {
       const normalizedEmail = String(email).trim().toLowerCase();
       if (!otpAuth || otpAuth.role !== 'otp' || !otpAuth.verified || otpAuth.email !== normalizedEmail) return res.status(401).json({ success: false, error: 'Email verification is required before creating the account.' });
       if (String(password).length < 10 || String(password).length > 256) return res.status(400).json({ success: false, error: 'Password must be between 10 and 256 characters.' });
+      if (await mongoFindCustomerByEmail(normalizedEmail)) return res.status(409).json({ success: false, error: 'An account with this email already exists. Please sign in.' });
       const saved = await mongoSaveCustomer({ name: String(name).trim(), email: normalizedEmail, phone: String(phone).trim(), address: String(address || '').trim(), password, isVerified: true });
       if (!saved) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable. Please try again.' });
       const token = signToken({ role: 'customer', email: normalizedEmail }, 60 * 60 * 24 * 30);
