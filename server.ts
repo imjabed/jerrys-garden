@@ -1571,6 +1571,11 @@ async function startServer() {
           city: 'Berhampore', deliveryFee: 0, freeDeliveryThreshold: 0,
         }), storeName, logoUrl,
         customSizeFlowers: customSizeMap(settings.customSizeFlowers),
+        productCategories: (() => {
+          const raw = settings.productCategories;
+          if (!Array.isArray(raw)) return existing?.productCategories || ['Ribbon Bouquets', 'Pipecleaner Bouquets', 'Bouquet Keychains', 'Pipecleaner Keychains', 'Gift Combos', 'Decor Items'];
+          return Array.from(new Set(raw.map((item: unknown) => typeof item === 'string' ? item.trim() : '').filter((item: string) => item.length >= 2 && item.length <= 50))).slice(0, 40);
+        })(),
         phone: String(settings.phone || '').slice(0, 100),
         whatsapp: String(settings.whatsapp || '').slice(0, 100),
         address: String(settings.address || '').slice(0, 300),
