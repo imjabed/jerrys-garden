@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { ShoppingBag, Eye, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 import type { ReviewSummary } from '../services/api';
 import { RibbonBouquet } from '../types';
 import { hasProductSizes, discountPercent, normalizeProductSizes } from '../../shared/productSizes';
@@ -32,22 +31,16 @@ export default function BouquetCard({
   const originalPrice = startingOption?.originalPrice ?? (!startingOption?.name && startingPrice === bouquet.price ? bouquet.originalPrice : undefined);
   const discount = discountPercent(startingPrice, originalPrice);
   return (
-    <div className="jb-product-card group bg-white border border-stone-200/60 hover:border-stone-300 transition-all duration-300 flex flex-col overflow-hidden relative">
+    <a href={`/products/${encodeURIComponent(bouquet.id)}`} onClick={event => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return; event.preventDefault(); onSelect(bouquet); }} className="jb-product-card group bg-white border border-stone-200/60 hover:border-stone-300 transition-all duration-300 flex flex-col overflow-hidden relative cursor-pointer no-underline">
       {/* Labels sit above the image, never over the product photo. */}
       <div className="flex min-h-10 flex-wrap items-center gap-1.5 border-b border-stone-100 bg-white px-2 py-2 sm:px-3">
         {bouquet.featured && (
           <span className="jb-featured-badge rounded-full bg-rose-600 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white sm:text-[10px]">Featured</span>
         )}
-        <span className="rounded border border-stone-200 bg-stone-50 px-2 py-1 text-[9px] font-medium text-stone-800 sm:text-[10px]">
-          {(bouquet.category || '').toLowerCase().includes('keychain') ? 'Handmade keepsake' : 'Choose your size'}
-        </span>
       </div>
       {/* Image container */}
       <div
         className="relative aspect-square sm:aspect-[4/5] overflow-hidden bg-stone-100 cursor-pointer"
-        onClick={() => onSelect(bouquet)}
-        onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(bouquet); } }}
-        role="button" tabIndex={0} aria-label={`View ${bouquet.title} details and sizes`}
       >
         <img
           src={bouquet.imageUrl}
@@ -57,6 +50,11 @@ export default function BouquetCard({
           loading="lazy"
         />
         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+        {discount > 0 && (
+          <span className="absolute right-2 top-2 z-10 flex h-12 w-12 flex-col items-center justify-center rounded-full bg-red-700 text-center text-[11px] font-extrabold leading-tight text-white shadow-md sm:right-3 sm:top-3 sm:h-14 sm:w-14 sm:text-xs">
+            {discount}%<span className="text-[9px] font-bold uppercase sm:text-[10px]">OFF</span>
+          </span>
+        )}
 
         {(bouquet.inStock === false || bouquet.stockLeft === 0) && (
           <div className="absolute inset-0 flex items-center justify-center bg-stone-950/30 z-10 pointer-events-none">
@@ -71,17 +69,10 @@ export default function BouquetCard({
           </span>
         </div>
 
-        {/* Quick View Button overlay */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          <span className="px-4 py-2 rounded-full bg-white/95 text-stone-900 font-medium text-xs shadow-lg flex items-center gap-1.5 border border-stone-200">
-            <Eye className="w-3.5 h-3.5 text-rose-600" />
-            Discover
-          </span>
-        </div>
       </div>
 
       {typeof bouquet.stockLeft === 'number' && bouquet.stockLeft > 0 && bouquet.stockLeft < 3 && (
-        <div role="status" className="border-b border-red-100 bg-red-50 px-2 py-1 text-[9px] font-semibold text-red-700 sm:px-3 sm:py-1.5 sm:text-[11px]">
+        <div role="status" className="border-b border-red-200 bg-red-100 px-2 py-1.5 text-[10px] font-extrabold text-red-800 sm:px-3 sm:py-2 sm:text-xs">
           Limited stock · Only {bouquet.stockLeft} left
         </div>
       )}
@@ -101,9 +92,7 @@ export default function BouquetCard({
           </div>
 
           <h3 className="font-serif font-normal text-stone-900 text-sm leading-snug sm:text-xl hover:text-stone-600 transition-colors line-clamp-2 min-h-9 sm:min-h-0">
-            <a href={`/products/${encodeURIComponent(bouquet.id)}`}
-              onClick={event => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return; event.preventDefault(); onSelect(bouquet); }}
-              className="hover:underline hover:underline-offset-4">{bouquet.title}</a>
+            {bouquet.title}
           </h3>
 
           {reviewSummary && reviewSummary.count > 0 && (
@@ -127,22 +116,16 @@ export default function BouquetCard({
                 {sizedOptions.length > 1 ? 'From ' : ''}₹{startingPrice.toLocaleString('en-IN')}
               </span>
               {originalPrice && originalPrice > startingPrice && (
-                <span className="hidden sm:inline text-xs text-stone-400 line-through">
+                <span className="text-[11px] sm:text-sm text-stone-500 line-through">
                   ₹{originalPrice}
                 </span>
               )}
             </div>
             <div className="mt-1 flex flex-wrap gap-1 text-[10px] font-semibold">
-              {discount > 0 && <span className="rounded bg-rose-100 px-1.5 py-0.5 text-rose-800">{discount}% off</span>}
               {bouquet.deliveryCost === 0 && <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-800">Free Delivery</span>}
             </div>
           </div>
 
-          <a href={`/products/${encodeURIComponent(bouquet.id)}`}
-            onClick={event => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return; event.preventDefault(); onSelect(bouquet); }}
-            className="jb-view-product inline-flex items-center justify-center border border-stone-900 bg-stone-900 px-3 py-2.5 text-[11px] font-medium text-white transition-colors hover:bg-stone-700">
-            View details
-          </a>
         </div>
       </div>
     </div>
