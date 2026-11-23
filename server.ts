@@ -985,7 +985,7 @@ async function startServer() {
   // Delhivery read-only serviceability. No shipment is created or charged.
   app.get('/api/shipping/serviceability', async (req, res) => {
     const pincode = String(req.query.pincode || '').trim();
-    if (!/^\\d{6}$/.test(pincode)) return res.status(400).json({ success: false, error: 'Enter a valid six-digit Indian PIN code.' });
+    if (!/^\d{6}$/.test(pincode)) return res.status(400).json({ success: false, error: 'Enter a valid six-digit Indian PIN code.' });
     const token = process.env.DELHIVERY_API_TOKEN?.trim();
     if (!token) return res.status(503).json({ success: false, error: 'Courier service is not configured.' });
     const environment = process.env.DELHIVERY_ENV === 'staging' ? 'staging' : 'production';
