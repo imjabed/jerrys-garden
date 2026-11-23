@@ -58,6 +58,19 @@ if (!AUTH_SECRET) {
   console.warn('[Security] AUTH_SECRET is not configured. Admin/customer authentication will be unavailable until it is set.');
 }
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[character] || character);
+}
+
+function isSupportedImage(bytes: Buffer, mime: string): boolean {
+  if (mime === 'jpeg' || mime === 'jpg') return bytes.length >= 4 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (mime === 'png') return bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+  if (mime === 'webp') return bytes.length >= 12 && bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP';
+  return false;
+}
+
 function base64Url(value: string) {
   return Buffer.from(value).toString('base64url');
 }
@@ -416,6 +429,8 @@ async function startServer() {
       if (!bytes.length || bytes.length > 5 * 1024 * 1024) {
         return res.status(413).json({ success: false, error: 'Invalid image or image exceeds 5 MB.' });
       }
+      const declaredMime = /^data:image\/(jpeg|jpg|png|webp);base64,/i.exec(image)?.[1]?.toLowerCase() || '';
+      if (!isSupportedImage(bytes, declaredMime)) return res.status(400).json({ success: false, error: 'Image content does not match its declared format.' });
       // Content-based IDs make repeated uploads of exactly the same image
       // idempotent, even if renamed locally or used in several editor slots.
       // Never overwrite an asset that might be referenced by live pages/history.
@@ -630,7 +645,7 @@ async function startServer() {
         attempts: 0,
       });
 
-      const recipientName = name ? String(name).trim() : 'Valued Customer';
+      const recipientName = escapeHtml(name ? String(name).trim().slice(0, 100) : 'Valued Customer');
 
       // Send email through AgentMail's HTTPS API (port 443), avoiding SMTP restrictions on Render Free.
       await sendEmailWithAgentMail({
@@ -1511,11 +1526,11 @@ async function startServer() {
       if (!saved) return res.status(503).json({ success: false, error: 'Order could not be saved. Please try again.' });
       if (safeCustomer.email) {
         try {
-          const rows = normalizedItems.map((item: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${String(item.bouquet.title)}${item.selectedSize ? ' (' + (productSizeFor(item.bouquet, item.selectedSize)?.name || PRODUCT_SIZE_LABELS[item.selectedSize as keyof typeof PRODUCT_SIZE_LABELS]) + ', ' + item.bouquet.flowerCount + ' flowers)' : ''}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">₹${Number(item.bouquet.price) * item.quantity}</td></tr>`).join('');
+          const rows = normalizedItems.map((item: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${escapeHtml(item.bouquet.title)}${item.selectedSize ? ' (' + (productSizeFor(item.bouquet, item.selectedSize)?.name || PRODUCT_SIZE_LABELS[item.selectedSize as keyof typeof PRODUCT_SIZE_LABELS]) + ', ' + item.bouquet.flowerCount + ' flowers)' : ''}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">₹${Number(item.bouquet.price) * item.quantity}</td></tr>`).join('');
           await sendEmailWithAgentMail({
             to: safeCustomer.email,
             subject: `Jame Bouquets — Order Placed ${order.orderNumber}`,
-            html: `<div style="font-family:Georgia,serif;max-width:640px;margin:auto;padding:28px;color:#292524"><h1>Jame Bouquets</h1><h2>Order Placed!</h2><p>Thank you for your order <strong>${order.orderNumber}</strong>.</p><p>Our team will contact you by phone to confirm your order and discuss payment. No payment is required on the website.</p><table style="width:100%"><tbody>${rows}</tbody></table><p>Products subtotal: ₹${subtotal}</p><p>Delivery: ₹${deliveryFee} · Total: ₹${totalAmount}</p><p><strong>Phone:</strong> ${safeCustomer.phone}</p><p><strong>Delivery address:</strong> ${safeCustomer.deliveryAddress}, ${safeCustomer.city} - ${safeCustomer.pincode}</p></div>`,
+            html: `<div style="font-family:Georgia,serif;max-width:640px;margin:auto;padding:28px;color:#292524"><h1>Jame Bouquets</h1><h2>Order Placed!</h2><p>Thank you for your order <strong>${order.orderNumber}</strong>.</p><p>Our team will contact you by phone to confirm your order and discuss payment. No payment is required on the website.</p><table style="width:100%"><tbody>${rows}</tbody></table><p>Products subtotal: ₹${subtotal}</p><p>Delivery: ₹${deliveryFee} · Total: ₹${totalAmount}</p><p><strong>Phone:</strong> ${escapeHtml(safeCustomer.phone)}</p><p><strong>Delivery address:</strong> ${escapeHtml(safeCustomer.deliveryAddress)}, ${escapeHtml(safeCustomer.city)} - ${escapeHtml(safeCustomer.pincode)}</p></div>`,
           });
         } catch (emailErr) { console.error("[Jame Bouquets] Order confirmation email failed:", emailErr); }
       }
