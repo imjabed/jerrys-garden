@@ -1,8 +1,7 @@
-import { productDeliveryTotal } from '../../shared/productSizes';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { ArrowRight, CheckCircle2, X } from 'lucide-react';
 import { CartItem, CustomerDetails, Order, StoreSettings, UserAccount } from '../types';
-import { apiValidateCoupon } from '../services/api';
+import { apiValidateCoupon, apiShippingQuote, apiShippingServiceability } from '../services/api';
 import { isValidOptionalDeliveryDate, earliestDeliveryDate } from '../../shared/orderRules';
 
 interface CheckoutModalProps {
@@ -36,12 +35,39 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
     specialInstructions: '',
     giftNote: '',
   });
+  const [shipping, setShipping] = useState<{ fee: number; pin: string; weight: number } | null>(null);
+  const [shippingError, setShippingError] = useState('');
+  const [shippingBusy, setShippingBusy] = useState(false);
+  const packedWeight = cartItems.reduce((sum, item) => sum + Number(item.bouquet.parcelWeightGrams || 0) * item.quantity, 0);
+  const shippingCartKey = cartItems.map(item => item.bouquet.id + ':' + item.quantity + ':' + (item.bouquet.parcelWeightGrams || 0)).join('|');
+  useEffect(() => {
+    let cancelled = false;
+    setShipping(null);
+    setShippingError('');
+    if (!isOpen || !/^[0-9]{6}$/.test(customer.pincode)) return;
+    if (packedWeight <= 0 || cartItems.some(item => !Number(item.bouquet.parcelWeightGrams))) {
+      setShippingError('Shipping details are missing for a product. Please contact the shop.');
+      return;
+    }
+    setShippingBusy(true);
+    (async () => {
+      try {
+        const availability = await apiShippingServiceability(customer.pincode);
+        if (!availability.serviceable || !availability.prepaid) throw new Error('Delhivery does not currently serve this PIN code.');
+        const quote = await apiShippingQuote(customer.pincode, Math.ceil(packedWeight));
+        if (!cancelled) setShipping({ fee: quote.shippingCharge, pin: customer.pincode, weight: packedWeight });
+      } catch (err: any) {
+        if (!cancelled) setShippingError(err?.message || 'Could not calculate courier charges.');
+      } finally { if (!cancelled) setShippingBusy(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, customer.pincode, shippingCartKey]);
   if (!isOpen) return null;
   const subtotal = cartItems.reduce((sum, item) => sum + item.bouquet.price * item.quantity, 0);
   const cartKey = cartItems.map(item => `${item.bouquet.id}:${item.selectedSize || 'ONE'}:${item.quantity}`).join('|');
   const couponIsCurrent = Boolean(appliedCoupon && appliedCoupon.email === customer.email.trim().toLowerCase() && appliedCoupon.items === cartKey);
   const validCoupon = couponIsCurrent ? appliedCoupon : null;
-  const deliveryFee = productDeliveryTotal(cartItems);
+  const deliveryFee = shipping?.pin === customer.pincode && shipping.weight === packedWeight ? shipping.fee : null;
   const discount = validCoupon?.discount || 0;
   const update = (key: keyof CustomerDetails, value: string) => {
     setCustomer(prev => ({ ...prev, [key]: value }));
@@ -85,6 +111,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
       setError('Your order details changed. Please reapply the coupon before placing your order.');
       return;
     }
+    if (deliveryFee === null || shippingBusy) { setError(shippingError || 'Please wait for a valid courier shipping estimate.'); return; }
     setBusy(true); setError('');
     try {
       const now = new Date().toISOString();
@@ -144,6 +171,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
                 {field('Delivery address','deliveryAddress','text',true,'Street, locality, landmark')}
               </div>
               {field('PIN code','pincode','text',true,'6-digit PIN')}
+              <p className="text-xs text-stone-600 sm:col-span-2" role="status">{shippingBusy ? 'Checking Delhivery charges…' : shippingError || (shipping ? 'Courier estimate ₹' + shipping.fee : 'Enter PIN for courier charges.')}</p>
               {field('Preferred delivery date (optional)','deliveryDate','date')}
               <div className="sm:col-span-2">{field('Gift note (optional)','giftNote','text',false,'Your message')}</div>
             </div>
@@ -170,12 +198,12 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
               <span>{cartItems.reduce((n, item) => n + item.quantity, 0)} item(s) · Product subtotal</span>
               <span className="font-medium text-stone-900">₹{subtotal.toLocaleString('en-IN')}</span>
             </div>
-            <div className="mt-2 flex justify-between text-sm text-stone-700"><span>Delivery</span><span>{deliveryFee === 0 ? 'Free Delivery' : `₹${deliveryFee.toLocaleString('en-IN')}`}</span></div>
+            <div className="mt-2 flex justify-between text-sm text-stone-700"><span>Delivery</span><span>{deliveryFee === null ? 'Awaiting courier quote' : `₹${deliveryFee.toLocaleString('en-IN')}`}</span></div>
             {validCoupon && <div className="mt-2 flex justify-between text-sm text-emerald-800"><span>Offer discount</span><span>−₹{discount.toLocaleString('en-IN')}</span></div>}
-            <div className="mt-2 flex justify-between text-sm font-medium text-stone-900"><span>Estimated total</span><span>₹{(Math.max(0, subtotal - discount) + deliveryFee).toLocaleString('en-IN')}</span></div>
+            <div className="mt-2 flex justify-between text-sm font-medium text-stone-900"><span>Estimated total</span><span>₹{deliveryFee === null ? 'Pending shipping estimate' : `₹${(Math.max(0, subtotal - discount) + deliveryFee).toLocaleString('en-IN')}`}</span></div>
             <p className="mt-2 text-[11px] leading-5 text-stone-500">No payment is taken online. Our team confirms your order, delivery and final amount before proceeding.</p>
             {error && <p role="alert" className="mt-4 text-sm text-red-700">{error}</p>}
-            <button disabled={busy} type="submit" className="mt-7 flex w-full items-center justify-center gap-2 bg-stone-900 px-6 py-4 text-xs uppercase tracking-widest text-white transition hover:bg-stone-700 disabled:opacity-60">
+            <button disabled={busy || shippingBusy || deliveryFee === null} type="submit" className="mt-7 flex w-full items-center justify-center gap-2 bg-stone-900 px-6 py-4 text-xs uppercase tracking-widest text-white transition hover:bg-stone-700 disabled:opacity-60">
               {busy ? 'Placing your order...' : 'Place order'} <ArrowRight size={16}/>
             </button>
           </form>
