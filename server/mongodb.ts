@@ -597,21 +597,20 @@ export async function mongoCreateOrder(
   const database = await getMongoDb();
   if (!database) return null;
 
-  const now = new Date().toISOString();
-  const newOrder = {
-    ...order,
-    updatedAt: now,
-  };
-
-  if (!stockReservations.size) {
-    await database.collection('orders').updateOne({ id: order.id }, { $set: newOrder }, { upsert: true });
-    return newOrder;
-  }
-
   if (!client) return null;
   const unavailable = new Error('Stock changed');
+  const date = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date()).replaceAll('/', '');
+  const prefix = `MJ${date}#`;
+  let savedOrder: any = null;
   try {
     await client.withSession(session => session.withTransaction(async () => {
+      // A per-day counter in the same transaction as the order prevents duplicate IDs.
+      const counter = await database.collection('order_counters').findOneAndUpdate(
+        { _id: prefix as any }, { $inc: { count: 1 } }, { upsert: true, returnDocument: 'after', session },
+      );
+      const sequence = Number(counter?.count ?? 0);
+      if (!sequence) throw new Error('Could not allocate an order number');
+      const orderNumber = `${prefix}${String(sequence).padStart(2, '0')}`;
       for (const [id, { quantity, updatedAt }] of stockReservations) {
         const product = await database.collection('products').findOneAndUpdate(
           { id, inStock: { $ne: false }, stockLeft: { $gte: quantity }, updatedAt: updatedAt ?? { $exists: false } },
@@ -621,14 +620,14 @@ export async function mongoCreateOrder(
         if (!product) throw unavailable;
         await database.collection('bouquets').updateOne({ id }, { $set: { stockLeft: product.stockLeft } }, { session });
       }
-      await database.collection('orders').insertOne(newOrder, { session });
+      savedOrder = { ...order, orderNumber, updatedAt: new Date().toISOString() };
+      await database.collection('orders').insertOne(savedOrder, { session });
     }));
   } catch (error) {
     if (error === unavailable) return false;
     throw error;
   }
-
-  return newOrder;
+  return savedOrder;
 }
 
 export async function mongoUpdateOrderStatus(orderId: string, status: string) {
