@@ -9,6 +9,10 @@ export interface RibbonBouquet {
   originalPrice?: number;
   deliveryCost?: number;
   stockLeft?: number;
+  parcelHeightCm?: number;
+  parcelWidthCm?: number;
+  parcelLengthCm?: number;
+  parcelWeightGrams?: number;
   imageUrl: string;
   description: string;
   ribbonColors: string[];
