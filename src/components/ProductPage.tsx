@@ -34,9 +34,11 @@ export default function ProductPage({
   const [deliveryPin, setDeliveryPin] = useState(() => { try { return localStorage.getItem('jb_delivery_pin') || ''; } catch { return ''; } });
   const [courierMessage, setCourierMessage] = useState('');
   const [courierBusy, setCourierBusy] = useState(false);
+  const [courierQuote, setCourierQuote] = useState<{ shippingCharge: number; estimatedDeliveryDate: string | null } | null>(null);
   useEffect(() => {
     let cancelled = false;
     setCourierMessage('');
+    setCourierQuote(null);
     if (!/^[0-9]{6}$/.test(deliveryPin)) return;
     try { localStorage.setItem('jb_delivery_pin', deliveryPin); } catch {}
     if (!product.parcelWeightGrams || product.parcelWeightGrams <= 0) {
@@ -49,7 +51,7 @@ export default function ProductPage({
         const available = await apiShippingServiceability(deliveryPin);
         if (!available.serviceable || !available.prepaid) throw new Error('Delivery is not available for this PIN.');
         const quote = await apiShippingQuote(deliveryPin, Math.ceil(product.parcelWeightGrams));
-        if (!cancelled) setCourierMessage('Delhivery available · estimated shipping ₹' + quote.shippingCharge + ' · 4 days preparation + courier transit (date pending)');
+        if (!cancelled) setCourierQuote(quote);
       } catch (error: any) {
         if (!cancelled) setCourierMessage(error?.message || 'Courier estimate unavailable.');
       } finally { if (!cancelled) setCourierBusy(false); }
@@ -162,7 +164,13 @@ export default function ProductPage({
               <input id="product-delivery-pin" inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={deliveryPin}
                 onChange={event => setDeliveryPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
                 placeholder="Enter six-digit PIN" className="mt-2 w-full border border-stone-300 px-3 py-2 text-sm" />
-              <p className="mt-2 text-xs text-stone-600" role="status">{courierBusy ? 'Checking Delhivery…' : courierMessage || 'Enter PIN to see courier availability and estimated shipping.'}</p>
+              <div className="mt-3" role="status">
+                {courierBusy ? <p className="text-xs text-stone-500">Checking Delhivery…</p> : courierQuote ? <>
+                  <p className="text-base font-semibold text-stone-900">{courierQuote.estimatedDeliveryDate ? 'Delivery within ' + new Date(courierQuote.estimatedDeliveryDate + 'T12:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', weekday: 'long', timeZone: 'UTC' }) : 'Delivery date being confirmed'}</p>
+                  <p className="mt-1 text-xs text-stone-600">Delivery Charge: <span className="text-stone-400 line-through">₹{courierQuote.shippingCharge + 15}</span> <span className="font-semibold text-stone-900">₹{courierQuote.shippingCharge}</span></p>
+                  <p className="mt-1 text-[11px] text-stone-500">Estimated · includes 4 days preparation and courier transit</p>
+                </> : <p className="text-xs text-stone-600">{courierMessage || 'Enter PIN to check courier availability and shipping.'}</p>}
+              </div>
               <p className="mt-2 text-xs text-stone-500">Packed size: {product.parcelLengthCm || '—'} × {product.parcelWidthCm || '—'} × {product.parcelHeightCm || '—'} cm · {product.parcelWeightGrams || '—'} g</p>
             </section>
             <p className="mt-6 text-sm leading-7 text-stone-700">{product.description}</p>
