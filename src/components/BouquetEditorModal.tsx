@@ -92,7 +92,7 @@ export default function BouquetEditorModal({
     if (isSaving || isUploading) return;
     setSaveError('');
     if (!title.trim()) { setSaveError('Enter a product name.'); return; }
-    if ((stockLeft !== '' && (!Number.isSafeInteger(Number(stockLeft)) || Number(stockLeft) < 0))
+    if ((stockLeft === '' || !Number.isSafeInteger(Number(stockLeft)) || Number(stockLeft) < 0)
       || deliveryCost === '' || !Number.isFinite(Number(deliveryCost)) || Number(deliveryCost) < 0) {
       setSaveError('Enter a valid stock quantity and delivery cost.');
       return;
@@ -127,7 +127,7 @@ export default function BouquetEditorModal({
       originalPrice: defaultOption.originalPrice,
       imageUrl: defaultOption.images![0],
       deliveryCost: Number(deliveryCost),
-      stockLeft: stockLeft === '' || Number(stockLeft) === bouquetToEdit?.stockLeft ? undefined : Number(stockLeft),
+      stockLeft: Number(stockLeft),
       description: description.trim(),
       ribbonColors: colors.length > 0 ? colors : ['Custom Ribbon Colors'],
       ribbonMaterial: bouquetToEdit?.ribbonMaterial || 'Handcrafted',
