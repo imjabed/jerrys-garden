@@ -417,3 +417,12 @@ export async function apiSendCustomEnquiry(payload: import('../components/Custom
   });
   return parseResponse<CustomEnquiryResponse>(res);
 }
+
+export async function apiAddStock(id: string, amount: number): Promise<{success: boolean; bouquet?: RibbonBouquet; error?: string}> {
+  try {
+    const res = await fetch(`${API_URL}/api/admin/stock/${encodeURIComponent(id)}/add`, {
+      method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify({ amount }),
+    });
+    return await parseResponse<any>(res);
+  } catch (error: any) { return { success: false, error: error.message }; }
+}
