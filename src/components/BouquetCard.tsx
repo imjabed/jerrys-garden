@@ -66,6 +66,11 @@ export default function BouquetCard({
             <span className="bg-white/95 px-3 py-2 text-xs font-medium text-stone-900">Currently unavailable</span>
           </div>
         )}
+        {typeof bouquet.stockLeft === 'number' && bouquet.stockLeft > 0 && bouquet.stockLeft < 3 && (
+          <div className="absolute bottom-2 left-2 z-10 rounded bg-red-700 px-2 py-1 text-xs font-bold text-white" role="status">
+            Limited stock · {bouquet.stockLeft} left
+          </div>
+        )}
         {/* Ribbon Material pill */}
         <div className="hidden">
           <span className="px-2 py-0.5 text-[10px] font-medium bg-stone-900/75 backdrop-blur-xs text-stone-100 rounded-md">
