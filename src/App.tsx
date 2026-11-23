@@ -77,6 +77,30 @@ export default function App() {
   // Core App State
   const [bouquets, setBouquets] = useState<RibbonBouquet[]>([]);
   const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'offline'>('loading');
+  // Reveal only after the catalogue request completes and the first product images are ready.
+  useEffect(() => {
+    if (catalogStatus === 'loading') return;
+    let cancelled = false;
+    const reveal = async () => {
+      if (catalogStatus === 'ready') {
+        await Promise.all(bouquets.slice(0, 4).map(product => new Promise<void>(resolve => {
+          if (!product.imageUrl) return resolve();
+          const image = new Image();
+          image.onload = () => resolve();
+          image.onerror = () => resolve();
+          image.src = product.imageUrl;
+          if (image.complete) resolve();
+        })));
+      }
+      if (cancelled) return;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (!cancelled) document.getElementById('jb-boot-splash')?.remove();
+      }));
+    };
+    void reveal();
+    return () => { cancelled = true; };
+  }, [catalogStatus, bouquets]);
+
   const [siteContent, setSiteContent] = useState<SiteContent>(DEFAULT_SITE_CONTENT);
   const [ownerChecked, setOwnerChecked] = useState(false);
   const editorRoute = window.location.pathname.startsWith('/admin/editor');
@@ -616,6 +640,7 @@ export default function App() {
             setBouquetEditorOpen(true);
           }}
           onDeleteBouquet={handleDeleteBouquet}
+          onStockUpdated={updated => setBouquets(items => items.map(item => item.id === updated.id ? updated : item))}
           onUpdateSettings={async (newSettings) => {
             const result = await apiUpdateSettings(newSettings);
             if (!result.success || !result.settings) { showToast(result.error || 'Could not save settings.'); return false; }
