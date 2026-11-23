@@ -1026,6 +1026,18 @@ async function startServer() {
     if (cached && cached.expires > Date.now()) return cached.value;
     const token = process.env.DELHIVERY_API_TOKEN?.trim();
     if (!token) throw new Error('COURIER_NOT_CONFIGURED');
+    const serviceabilityController = new AbortController();
+    const serviceabilityTimer = setTimeout(() => serviceabilityController.abort(), 8000);
+    try {
+      const availability = await fetch(`https://track.delhivery.com/c/api/pin-codes/json/?filter_codes=${pin}`, {
+        headers: { Authorization: `Token ${token}`, Accept: 'application/json' }, signal: serviceabilityController.signal,
+      });
+      if (!availability.ok) throw new Error('COURIER_SERVICEABILITY_UNAVAILABLE');
+      const payload: any = await availability.json();
+      const entries = Array.isArray(payload?.delivery_codes) ? payload.delivery_codes : [];
+      const postal = entries.map((entry: any) => entry?.postal_code).find((entry: any) => String(entry?.pin) === pin);
+      if (!postal || postal.pre_paid !== 'Y') throw new Error('COURIER_PIN_UNSERVICEABLE');
+    } finally { clearTimeout(serviceabilityTimer); }
     const params = new URLSearchParams({ md: 'S', ss: 'Delivered', d_pin: pin, o_pin: '742101', cgm: String(grams), pt: 'Pre-paid' });
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 8000);
