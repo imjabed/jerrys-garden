@@ -996,7 +996,7 @@ async function startServer() {
       if (!bouquet || !bouquet.id || !bouquet.title || typeof bouquet.price !== 'number' || bouquet.price < 0) return res.status(400).json({ success: false, error: 'Valid bouquet data is required.' });
       const database = await getMongoDb();
       if (!database) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable.' });
-      if ((bouquet.stockLeft !== undefined && (!Number.isSafeInteger(bouquet.stockLeft) || bouquet.stockLeft < 0))
+      if ((!Number.isSafeInteger(bouquet.stockLeft) || bouquet.stockLeft < 0)
         || (bouquet.deliveryCost !== undefined && (!Number.isFinite(bouquet.deliveryCost) || bouquet.deliveryCost < 0
           || Math.abs(bouquet.deliveryCost * 100 - Math.round(bouquet.deliveryCost * 100)) > 0.000001))) {
         return res.status(400).json({ success: false, error: 'Enter a valid stock quantity and delivery cost.' });
@@ -1380,7 +1380,7 @@ async function startServer() {
       const database = await getMongoDb();
       if (!database) return res.status(503).json({ success: false, error: 'Enquiries are temporarily unavailable.' });
       const now = new Date().toISOString();
-      const orderNumber = `JB-C-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
+      const orderNumber = '';
       const customDetails = {
         occasion, size, flowerCount: flowers, flowerColors, wrapperColor,
         wrapperType, wrapperCount: wrappers, gypsy, glitter,
@@ -1457,7 +1457,8 @@ async function startServer() {
           return res.status(400).json({ success: false, error: 'Maximum 20 pieces per product size per order.' });
         }
         quantityByVariant.set(cartKey, totalForVariant);
-        if (Number.isSafeInteger(product.stockLeft)) {
+        if (!Number.isSafeInteger(product.stockLeft)) return res.status(409).json({ success: false, error: `${product.title} has no configured stock. Please contact the shop.` });
+        {
           const requested = (stockReservations.get(id)?.quantity ?? 0) + quantity;
           if (requested > product.stockLeft) {
             return res.status(409).json({ success: false, error: `Only ${product.stockLeft} left in stock for ${product.title}.` });
@@ -1487,7 +1488,7 @@ async function startServer() {
       const totalAmount = Math.round((Math.max(0, subtotal - discountAmount) + deliveryFee) * 100) / 100;
       const now = new Date().toISOString();
       const id = `ord-${crypto.randomUUID()}`;
-      const orderNumber = `JB-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
+      const orderNumber = '';
       const customerAuth = getCustomerAuth(req);
       const safeCustomer = {
         fullName: String(c.fullName).trim().slice(0, 120), email: String(c.email).trim().toLowerCase().slice(0, 254), phone: String(c.phone).trim().slice(0, 30),
@@ -1509,6 +1510,7 @@ async function startServer() {
       const saved = await mongoCreateOrder(order, stockReservations);
       if (saved === false) return res.status(409).json({ success: false, error: 'Product stock or pricing changed. Refresh your bag and try again.' });
       if (!saved) return res.status(503).json({ success: false, error: 'Order could not be saved. Please try again.' });
+      order.orderNumber = saved.orderNumber;
       if (safeCustomer.email) {
         try {
           const rows = normalizedItems.map((item: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${String(item.bouquet.title)}${item.selectedSize ? ' (' + (productSizeFor(item.bouquet, item.selectedSize)?.name || PRODUCT_SIZE_LABELS[item.selectedSize as keyof typeof PRODUCT_SIZE_LABELS]) + ', ' + item.bouquet.flowerCount + ' flowers)' : ''}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">₹${Number(item.bouquet.price) * item.quantity}</td></tr>`).join('');
