@@ -1027,6 +1027,29 @@ async function startServer() {
     } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
   });
 
+  // Inventory adjustments are server-side atomic increments; never trust a client product snapshot.
+  app.post('/api/admin/stock/:id/add', requireOwner, requireClientHeader, async (req, res) => {
+    try {
+      const amount = Number(req.body?.amount);
+      if (!Number.isSafeInteger(amount) || amount < 1 || amount > 100000) {
+        return res.status(400).json({ success: false, error: 'Enter a whole-number quantity between 1 and 100000.' });
+      }
+      const database = await getMongoDb();
+      if (!database) return res.status(503).json({ success: false, error: 'Database unavailable.' });
+      const product = await database.collection('products').findOneAndUpdate(
+        { id: req.params.id, stockLeft: { $type: 'number' } },
+        { $inc: { stockLeft: amount }, $set: { inStock: true, updatedAt: new Date().toISOString() } },
+        { returnDocument: 'after' },
+      );
+      if (!product) return res.status(404).json({ success: false, error: 'Product missing or stock not configured.' });
+      await database.collection('bouquets').updateOne({ id: req.params.id }, { $set: { stockLeft: product.stockLeft, inStock: true } });
+      return res.json({ success: true, bouquet: product });
+    } catch (error) {
+      console.error('Stock adjustment failed:', error);
+      return res.status(500).json({ success: false, error: 'Could not update inventory.' });
+    }
+  });
+
   app.delete('/api/bouquets/:id', requireOwner, requireClientHeader, async (req, res) => {
     try {
       const database = await getMongoDb();
