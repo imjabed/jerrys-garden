@@ -819,8 +819,8 @@ export default function App() {
                     bouquet={bouquet}
                     isOwner={isOwner}
                     onSelect={navigateToProduct}
-                    onAddToCart={bouquet => hasProductSizes(bouquet) ? navigateToProduct(bouquet) : handleAddToCart(bouquet)}
-                    onQuickBuy={bouquet => hasProductSizes(bouquet) ? navigateToProduct(bouquet) : handleQuickBuy(bouquet)}
+                    onAddToCart={bouquet => handleAddToCart(bouquet)}
+                    onQuickBuy={bouquet => handleQuickBuy(bouquet)}
                     onUpdatePhoto={handleUpdateBouquetImage}
                     reviewSummary={reviewSummaries[bouquet.id]}
                   />
