@@ -8,9 +8,15 @@ export function isServiceableCity(input: unknown): boolean {
   return ['berhampore', 'baharampur', 'berhampur', 'baharampore', 'behrampore', 'বহরমপুর'].includes(normalized);
 }
 
+export function earliestDeliveryDate(): string {
+  const today = new Date(indiaDate() + 'T00:00:00Z');
+  today.setUTCDate(today.getUTCDate() + 6);
+  return today.toISOString().slice(0, 10);
+}
+
 export function isValidOptionalDeliveryDate(input: unknown): boolean {
   if (input === undefined || input === null || input === '') return true;
   if (typeof input !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(input)) return false;
   const date = new Date(input + 'T00:00:00Z');
-  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === input && input >= indiaDate();
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === input && input >= earliestDeliveryDate();
 }
