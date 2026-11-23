@@ -1568,7 +1568,16 @@ async function startServer() {
         normalizedItems.push({ bouquet: itemSnapshot, quantity, selectedSize: variant?.size });
       }
       const subtotal = normalizedItems.reduce((sum, item) => sum + Number(item.bouquet.price || 0) * item.quantity, 0);
-      const deliveryFee = productDeliveryTotal(normalizedItems);
+      const totalPackedWeight = normalizedItems.reduce((sum, item) => sum + Number(item.bouquet.parcelWeightGrams || 0) * item.quantity, 0);
+      if (normalizedItems.some(item => !Number.isFinite(Number(item.bouquet.parcelWeightGrams)) || Number(item.bouquet.parcelWeightGrams) <= 0))
+        return res.status(409).json({ success: false, error: 'Shipping is not configured for one or more products. Please contact the shop.' });
+      let deliveryFee: number;
+      try {
+        const quote = await getShippingQuote(String(c.pincode), Math.ceil(totalPackedWeight));
+        deliveryFee = quote.shippingCharge;
+      } catch {
+        return res.status(503).json({ success: false, error: 'Courier rate is unavailable. Your order has not been placed. Please try later.' });
+      }
       const codHandlingCharge = 0;
       let discountAmount = 0;
       const couponCode = String(body.couponCode || '').trim().toUpperCase();
@@ -1589,7 +1598,7 @@ async function startServer() {
       const customerAuth = getCustomerAuth(req);
       const safeCustomer = {
         fullName: String(c.fullName).trim().slice(0, 120), email: String(c.email).trim().toLowerCase().slice(0, 254), phone: String(c.phone).trim().slice(0, 30),
-        deliveryAddress: String(c.deliveryAddress).trim().slice(0, 500), city: SERVICE_CITY, pincode: String(c.pincode).replace(/\s/g, ''),
+        deliveryAddress: String(c.deliveryAddress).trim().slice(0, 500), city: String(c.city).trim().slice(0, 120), pincode: String(c.pincode).replace(/\s/g, ''),
         deliveryDate: String(c.deliveryDate).trim(), deliveryTimeSlot: String(c.deliveryTimeSlot || '').slice(0, 100), specialInstructions: String(c.specialInstructions || '').slice(0, 500), giftNote: String(c.giftNote || '').slice(0, 500),
       };
       const paymentMethod = 'CONTACT_LATER';
