@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { ArrowRight, CheckCircle2, X } from 'lucide-react';
 import { CartItem, CustomerDetails, Order, StoreSettings, UserAccount } from '../types';
 import { apiValidateCoupon } from '../services/api';
-import { SERVICE_CITY, isServiceableCity, isValidOptionalDeliveryDate, earliestDeliveryDate } from '../../shared/orderRules';
+import { isValidOptionalDeliveryDate, earliestDeliveryDate } from '../../shared/orderRules';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -29,7 +29,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
     email: activeUser?.email || '',
     phone: activeUser?.phone || '',
     deliveryAddress: activeUser?.address || '',
-    city: SERVICE_CITY,
+    city: '',
     pincode: '',
     deliveryDate: '',
     deliveryTimeSlot: '',
@@ -73,12 +73,12 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!cartItems.length || busy) return;
-    if (!isServiceableCity(customer.city) || !areaConfirmed) {
-      setError('We currently deliver within Berhampore only. Please confirm your delivery area.');
+    if (!customer.city.trim() || !areaConfirmed) {
+      setError('Enter your delivery city and confirm your address.');
       return;
     }
     if (!isValidOptionalDeliveryDate(customer.deliveryDate)) {
-      setError('Please select a delivery date at least 6 days from today, or leave it blank.');
+      setError('Please select a delivery date at least 4 days from today, or leave it blank.');
       return;
     }
     if (appliedCoupon && !couponIsCurrent) {
@@ -106,7 +106,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
       {label}{required && ' *'}
       <input
         type={type} required={required} min={key === 'deliveryDate' ? earliestDeliveryDate() : undefined}
-        readOnly={key === 'city'} pattern={key === 'pincode' ? '[0-9]{6}' : undefined}
+        readOnly={false} pattern={key === 'pincode' ? '[0-9]{6}' : undefined}
         value={String(customer[key] || '')}
         onChange={e => update(key, e.target.value)} placeholder={placeholder}
         className="mt-2 w-full border-b border-stone-300 bg-transparent px-1 py-3 text-sm text-stone-900 outline-none transition focus:border-stone-800"
@@ -138,9 +138,9 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
               {field('Full name','fullName','text',true,'Your name')}
               {field('Phone number','phone','tel',true,'Contact number')}
               {field('Email address','email','email',true,'name@example.com')}
-              {field('Delivery city','city','text',true,'Berhampore')}
+              {field('Delivery city','city','text',true,'Your city')}
               <div className="sm:col-span-2">
-                <p className="mb-3 text-xs leading-5 text-stone-600">We currently deliver within Berhampore, Murshidabad only. Your exact address will be confirmed before we accept the order.</p>
+                <p className="mb-3 text-xs leading-5 text-stone-600">Enter your full delivery address. Courier serviceability and delivery charges will be confirmed before dispatch.</p>
                 {field('Delivery address','deliveryAddress','text',true,'Street, locality, landmark')}
               </div>
               {field('PIN code','pincode','text',true,'6-digit PIN')}
@@ -149,7 +149,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
             </div>
             <label className="mt-5 flex items-start gap-3 text-xs leading-5 text-stone-700">
               <input type="checkbox" required checked={areaConfirmed} onChange={event => setAreaConfirmed(event.target.checked)} className="mt-1 h-4 w-4 accent-stone-900"/>
-              I confirm that my delivery address is within Berhampore.
+              I confirm that my delivery address and PIN code are correct.
             </label>
             <section aria-label="Apply an offer code" className="mt-7 border-t border-stone-200 pt-5">
               <label className="text-xs font-medium text-stone-700" htmlFor="checkout-coupon">Have an offer code?</label>
