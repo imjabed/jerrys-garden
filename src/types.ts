@@ -120,4 +120,5 @@ export interface StoreSettings {
   deliveryFee: number;
   freeDeliveryThreshold: number;
   customSizeFlowers?: Record<ProductSizeKey, number>;
+  productCategories?: string[];
 }
