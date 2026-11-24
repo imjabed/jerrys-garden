@@ -1,4 +1,4 @@
-import { useCustomerText } from '../services/customerText';
+import CustomerCopy from './CustomerCopy';
 import { useState, useEffect, type FormEvent } from 'react';
 import { 
   X, 
@@ -42,7 +42,6 @@ export default function AuthModal({
   onAdminLoginSuccess,
   onRegisterSuccess,
 }: AuthModalProps) {
-  const customerText = useCustomerText();
   const [mode, setMode] = useState<'login' | 'register' | 'otp_verify'>('login');
   
   // Login fields
@@ -361,7 +360,7 @@ export default function AuthModal({
                   </>
                 ) : (
                   <>
-                    <span>{customerText("auth.0","Sign In")}</span>
+                    <span><CustomerCopy id={"auth.0"} fallback={"Sign In"}/></span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -489,7 +488,7 @@ export default function AuthModal({
                   </>
                 ) : (
                   <>
-                    <span>{customerText("auth.1","Send OTP to Email")}</span>
+                    <span><CustomerCopy id={"auth.1"} fallback={"Send OTP to Email"}/></span>
                     <Mail className="w-4 h-4 text-rose-300" />
                   </>
                 )}
@@ -564,7 +563,7 @@ export default function AuthModal({
                     </>
                   ) : (
                     <>
-                      <span>{customerText("auth.2","Verify Email & Activate Account")}</span>
+                      <span><CustomerCopy id={"auth.2"} fallback={"Verify Email & Activate Account"}/></span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
