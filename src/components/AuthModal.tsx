@@ -356,7 +356,7 @@ export default function AuthModal({
                 {isLoggingIn ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-rose-300" />
-                    <span>Signing you in...</span>
+                    <span><CustomerCopy id={"authExtra.0"} fallback={"Signing you in..."}/></span>
                   </>
                 ) : (
                   <>
@@ -484,7 +484,7 @@ export default function AuthModal({
                 {isSendingOtp ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-rose-300" />
-                    <span>Sending Code to Email...</span>
+                    <span><CustomerCopy id={"authExtra.1"} fallback={"Sending Code to Email..."}/></span>
                   </>
                 ) : (
                   <>
@@ -505,7 +505,7 @@ export default function AuthModal({
                 <div className="p-3.5 bg-rose-50/80 border border-rose-200 rounded-2xl text-xs text-rose-950 space-y-1">
                   <div className="flex items-center gap-1.5 font-bold text-rose-900">
                     <Mail className="w-4 h-4 text-rose-600" />
-                    <span>Verification Code Sent</span>
+                    <span><CustomerCopy id={"authExtra.2"} fallback={"Verification Code Sent"}/></span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-stone-700">
                     A 6-digit verification code has been dispatched to <strong className="text-stone-900">{regEmail}</strong>. Please check your inbox or spam folder.
@@ -515,8 +515,8 @@ export default function AuthModal({
 
               <div>
                 <label className="block text-xs font-bold text-stone-700 mb-1.5 flex items-center justify-between">
-                  <span>Enter 6-Digit Email Code *</span>
-                  <span className="text-[10px] text-stone-400">Jame Bouquets Email Verification</span>
+                  <span><CustomerCopy id={"authExtra.3"} fallback={"Enter 6-Digit Email Code *"}/></span>
+                  <span className="text-[10px] text-stone-400"><CustomerCopy id={"authExtra.4"} fallback={"Jame Bouquets Email Verification"}/></span>
                 </label>
                 <div className="relative">
                   <KeyRound className="w-5 h-5 text-rose-500 absolute left-3.5 top-3" />
@@ -534,7 +534,7 @@ export default function AuthModal({
               </div>
 
               <div className="flex items-center justify-between text-xs text-stone-500 pt-1">
-                <span>Didn't receive email?</span>
+                <span><CustomerCopy id={"authExtra.5"} fallback={"Didn't receive email?"}/></span>
                 {resendTimer > 0 ? (
                   <span className="font-mono text-stone-400">Resend in {resendTimer}s</span>
                 ) : (
@@ -559,7 +559,7 @@ export default function AuthModal({
                   {isVerifyingOtp ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-rose-300" />
-                      <span>Verifying Code...</span>
+                      <span><CustomerCopy id={"authExtra.6"} fallback={"Verifying Code..."}/></span>
                     </>
                   ) : (
                     <>
