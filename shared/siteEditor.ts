@@ -785,6 +785,7 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
   })) as SiteContent['themeExtras'];
   const fx = raw.effects || {};
   const content: SiteContent = {
+    policyCopy: Object.fromEntries((['delivery','returns','privacy','terms'] as const).map(key => [key, typeof raw.policyCopy?.[key] === 'string' ? raw.policyCopy[key].slice(0, 6000) : ''])) as SiteContent['policyCopy'],
     theme, themeMedia, themeMobileMedia, heroCrop, textPresentations, winterAssetsReady: true,
     originalImages: Object.fromEntries(
       Object.entries(
