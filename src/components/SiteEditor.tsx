@@ -2003,6 +2003,19 @@ export default function SiteEditor({
                     </label>
                   ))}
                 </div>
+                <div className="rounded-xl border border-stone-200 bg-white p-4 space-y-4">
+                  <h3 className="text-sm font-semibold text-stone-900">Customer information popups</h3>
+                  <p className="text-xs text-stone-500">Optional replacement text for each policy popup. Leave empty to keep the built-in wording. Paragraph breaks are preserved. Publish to update customers' views.</p>
+                  {(['delivery', 'returns', 'privacy', 'terms'] as const).map(key => (
+                    <label key={key} className="block text-xs font-medium text-stone-700">
+                      {({delivery:'Delivery & ordering',returns:'Cancellations & concerns',privacy:'Privacy notice',terms:'Ordering terms'} as const)[key]}
+                      <textarea value={draft.policyCopy?.[key] || ''} rows={5} maxLength={6000}
+                        onChange={event => update(prev => ({...prev, policyCopy:{...prev.policyCopy,[key]:event.target.value}}))}
+                        placeholder="Leave empty to use the existing policy text."
+                        className="mt-2 w-full resize-y border border-stone-300 bg-white p-3 text-sm font-normal leading-6 text-stone-900"/>
+                    </label>
+                  ))}
+                </div>
                 <h3 className="text-sm font-semibold text-stone-900">Homepage and footer text</h3>
                 {option('Text element', textSlot, TEXT_SLOTS.map(x => ({id:x.id,label:x.label})),
                   id => setTextSlot(id as TextSlot))}
