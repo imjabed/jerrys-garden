@@ -13,7 +13,7 @@ interface CheckoutModalProps {
   onOrderSuccess: (order: Order) => Promise<Order>;
 }
 
-export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, onOrderSuccess }: CheckoutModalProps) {
+export default function CheckoutModal({ isOpen, onClose, cartItems, storeSettings, activeUser, onOrderSuccess }: CheckoutModalProps) {
   const [step, setStep] = useState<'details' | 'confirmed'>('details');
   const [submittedOrder, setSubmittedOrder] = useState<Order | null>(null);
   const [busy, setBusy] = useState(false);
@@ -67,7 +67,9 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
   const cartKey = cartItems.map(item => `${item.bouquet.id}:${item.selectedSize || 'ONE'}:${item.quantity}`).join('|');
   const couponIsCurrent = Boolean(appliedCoupon && appliedCoupon.email === customer.email.trim().toLowerCase() && appliedCoupon.items === cartKey);
   const validCoupon = couponIsCurrent ? appliedCoupon : null;
-  const deliveryFee = shipping?.pin === customer.pincode && shipping.weight === packedWeight ? shipping.fee : null;
+  const courierFee = shipping?.pin === customer.pincode && shipping.weight === packedWeight ? shipping.fee : null;
+  const freeDeliveryEligible = Number(storeSettings.freeDeliveryThreshold || 0) > 0 && subtotal >= Number(storeSettings.freeDeliveryThreshold);
+  const deliveryFee = courierFee === null ? null : freeDeliveryEligible ? 0 : courierFee;
   const discount = validCoupon?.discount || 0;
   const update = (key: keyof CustomerDetails, value: string) => {
     setCustomer(prev => ({ ...prev, [key]: value }));
@@ -198,7 +200,8 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, activeUser, 
               <span>{cartItems.reduce((n, item) => n + item.quantity, 0)} item(s) · Product subtotal</span>
               <span className="font-medium text-stone-900">₹{subtotal.toLocaleString('en-IN')}</span>
             </div>
-            <div className="mt-2 flex justify-between text-sm text-stone-700"><span>Delivery</span><span>{deliveryFee === null ? 'Awaiting courier quote' : `₹${deliveryFee.toLocaleString('en-IN')}`}</span></div>
+            {Number(storeSettings.freeDeliveryThreshold || 0) > 0 && <p className="mt-3 text-xs text-emerald-800">{freeDeliveryEligible ? 'Your order qualifies for free delivery!' : `Free delivery on orders of ₹${Number(storeSettings.freeDeliveryThreshold).toLocaleString('en-IN')} or more.`}</p>}
+            <div className="mt-2 flex justify-between text-sm text-stone-700"><span>Delivery</span><span>{deliveryFee === null ? 'Awaiting courier quote' : freeDeliveryEligible ? 'Free Delivery' : `₹${deliveryFee.toLocaleString('en-IN')}`}</span></div>
             {validCoupon && <div className="mt-2 flex justify-between text-sm text-emerald-800"><span>Offer discount</span><span>−₹{discount.toLocaleString('en-IN')}</span></div>}
             <div className="mt-2 flex justify-between text-sm font-medium text-stone-900"><span>Estimated total</span><span>₹{deliveryFee === null ? 'Pending shipping estimate' : `₹${(Math.max(0, subtotal - discount) + deliveryFee).toLocaleString('en-IN')}`}</span></div>
             <p className="mt-2 text-[11px] leading-5 text-stone-500">No payment is taken online. Our team confirms your order, delivery and final amount before proceeding.</p>
