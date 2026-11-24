@@ -91,7 +91,7 @@ export default function AuthModal({
     try {
       const response = await fetch(`${API_URL}/api/send-otp`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-JG-Client': '1' },
         body: JSON.stringify({ email: targetEmail, name: targetName }),
       });
       const data = await response.json();
@@ -121,8 +121,8 @@ export default function AuthModal({
       return;
     }
 
-    if (regPassword.length < 6) {
-      setError('Please create a password of at least 6 characters.');
+    if (regPassword.length < 10) {
+      setError('Please create a password of at least 10 characters.');
       return;
     }
 
@@ -143,7 +143,7 @@ export default function AuthModal({
     try {
       const response = await fetch(`${API_URL}/api/verify-otp`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-JG-Client': '1' },
         body: JSON.stringify({
           email: regEmail.trim(),
           otp: enteredOtp.trim(),

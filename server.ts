@@ -58,6 +58,19 @@ if (!AUTH_SECRET) {
   console.warn('[Security] AUTH_SECRET is not configured. Admin/customer authentication will be unavailable until it is set.');
 }
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[character] || character);
+}
+
+function isSupportedImage(bytes: Buffer, mime: string): boolean {
+  if (mime === 'jpeg' || mime === 'jpg') return bytes.length >= 4 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (mime === 'png') return bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+  if (mime === 'webp') return bytes.length >= 12 && bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP';
+  return false;
+}
+
 function base64Url(value: string) {
   return Buffer.from(value).toString('base64url');
 }
@@ -357,6 +370,8 @@ async function startServer() {
     res.header('X-Content-Type-Options', 'nosniff');
     res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.header('X-Frame-Options', 'DENY');
+    res.header('X-Permitted-Cross-Domain-Policies', 'none');
+    res.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     if (isProduction) res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     if (req.path.startsWith('/api/')) res.header('Cache-Control', 'no-store');
     const fetchSite = req.headers['sec-fetch-site'];
@@ -416,6 +431,8 @@ async function startServer() {
       if (!bytes.length || bytes.length > 5 * 1024 * 1024) {
         return res.status(413).json({ success: false, error: 'Invalid image or image exceeds 5 MB.' });
       }
+      const declaredMime = /^data:image\/(jpeg|jpg|png|webp);base64,/i.exec(image)?.[1]?.toLowerCase() || '';
+      if (!isSupportedImage(bytes, declaredMime)) return res.status(400).json({ success: false, error: 'Image content does not match its declared format.' });
       // Content-based IDs make repeated uploads of exactly the same image
       // idempotent, even if renamed locally or used in several editor slots.
       // Never overwrite an asset that might be referenced by live pages/history.
@@ -591,7 +608,7 @@ async function startServer() {
 
   // OTP Email Verification Endpoints
   // 1. Send OTP to customer's email address
-  app.post('/api/send-otp', async (req, res) => {
+  app.post('/api/send-otp', requireClientHeader, async (req, res) => {
     try {
       if (!AGENTMAIL_API_KEY || !AGENTMAIL_INBOX_ID) {
         return res.status(500).json({
@@ -630,7 +647,7 @@ async function startServer() {
         attempts: 0,
       });
 
-      const recipientName = name ? String(name).trim() : 'Valued Customer';
+      const recipientName = escapeHtml(name ? String(name).trim().slice(0, 100) : 'Valued Customer');
 
       // Send email through AgentMail's HTTPS API (port 443), avoiding SMTP restrictions on Render Free.
       await sendEmailWithAgentMail({
@@ -693,7 +710,7 @@ async function startServer() {
   });
 
   // 2. Verify OTP entered by customer
-  app.post('/api/verify-otp', (req, res) => {
+  app.post('/api/verify-otp', requireClientHeader, (req, res) => {
     try {
       const { email, otp } = req.body;
       if (!email || !otp) {
@@ -702,6 +719,8 @@ async function startServer() {
 
       const normalizedEmail = String(email).trim().toLowerCase();
       const enteredOtp = String(otp).trim();
+      if (!/^\d{6}$/.test(enteredOtp) || normalizedEmail.length > 254) return res.status(400).json({ success: false, error: 'Invalid verification request.' });
+      if (!allowLoginAttempt(`otp-verify:${String(req.ip || 'unknown')}`, 20)) return res.status(429).json({ success: false, error: 'Too many verification attempts.' });
 
       const record = otpStore.get(normalizedEmail);
       if (!record) {
@@ -816,7 +835,8 @@ async function startServer() {
       const otpAuth = verifyToken(verificationToken);
       const normalizedEmail = String(email).trim().toLowerCase();
       if (!otpAuth || otpAuth.role !== 'otp' || !otpAuth.verified || otpAuth.email !== normalizedEmail) return res.status(401).json({ success: false, error: 'Email verification is required before creating the account.' });
-      if (String(password).length < 6) return res.status(400).json({ success: false, error: 'Password must be at least 6 characters.' });
+      if (String(password).length < 10 || String(password).length > 256) return res.status(400).json({ success: false, error: 'Password must be between 10 and 256 characters.' });
+      if (await mongoFindCustomerByEmail(normalizedEmail)) return res.status(409).json({ success: false, error: 'An account with this email already exists. Please sign in.' });
       const saved = await mongoSaveCustomer({ name: String(name).trim(), email: normalizedEmail, phone: String(phone).trim(), address: String(address || '').trim(), password, isVerified: true });
       if (!saved) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable. Please try again.' });
       const token = signToken({ role: 'customer', email: normalizedEmail }, 60 * 60 * 24 * 30);
@@ -834,7 +854,7 @@ async function startServer() {
       const password = String(req.body?.password || '');
       const otp = String(req.body?.otp || '').trim();
       if (!allowLoginAttempt(String(req.ip || 'unknown'), 10)) return res.status(429).json({ success: false, error: 'Too many login attempts. Please try again later.' });
-      if (!email || !password) return res.status(400).json({ success: false, error: 'Email and password are required.' });
+      if (!email || !password || email.length > 254 || password.length > 256) return res.status(400).json({ success: false, error: 'Email and password are required.' });
       if (ADMIN_EMAIL && email === ADMIN_EMAIL) {
         if ((!ADMIN_PASSWORD && !ADMIN_PASSWORD_SCRYPT) || !AUTH_SECRET || !safeAdminCredentials(email, password) || !verifyAdminTotp(otp)) return res.status(401).json({ success: false, connected: true, error: 'Invalid email or password.' });
         const token = signToken({ role: 'owner', email }, ADMIN_SESSION_SECONDS);
@@ -1435,7 +1455,7 @@ async function startServer() {
       const code = String(req.body?.code || '').trim().toUpperCase();
       const email = String(req.body?.email || '').trim().toLowerCase();
       const items = Array.isArray(req.body?.items) ? req.body.items : [];
-      if (!code || !email) return res.status(400).json({ success: false, error: 'Coupon code and email are required.' });
+      if (!code || !email || code.length > 64 || email.length > 254 || items.length > 50) return res.status(400).json({ success: false, error: 'Coupon code and email are required.' });
       const coupon = await mongoFindCoupon(code);
       if (!coupon || coupon.active === false) return res.status(404).json({ success: false, error: 'Invalid or inactive coupon.' });
       if (String(coupon.expiresAt) < indiaTodayPlusDays(0)) return res.status(400).json({ success: false, error: 'This coupon has expired.' });
@@ -1448,7 +1468,7 @@ async function startServer() {
       const pricedItems = await resolveCouponItems(items, database);
       const discountAmount = calculateCouponDiscount(coupon, pricedItems);
       if (discountAmount <= 0) return res.status(400).json({ success: false, error: 'This coupon does not apply to the selected products.' });
-      return res.json({ success: true, coupon, discountAmount });
+      return res.json({ success: true, coupon: { code: coupon.code, discountType: coupon.discountType, discountValue: coupon.discountValue, expiresAt: coupon.expiresAt }, discountAmount });
     } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
   });
 
@@ -1457,10 +1477,14 @@ async function startServer() {
     try {
       if (!allowLoginAttempt(`lookup:${String(req.ip || 'unknown')}`, 30)) return res.status(429).json({ success: false, error: 'Too many tracking requests. Please try again later.' });
       const query = String(req.body?.orderNumber || '').trim();
-      if (!query) return res.status(400).json({ success: false, error: 'Order number is required.' });
+      if (!query || query.length > 64) return res.status(400).json({ success: false, error: 'A valid order number is required.' });
       const auth = getCustomerAuth(req);
       const order = await mongoFindOrderForCustomer(query, auth?.role === 'customer' ? auth.email : undefined);
       if (!order) return res.status(404).json({ success: false, error: 'Order not found or access denied.' });
+      // A guest with only an order number may view shipment progress, not personal data.
+      if (auth?.role !== 'customer' || auth.email !== String(order.customerEmail || order.customer?.email || '').toLowerCase()) {
+        return res.json({ success: true, order: { orderNumber: order.orderNumber, status: order.status, createdAt: order.createdAt, updatedAt: order.updatedAt } });
+      }
       return res.json({ success: true, order });
     } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
   });
@@ -1566,7 +1590,7 @@ async function startServer() {
       if (!allowLoginAttempt(`order:${String(req.ip || 'unknown')}`, 20)) return res.status(429).json({ success: false, error: 'Too many order attempts. Please try again later.' });
       const body = req.body || {};
       const rawItems = Array.isArray(body.items) ? body.items : [];
-      if (!rawItems.length) return res.status(400).json({ success: false, error: 'Your cart is empty.' });
+      if (!rawItems.length || rawItems.length > 50) return res.status(400).json({ success: false, error: 'Your cart is empty.' });
       const c = body.customer || {};
       const required = ['fullName', 'email', 'phone', 'deliveryAddress', 'city', 'pincode'];
       for (const key of required) if (!String(c[key] || '').trim()) return res.status(400).json({ success: false, error: `Customer ${key} is required.` });
@@ -1671,11 +1695,11 @@ async function startServer() {
       order.orderNumber = saved.orderNumber;
       if (safeCustomer.email) {
         try {
-          const rows = normalizedItems.map((item: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${String(item.bouquet.title)}${item.selectedSize ? ' (' + (productSizeFor(item.bouquet, item.selectedSize)?.name || PRODUCT_SIZE_LABELS[item.selectedSize as keyof typeof PRODUCT_SIZE_LABELS]) + ', ' + item.bouquet.flowerCount + ' flowers)' : ''}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">₹${Number(item.bouquet.price) * item.quantity}</td></tr>`).join('');
+          const rows = normalizedItems.map((item: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${escapeHtml(item.bouquet.title)}${item.selectedSize ? ' (' + (productSizeFor(item.bouquet, item.selectedSize)?.name || PRODUCT_SIZE_LABELS[item.selectedSize as keyof typeof PRODUCT_SIZE_LABELS]) + ', ' + item.bouquet.flowerCount + ' flowers)' : ''}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">₹${Number(item.bouquet.price) * item.quantity}</td></tr>`).join('');
           await sendEmailWithAgentMail({
             to: safeCustomer.email,
             subject: `Jame Bouquets — Order Placed ${order.orderNumber}`,
-            html: `<div style="font-family:Georgia,serif;max-width:640px;margin:auto;padding:28px;color:#292524"><h1>Jame Bouquets</h1><h2>Order Placed!</h2><p>Thank you for your order <strong>${order.orderNumber}</strong>.</p><p>Our team will contact you by phone to confirm your order and discuss payment. No payment is required on the website.</p><table style="width:100%"><tbody>${rows}</tbody></table><p>Products subtotal: ₹${subtotal}</p><p>Delivery: ₹${deliveryFee} · Total: ₹${totalAmount}</p><p><strong>Phone:</strong> ${safeCustomer.phone}</p><p><strong>Delivery address:</strong> ${safeCustomer.deliveryAddress}, ${safeCustomer.city} - ${safeCustomer.pincode}</p></div>`,
+            html: `<div style="font-family:Georgia,serif;max-width:640px;margin:auto;padding:28px;color:#292524"><h1>Jame Bouquets</h1><h2>Order Placed!</h2><p>Thank you for your order <strong>${order.orderNumber}</strong>.</p><p>Our team will contact you by phone to confirm your order and discuss payment. No payment is required on the website.</p><table style="width:100%"><tbody>${rows}</tbody></table><p>Products subtotal: ₹${subtotal}</p><p>Delivery: ₹${deliveryFee} · Total: ₹${totalAmount}</p><p><strong>Phone:</strong> ${escapeHtml(safeCustomer.phone)}</p><p><strong>Delivery address:</strong> ${escapeHtml(safeCustomer.deliveryAddress)}, ${escapeHtml(safeCustomer.city)} - ${escapeHtml(safeCustomer.pincode)}</p></div>`,
           });
         } catch (emailErr) { console.error("[Jame Bouquets] Order confirmation email failed:", emailErr); }
       }
