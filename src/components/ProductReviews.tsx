@@ -1,3 +1,4 @@
+import CustomerCopy from './CustomerCopy';
 import { useEffect, useState, type FormEvent } from 'react';
 import { CheckCircle2, Star } from 'lucide-react';
 import {
@@ -74,8 +75,8 @@ export default function ProductReviews({
       {submittedNotice && <p role="status" className="mb-4 border border-stone-200 bg-stone-50 p-3 text-xs leading-5 text-stone-700">{submittedNotice}</p>}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.16em] text-stone-500">From our customers</p>
-          <h3 className="mt-2 font-serif text-2xl font-normal text-stone-900">Customer Reviews</h3>
+          <p className="text-[11px] uppercase tracking-[0.16em] text-stone-500"><CustomerCopy id={"reviews.0"} fallback={"From our customers"}/></p>
+          <h3 className="mt-2 font-serif text-2xl font-normal text-stone-900"><CustomerCopy id={"reviews.1"} fallback={"Customer Reviews"}/></h3>
         </div>
         {summary.count > 0 && (
           <div className="flex items-center gap-2 text-stone-700">
@@ -86,10 +87,10 @@ export default function ProductReviews({
         )}
       </div>
 
-      {loading ? <p className="mt-5 text-sm text-stone-500">Loading customer reviews…</p> :
+      {loading ? <p className="mt-5 text-sm text-stone-500"><CustomerCopy id={"reviews.2"} fallback={"Loading customer reviews…"}/></p> :
         fetchError ? (
           <div className="mt-5 text-sm text-stone-600">
-            {fetchError} <button type="button" className="underline" onClick={() => setReload(n => n + 1)}>Try again</button>
+            {fetchError} <button type="button" className="underline" onClick={() => setReload(n => n + 1)}><CustomerCopy id={"reviews.3"} fallback={"Try again"}/></button>
           </div>
         ) : (
           <>
@@ -121,8 +122,8 @@ export default function ProductReviews({
 
             {data?.canReview ? (
               <form onSubmit={submit} className="mt-6 border border-stone-200 bg-[#FAF8F5] p-4">
-                <h4 className="font-serif text-lg text-stone-900">Review your purchase</h4>
-                <p className="mt-1 text-xs leading-5 text-stone-500">Your review will be shown with your first name and last initial.</p>
+                <h4 className="font-serif text-lg text-stone-900"><CustomerCopy id={"reviews.4"} fallback={"Review your purchase"}/></h4>
+                <p className="mt-1 text-xs leading-5 text-stone-500"><CustomerCopy id={"reviews.5"} fallback={"Your review will be shown with your first name and last initial."}/></p>
                 <div className="mt-4 flex items-center gap-1" role="group" aria-label="Choose star rating">
                   {Array.from({ length: 5 }, (_, index) => (
                     <button type="button" key={index} onClick={() => setRating(index + 1)}
@@ -149,7 +150,7 @@ export default function ProductReviews({
             ) : (
               <p className="mt-5 border-t border-stone-100 pt-4 text-xs leading-5 text-stone-500">
                 {!data?.isSignedIn ? (
-                  <>Already purchased this piece? <button type="button" onClick={onSignIn} className="font-medium text-stone-900 underline underline-offset-2">Sign in</button> to leave a review after delivery.</>
+                  <>Already purchased this piece? <button type="button" onClick={onSignIn} className="font-medium text-stone-900 underline underline-offset-2"><CustomerCopy id={"reviews.7"} fallback={"Sign in"}/></button> to leave a review after delivery.</>
                 ) : data?.hasReviewed ? 'Thank you. Your review has already been submitted for this product.' :
                   'Reviews are available after your order containing this product has been delivered.'}
               </p>
