@@ -1,6 +1,10 @@
 import { createContext, useContext } from 'react';
-export const CustomerTextContext = createContext<Record<string,string>>({});
+import type { SiteContent } from '../../shared/siteEditor';
+export const CustomerTextContext = createContext<{text: SiteContent['customerText']; styles: SiteContent['customerTextStyles']}>({text:{},styles:{}});
 export function useCustomerText() {
   const values = useContext(CustomerTextContext);
-  return (key: string, fallback: string): string => values[key]?.trim() || fallback;
+  return (key: string, fallback: string): string => values.text[key]?.trim() || fallback;
+}
+export function useCustomerTextStyle(key: string) {
+  return useContext(CustomerTextContext).styles[key];
 }
