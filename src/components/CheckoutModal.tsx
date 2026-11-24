@@ -35,7 +35,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
     specialInstructions: '',
     giftNote: '',
   });
-  const [shipping, setShipping] = useState<{ fee: number; pin: string; weight: number } | null>(null);
+  const [shipping, setShipping] = useState<{ fee: number; pin: string; weight: number; estimatedDeliveryDate: string | null } | null>(null);
   const [shippingError, setShippingError] = useState('');
   const [shippingBusy, setShippingBusy] = useState(false);
   const packedWeight = cartItems.reduce((sum, item) => sum + Number(item.bouquet.parcelWeightGrams || 0) * item.quantity, 0);
@@ -55,7 +55,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
         const availability = await apiShippingServiceability(customer.pincode);
         if (!availability.serviceable || !availability.prepaid) throw new Error('Delhivery does not currently serve this PIN code.');
         const quote = await apiShippingQuote(customer.pincode, Math.ceil(packedWeight));
-        if (!cancelled) setShipping({ fee: quote.shippingCharge, pin: customer.pincode, weight: packedWeight });
+        if (!cancelled) setShipping({ fee: quote.shippingCharge, pin: customer.pincode, weight: packedWeight, estimatedDeliveryDate: quote.estimatedDeliveryDate });
       } catch (err: any) {
         if (!cancelled) setShippingError(err?.message || 'Could not calculate courier charges.');
       } finally { if (!cancelled) setShippingBusy(false); }
@@ -70,6 +70,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
   const courierFee = shipping?.pin === customer.pincode && shipping.weight === packedWeight ? shipping.fee : null;
   const freeDeliveryEligible = Number(storeSettings.freeDeliveryThreshold || 0) > 0 && subtotal >= Number(storeSettings.freeDeliveryThreshold);
   const deliveryFee = courierFee === null ? null : freeDeliveryEligible ? 0 : courierFee;
+  const minimumDeliveryDate = shipping?.pin === customer.pincode && shipping.estimatedDeliveryDate ? shipping.estimatedDeliveryDate : null;
   const discount = validCoupon?.discount || 0;
   const update = (key: keyof CustomerDetails, value: string) => {
     setCustomer(prev => ({ ...prev, [key]: value }));
@@ -105,8 +106,8 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
       setError('Enter your delivery city and confirm your address.');
       return;
     }
-    if (!isValidOptionalDeliveryDate(customer.deliveryDate)) {
-      setError('Please select a delivery date at least 4 days from today, or leave it blank.');
+    if (customer.deliveryDate && (!minimumDeliveryDate || customer.deliveryDate < minimumDeliveryDate || !isValidOptionalDeliveryDate(customer.deliveryDate))) {
+      setError('Choose a date on or after the courier estimate, or leave the preferred date blank.');
       return;
     }
     if (appliedCoupon && !couponIsCurrent) {
@@ -134,8 +135,8 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
     <label className="block text-[11px] tracking-wide text-stone-600">
       {label}{required && ' *'}
       <input
-        type={type} required={required} min={key === 'deliveryDate' ? earliestDeliveryDate() : undefined}
-        readOnly={false} pattern={key === 'pincode' ? '[0-9]{6}' : undefined}
+        type={type} required={required} min={key === 'deliveryDate' ? (minimumDeliveryDate || earliestDeliveryDate()) : undefined}
+        readOnly={false} disabled={key === 'deliveryDate' && !minimumDeliveryDate} pattern={key === 'pincode' ? '[0-9]{6}' : undefined}
         value={String(customer[key] || '')}
         onChange={e => update(key, e.target.value)} placeholder={placeholder}
         className="mt-2 w-full border-b border-stone-300 bg-transparent px-1 py-3 text-sm text-stone-900 outline-none transition focus:border-stone-800"
@@ -174,7 +175,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
               </div>
               {field('PIN code','pincode','text',true,'6-digit PIN')}
               <p className="text-xs text-stone-600 sm:col-span-2" role="status">{shippingBusy ? 'Checking Delhivery charges…' : shippingError || (shipping ? 'Courier estimate ₹' + shipping.fee : 'Enter PIN for courier charges.')}</p>
-              {field('Preferred delivery date (optional)','deliveryDate','date')}
+              <div>{field('Preferred delivery date (optional)','deliveryDate','date')}<p className="mt-1 text-[11px] text-stone-500">{minimumDeliveryDate ? 'Choose ' + new Date(minimumDeliveryDate + 'T12:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', weekday: 'long', timeZone: 'UTC' }) + ' or later. This is a preference, not a guaranteed arrival date.' : 'Date selection becomes available when Delhivery confirms a transit estimate.'}</p></div>
               <div className="sm:col-span-2">{field('Gift note (optional)','giftNote','text',false,'Your message')}</div>
             </div>
             <label className="mt-5 flex items-start gap-3 text-xs leading-5 text-stone-700">
