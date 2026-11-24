@@ -1636,6 +1636,11 @@ async function startServer() {
         discountAmount = calculateCouponDiscount(couponDoc, couponItems);
         if (discountAmount <= 0) return res.status(400).json({ success: false, error: 'This coupon does not apply to the selected products.' });
       }
+      const shippingSettings = await mongoGetSettings();
+      if (!shippingSettings) return res.status(503).json({ success: false, error: 'Store delivery settings are unavailable. Please try again.' });
+      const freeDeliveryThreshold = Number(shippingSettings.freeDeliveryThreshold || 0);
+      if (Number.isFinite(freeDeliveryThreshold) && freeDeliveryThreshold > 0 && subtotal >= freeDeliveryThreshold)
+        deliveryFee = 0;
       const totalAmount = Math.round((Math.max(0, subtotal - discountAmount) + deliveryFee) * 100) / 100;
       const now = new Date().toISOString();
       const id = `ord-${crypto.randomUUID()}`;
@@ -1717,12 +1722,15 @@ async function startServer() {
       if (!validateCustomSizeFlowers(settings.customSizeFlowers)) {
         return res.status(400).json({ success: false, error: 'Set four increasing custom bouquet flower counts (25–100, multiples of five).' });
       }
+      const threshold = Number(settings.freeDeliveryThreshold ?? 0);
+      if (!Number.isInteger(threshold) || threshold < 0 || threshold > 1000000)
+        return res.status(400).json({ success: false, error: 'Free delivery threshold must be a whole number from 0 to 1000000.' });
       const existing = await mongoGetSettings();
       const saved = await mongoUpdateSettings({
         ...(existing || {
           tagline: 'Everlasting, by hand.', ownerEmail: ADMIN_EMAIL, upiId: '', upiName: '',
           city: 'Berhampore', deliveryFee: 0, freeDeliveryThreshold: 0,
-        }), storeName, logoUrl,
+        }), storeName, logoUrl, freeDeliveryThreshold: threshold,
         customSizeFlowers: customSizeMap(settings.customSizeFlowers),
         productCategories: (() => {
           const raw = settings.productCategories;
