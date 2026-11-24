@@ -2019,9 +2019,9 @@ export default function SiteEditor({
                 <div className="rounded-xl border border-stone-200 bg-white p-4 space-y-4">
                   <h3 className="text-sm font-semibold text-stone-900">Customer pages and popups</h3>
                   <p className="text-xs leading-5 text-stone-500">Edit product, cart, checkout, account and tracking labels. Blank fields retain the original wording. Dynamic prices, statuses and system validation messages are protected.</p>
-                  {(['product','cart','checkout','auth','tracking'] as const).map(group => (
+                  {(['product','cart','checkout','auth','tracking','custom','reviews','reviewSection','nav','footer','policies'] as const).map(group => (
                     <div key={group} className="space-y-3 border-t border-stone-100 pt-4">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-700">{({product:'Product details',cart:'Shopping cart',checkout:'Checkout and confirmation',auth:'Customer sign in',tracking:'Order tracking'} as const)[group]}</h4>
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-700">{({product:'Product details',cart:'Shopping cart',checkout:'Checkout and confirmation',auth:'Customer sign in',tracking:'Order tracking',custom:'Custom orders',reviews:'Product reviews',reviewSection:'Customer reviews section',nav:'Navigation and account',footer:'Footer',policies:'Policy popup headings'} as const)[group]}</h4>
                       {CUSTOMER_TEXT_FIELDS.filter(field => field.section === group).map(field => (
                         <label key={field.id} className="block text-xs text-stone-600">
                           {field.label}
