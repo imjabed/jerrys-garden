@@ -603,7 +603,7 @@ export default function App() {
   return (
     <div className={`site-shell flex flex-col selection:bg-rose-100 selection:text-rose-900 ${editorRoute ? 'min-h-0 md:fixed md:inset-0 md:h-dvh md:w-screen md:overflow-hidden' : 'min-h-screen'}`} style={storefrontStyle} data-site-theme={siteContent.theme} data-hover-lift={siteContent.effects.hoverLift ? "on" : "off"} data-festive-decor={siteContent.effects.enabled && siteContent.effects.illustrationEnabled ? "on" : "off"} data-illustration-placement={siteContent.effects.illustrationPlacement} data-festive-motion={siteContent.effects.enabled && siteContent.effects.artworkMotion ? "on" : "off"}>
       
-      <CustomerTextContext.Provider value={siteContent.customerText || {}}>
+      <CustomerTextContext.Provider value={{text:siteContent.customerText || {},styles:siteContent.customerTextStyles || {}}}>
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-stone-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl border border-stone-700 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-3">
