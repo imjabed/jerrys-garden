@@ -319,6 +319,7 @@ export interface NavigationLabels {
   shop: string; custom: string; track: string; story: string; signIn: string;
 }
 export interface SiteContent {
+  policyCopy: Record<'delivery' | 'returns' | 'privacy' | 'terms', string>;
   theme: ThemeId;
   navigationLabels: Record<ThemeId, NavigationLabels>;
   /** Immutable source URLs for non-destructive visual recropping. */
@@ -458,6 +459,7 @@ const defaultThemeBanners = () => Object.fromEntries(THEME_PRESETS.map(p => [p.i
     : p.id === 'valentines' ? '#4B1024' : '#292524',
 }])) as Record<ThemeId, ThemeBanner>;
 export const DEFAULT_SITE_CONTENT: SiteContent = {
+  policyCopy: { delivery: '', returns: '', privacy: '', terms: '' },
   theme: 'default',
   originalImages: {},
   valentines: DEFAULT_VALENTINES_DESIGN,
