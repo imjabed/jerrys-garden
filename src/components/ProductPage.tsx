@@ -125,7 +125,7 @@ export default function ProductPage({
               aria-label={showFullImage ? 'Fit product photo' : 'Enlarge product photo'}>
               {photo ? <img src={photo} alt={product.title}
                 className={`w-full object-contain transition-all duration-300 ${showFullImage ? 'max-h-[80vh]' : 'aspect-[4/5] max-h-[650px]'}`}/>
-                : <div className="flex aspect-[4/5] w-full items-center justify-center font-serif text-xl text-stone-400">Photograph unavailable</div>}
+                : <div className="flex aspect-[4/5] w-full items-center justify-center font-serif text-xl text-stone-400"><CustomerCopy id={"productExtra.0"} fallback={"Photograph unavailable"}/></div>}
               <span className="absolute bottom-4 right-4 border border-stone-200 bg-white/90 px-3 py-2 text-[11px] text-stone-800">
                 {showFullImage ? 'Fit image' : 'View larger'}
               </span>
@@ -142,7 +142,7 @@ export default function ProductPage({
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.15em] text-stone-500">
               <span>{product.category}</span>
-              {product.featured && <span className="border-l border-stone-300 pl-2">Featured</span>}
+              {product.featured && <span className="border-l border-stone-300 pl-2"><CustomerCopy id={"productExtra.1"} fallback={"Featured"}/></span>}
             </div>
             <h1 className="mt-4 font-serif text-[clamp(2rem,4vw,3.2rem)] font-normal leading-tight tracking-tight">{product.title}</h1>
             {rating?.count > 0 && <div className="mt-3 flex items-center gap-2 text-sm">
@@ -166,10 +166,10 @@ export default function ProductPage({
                 onChange={event => setDeliveryPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
                 placeholder="Enter six-digit PIN" className="mt-2 w-full border border-stone-300 px-3 py-2 text-sm" />
               <div className="mt-3" role="status">
-                {courierBusy ? <p className="text-xs text-stone-500">Checking Delhivery…</p> : courierQuote ? <>
+                {courierBusy ? <p className="text-xs text-stone-500"><CustomerCopy id={"productExtra.2"} fallback={"Checking Delhivery…"}/></p> : courierQuote ? <>
                   <p className="text-base font-semibold text-stone-900">{courierQuote.estimatedDeliveryDate ? 'Delivery within ' + new Date(courierQuote.estimatedDeliveryDate + 'T12:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', weekday: 'long', timeZone: 'UTC' }) : 'Delivery date being confirmed'}</p>
                   <p className="mt-1 text-xs text-stone-600">Delivery Charge: <span className="text-stone-400 line-through">₹{courierQuote.shippingCharge + 15}</span> <span className="font-semibold text-stone-900">₹{courierQuote.shippingCharge}</span></p>
-                  <p className="mt-1 text-[11px] text-stone-500">Estimated · includes 4 days preparation and courier transit</p>
+                  <p className="mt-1 text-[11px] text-stone-500"><CustomerCopy id={"productExtra.4"} fallback={"Estimated · includes 4 days preparation and courier transit"}/></p>
                 </> : <p className="text-xs text-stone-600">{courierMessage || 'Enter PIN to check courier availability and shipping.'}</p>}
               </div>
               <p className="mt-2 text-xs text-stone-500">Packed size: {product.parcelLengthCm || '—'} × {product.parcelWidthCm || '—'} × {product.parcelHeightCm || '—'} cm · {product.parcelWeightGrams || '—'} g</p>
@@ -225,12 +225,12 @@ export default function ProductPage({
               </button>
             </div>
             {notice && <p role="status" className="mt-3 text-sm text-stone-700">{notice}</p>}
-            <p className="mt-3 text-xs leading-6 text-stone-500">No payment online. Our team contacts you to confirm the order, delivery and final details.</p>
+            <p className="mt-3 text-xs leading-6 text-stone-500"><CustomerCopy id={"productExtra.5"} fallback={"No payment online. Our team contacts you to confirm the order, delivery and final details."}/></p>
 
             <div className="mt-9 space-y-4 border-t border-stone-200 pt-6">
               <h2 className="font-serif text-xl"><CustomerCopy id={"product.5"} fallback={"About this piece"}/></h2>
               {product.ribbonColors?.length > 0 && (
-                <p className="text-sm leading-6 text-stone-600"><strong className="font-medium text-stone-900">Colour options:</strong> {product.ribbonColors.join(', ')}</p>
+                <p className="text-sm leading-6 text-stone-600"><strong className="font-medium text-stone-900"><CustomerCopy id={"productExtra.6"} fallback={"Colour options:"}/></strong> {product.ribbonColors.join(', ')}</p>
               )}
               {product.whatsInside?.length ? (
                 <div>
