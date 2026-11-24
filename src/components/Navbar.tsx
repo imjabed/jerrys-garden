@@ -1,3 +1,4 @@
+import CustomerCopy from './CustomerCopy';
 import { useState } from 'react';
 import { ShoppingBag, Search, Compass, ShieldCheck, User as UserIcon, Menu, X, Instagram, Mail, LogOut, Package } from 'lucide-react';
 import Logo from './Logo';
@@ -213,7 +214,7 @@ export default function Navbar({
                 {userDropdownOpen && (
                   <div className="jb-customer-dropdown absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-stone-200 bg-white py-2 text-stone-800 shadow-xl z-50">
                     <div className="px-4 py-2 border-b border-stone-100">
-                      <p className="text-xs text-stone-400 font-medium">Signed in as</p>
+                      <p className="text-xs text-stone-400 font-medium"><CustomerCopy id={"nav.0"} fallback={"Signed in as"}/></p>
                       <p className="text-xs font-semibold text-stone-800 truncate">{activeUser.name}</p>
                       <p className="text-[11px] text-stone-500 truncate">{activeUser.email}</p>
                     </div>
@@ -259,7 +260,7 @@ export default function Navbar({
                 className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer"
               >
                 <ShieldCheck className="w-4 h-4" />
-                <span className="hidden sm:inline">Dashboard</span>
+                <span className="hidden sm:inline"><CustomerCopy id={"nav.1"} fallback={"Dashboard"}/></span>
               </button>
             )}
 
