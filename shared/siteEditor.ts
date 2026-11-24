@@ -496,7 +496,28 @@ export const CUSTOMER_TEXT_FIELDS = [
   {"id":"nav.0","label":"Signed in as","section":"nav"},
   {"id":"nav.1","label":"Dashboard","section":"nav"},
   {"id":"policies.0","label":"Jame Bouquets · Customer information","section":"policies"},
-  {"id":"policies.1","label":"Jame Bouquets · Berhampore, Murshidabad, West Bengal","section":"policies"}
+  {"id":"policies.1","label":"Jame Bouquets · Berhampore, Murshidabad, West Bengal","section":"policies"},
+  {"id":"checkoutExtra.0","label":"Share your details. Our team will call to confirm your order and discuss payment.","section":"checkoutExtra"},
+  {"id":"checkoutExtra.1","label":"Details changed. Reapply your code to confirm eligibility.","section":"checkoutExtra"},
+  {"id":"checkoutExtra.2","label":"No payment is taken online. Our team confirms your order, delivery and final amount before proceeding.","section":"checkoutExtra"},
+  {"id":"authExtra.0","label":"Signing you in...","section":"authExtra"},
+  {"id":"authExtra.1","label":"Sending Code to Email...","section":"authExtra"},
+  {"id":"authExtra.2","label":"Verification Code Sent","section":"authExtra"},
+  {"id":"authExtra.3","label":"Enter 6-Digit Email Code *","section":"authExtra"},
+  {"id":"authExtra.4","label":"Jame Bouquets Email Verification","section":"authExtra"},
+  {"id":"authExtra.5","label":"Didn't receive email?","section":"authExtra"},
+  {"id":"authExtra.6","label":"Verifying Code...","section":"authExtra"},
+  {"id":"trackingExtra.0","label":"Our team will contact you for order confirmation and payment arrangements.","section":"trackingExtra"},
+  {"id":"trackingExtra.1","label":"Need immediate help with this order?","section":"trackingExtra"},
+  {"id":"trackingExtra.2","label":"Contact Jame Bouquets ribbon studio","section":"trackingExtra"},
+  {"id":"trackingExtra.3","label":"Our team will contact you","section":"trackingExtra"},
+  {"id":"productExtra.0","label":"Photograph unavailable","section":"productExtra"},
+  {"id":"productExtra.1","label":"Featured","section":"productExtra"},
+  {"id":"productExtra.2","label":"Checking Delhivery…","section":"productExtra"},
+  {"id":"productExtra.3","label":"Delivery Charge:","section":"productExtra"},
+  {"id":"productExtra.4","label":"Estimated · includes 4 days preparation and courier transit","section":"productExtra"},
+  {"id":"productExtra.5","label":"No payment online. Our team contacts you to confirm the order, delivery and final details.","section":"productExtra"},
+  {"id":"productExtra.6","label":"Colour options:","section":"productExtra"}
 ] as const;
 export type CustomerTextKey = typeof CUSTOMER_TEXT_FIELDS[number]['id'];
 export interface SiteContent {  customerText: Record<string, string>;
