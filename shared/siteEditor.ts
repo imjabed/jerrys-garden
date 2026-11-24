@@ -318,7 +318,146 @@ export interface CategoryCardConfig {
 export interface NavigationLabels {
   shop: string; custom: string; track: string; story: string; signIn: string;
 }
-export interface SiteContent {
+export const CUSTOMER_TEXT_FIELDS = [
+  {
+    "id": "product.0",
+    "label": "Home",
+    "section": "product"
+  },
+  {
+    "id": "product.1",
+    "label": "Check delivery PIN code",
+    "section": "product"
+  },
+  {
+    "id": "product.2",
+    "label": "Choose your size",
+    "section": "product"
+  },
+  {
+    "id": "product.3",
+    "label": "Quantity",
+    "section": "product"
+  },
+  {
+    "id": "product.4",
+    "label": "Total",
+    "section": "product"
+  },
+  {
+    "id": "product.5",
+    "label": "About this piece",
+    "section": "product"
+  },
+  {
+    "id": "product.6",
+    "label": "What's included",
+    "section": "product"
+  },
+  {
+    "id": "product.7",
+    "label": "Discover more",
+    "section": "product"
+  },
+  {
+    "id": "product.8",
+    "label": "You may also like",
+    "section": "product"
+  },
+  {
+    "id": "cart.0",
+    "label": "Your bag is empty",
+    "section": "cart"
+  },
+  {
+    "id": "cart.1",
+    "label": "Products subtotal",
+    "section": "cart"
+  },
+  {
+    "id": "cart.2",
+    "label": "Delivery",
+    "section": "cart"
+  },
+  {
+    "id": "cart.3",
+    "label": "No payment now. We'll call to confirm your order.",
+    "section": "cart"
+  },
+  {
+    "id": "cart.4",
+    "label": "Buy · Continue",
+    "section": "cart"
+  },
+  {
+    "id": "checkout.0",
+    "label": "Thank you for your order.",
+    "section": "checkout"
+  },
+  {
+    "id": "checkout.1",
+    "label": "Continue shopping",
+    "section": "checkout"
+  },
+  {
+    "id": "checkout.2",
+    "label": "Have an offer code?",
+    "section": "checkout"
+  },
+  {
+    "id": "checkout.3",
+    "label": "Offer discount",
+    "section": "checkout"
+  },
+  {
+    "id": "checkout.4",
+    "label": "Estimated total",
+    "section": "checkout"
+  },
+  {
+    "id": "auth.0",
+    "label": "Sign In",
+    "section": "auth"
+  },
+  {
+    "id": "auth.1",
+    "label": "Send OTP to Email",
+    "section": "auth"
+  },
+  {
+    "id": "auth.2",
+    "label": "Verify Email & Activate Account",
+    "section": "auth"
+  },
+  {
+    "id": "tracking.0",
+    "label": "Your Recent Orders:",
+    "section": "tracking"
+  },
+  {
+    "id": "tracking.1",
+    "label": "No order found matching your search",
+    "section": "tracking"
+  },
+  {
+    "id": "tracking.2",
+    "label": "Delivery Address",
+    "section": "tracking"
+  },
+  {
+    "id": "tracking.3",
+    "label": "Requested Delivery Date",
+    "section": "tracking"
+  },
+  {
+    "id": "tracking.4",
+    "label": "WhatsApp us",
+    "section": "tracking"
+  }
+] as const;
+export type CustomerTextKey = typeof CUSTOMER_TEXT_FIELDS[number]['id'];
+export interface SiteContent {  customerText: Record<string, string>;
+
   policyCopy: Record<'delivery' | 'returns' | 'privacy' | 'terms', string>;
   theme: ThemeId;
   navigationLabels: Record<ThemeId, NavigationLabels>;
@@ -459,6 +598,7 @@ const defaultThemeBanners = () => Object.fromEntries(THEME_PRESETS.map(p => [p.i
     : p.id === 'valentines' ? '#4B1024' : '#292524',
 }])) as Record<ThemeId, ThemeBanner>;
 export const DEFAULT_SITE_CONTENT: SiteContent = {
+  customerText: {},
   policyCopy: { delivery: '', returns: '', privacy: '', terms: '' },
   theme: 'default',
   originalImages: {},
@@ -785,6 +925,7 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
   })) as SiteContent['themeExtras'];
   const fx = raw.effects || {};
   const content: SiteContent = {
+    customerText: Object.fromEntries(Object.entries(raw.customerText && typeof raw.customerText === 'object' ? raw.customerText : {}).filter(([key,value]) => CUSTOMER_TEXT_FIELDS.some(field => field.id === key) && typeof value === 'string').map(([key,value]) => [key, String(value).slice(0, 500)])),
     policyCopy: Object.fromEntries((['delivery','returns','privacy','terms'] as const).map(key => [key, typeof raw.policyCopy?.[key] === 'string' ? raw.policyCopy[key].slice(0, 6000) : ''])) as SiteContent['policyCopy'],
     theme, themeMedia, themeMobileMedia, heroCrop, textPresentations, winterAssetsReady: true,
     originalImages: Object.fromEntries(
