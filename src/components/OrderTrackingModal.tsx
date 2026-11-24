@@ -313,7 +313,7 @@ export default function OrderTrackingModal({
               {/* Contact-first ordering: no payment is taken on the website. */}
               <div className="p-4 border border-stone-200 bg-[#FAF8F5] text-sm text-stone-700">
                 <p className="font-medium text-stone-900">{selectedOrder.orderType === 'Custom' ? 'Final price confirmed by our team' : `Products subtotal · ₹${selectedOrder.subtotal.toLocaleString('en-IN')}`}</p>
-                <p className="mt-1 text-xs text-stone-500">Our team will contact you for order confirmation and payment arrangements.</p>
+                <p className="mt-1 text-xs text-stone-500"><CustomerCopy id={"trackingExtra.0"} fallback={"Our team will contact you for order confirmation and payment arrangements."}/></p>
               </div>
 
               {/* Delivery Details Card */}
@@ -344,8 +344,8 @@ export default function OrderTrackingModal({
               {/* Contact Shop for Updates */}
               <div className="p-4 bg-stone-100/70 rounded-2xl flex items-center justify-between gap-3 text-xs">
                 <div>
-                  <p className="font-bold text-stone-800">Need immediate help with this order?</p>
-                  <p className="text-stone-500 text-[11px]">Contact Jame Bouquets ribbon studio</p>
+                  <p className="font-bold text-stone-800"><CustomerCopy id={"trackingExtra.1"} fallback={"Need immediate help with this order?"}/></p>
+                  <p className="text-stone-500 text-[11px]"><CustomerCopy id={"trackingExtra.2"} fallback={"Contact Jame Bouquets ribbon studio"}/></p>
                 </div>
                 {/^\+?[0-9\s()-]{10,20}$/.test(storeSettings.whatsapp || '') ? (
                   <a href={`https://wa.me/${storeSettings.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent('Hi Jame Bouquets, checking status for order ' + selectedOrder.orderNumber)}`}
@@ -355,7 +355,7 @@ export default function OrderTrackingModal({
                     <span><CustomerCopy id={"tracking.4"} fallback={"WhatsApp us"}/></span>
                   </a>
                 ) : (
-                  <span className="text-[11px] text-stone-600">Our team will contact you</span>
+                  <span className="text-[11px] text-stone-600"><CustomerCopy id={"trackingExtra.3"} fallback={"Our team will contact you"}/></span>
                 )}
               </div>
 
