@@ -752,6 +752,17 @@ export default function OwnerDashboard({
                 </div>
                                 <p className="text-xs text-stone-500">Customers provide details online; our team arranges confirmation and payment by phone.</p>
 
+                <section className="border border-stone-200 bg-[#FCFAF7] p-5 sm:p-6">
+                  <h4 className="font-serif text-xl text-stone-900">Free delivery offer</h4>
+                  <label className="mt-4 block text-xs font-medium text-stone-700">
+                    Free delivery on orders of ₹
+                    <input type="number" min="0" max="1000000" step="1" required
+                      value={settingsForm.freeDeliveryThreshold ?? 0}
+                      onChange={event => setSettingsForm(current => ({ ...current, freeDeliveryThreshold: Number(event.target.value) }))}
+                      className="mt-2 w-full border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900"/>
+                  </label>
+                  <p className="mt-2 text-xs text-stone-500">Set 0 to disable. Eligible orders get free delivery, while Delhivery courier charges are paid by the store. Eligibility is based on product subtotal before coupons.</p>
+                </section>
                 {/* Contact Info */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
