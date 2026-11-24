@@ -16,7 +16,7 @@ import VisualCropDialog, { type CropTask } from './VisualCropDialog';
 import { originalCloudinaryUrl } from '../services/visualCrop';
 import type { RibbonBouquet } from '../types';
 import {
-  DEFAULT_SITE_CONTENT, DEFAULT_CATEGORIES, FONT_LABELS, FONT_STACKS,
+  DEFAULT_SITE_CONTENT, DEFAULT_CATEGORIES, FONT_LABELS, FONT_STACKS, CUSTOMER_TEXT_FIELDS,
   SECTION_IDS, SEASONAL_THEME_IDS, ALL_THEME_IDS, TEXT_SLOTS, THEME_PRESETS, BLOCK_KINDS, defaultPageBlock, applyThemePreset, sanitizeSiteContent, safeEditorLink,
 } from '../../shared/siteEditor';
 import type { CategoryCardConfig, FontId, SectionId, SiteContent, PageBlock, BlockKind, ThemeId, EffectShape, SeasonalThemeId, SeasonalOffer, CropPosition, TextSlot, TextPresentation, BannerCopyField } from '../../shared/siteEditor';
@@ -2014,6 +2014,23 @@ export default function SiteEditor({
                         placeholder="Leave empty to use the existing policy text."
                         className="mt-2 w-full resize-y border border-stone-300 bg-white p-3 text-sm font-normal leading-6 text-stone-900"/>
                     </label>
+                  ))}
+                </div>
+                <div className="rounded-xl border border-stone-200 bg-white p-4 space-y-4">
+                  <h3 className="text-sm font-semibold text-stone-900">Customer pages and popups</h3>
+                  <p className="text-xs leading-5 text-stone-500">Edit product, cart, checkout, account and tracking labels. Blank fields retain the original wording. Dynamic prices, statuses and system validation messages are protected.</p>
+                  {(['product','cart','checkout','auth','tracking'] as const).map(group => (
+                    <div key={group} className="space-y-3 border-t border-stone-100 pt-4">
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-700">{({product:'Product details',cart:'Shopping cart',checkout:'Checkout and confirmation',auth:'Customer sign in',tracking:'Order tracking'} as const)[group]}</h4>
+                      {CUSTOMER_TEXT_FIELDS.filter(field => field.section === group).map(field => (
+                        <label key={field.id} className="block text-xs text-stone-600">
+                          {field.label}
+                          <input value={draft.customerText?.[field.id] ?? ''} placeholder={field.label} maxLength={500}
+                            onChange={event => update(prev => ({...prev,customerText:{...prev.customerText,[field.id]:event.target.value}}))}
+                            className="mt-1 w-full border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900"/>
+                        </label>
+                      ))}
+                    </div>
                   ))}
                 </div>
                 <h3 className="text-sm font-semibold text-stone-900">Homepage and footer text</h3>
