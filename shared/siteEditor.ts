@@ -521,7 +521,12 @@ export const CUSTOMER_TEXT_FIELDS = [
   {"id":"policy.delivery","label":"Policy: delivery","section":"policyStyles"},
   {"id":"policy.returns","label":"Policy: returns","section":"policyStyles"},
   {"id":"policy.privacy","label":"Policy: privacy","section":"policyStyles"},
-  {"id":"policy.terms","label":"Policy: terms","section":"policyStyles"}
+  {"id":"policy.terms","label":"Policy: terms","section":"policyStyles"},
+  {"id":"navButton.0","label":"Shop Products","section":"navButton"},
+  {"id":"navButton.1","label":"Custom Orders","section":"navButton"},
+  {"id":"navButton.2","label":"Track Order","section":"navButton"},
+  {"id":"navButton.3","label":"Our Craft","section":"navButton"},
+  {"id":"navButton.4","label":"Sign In","section":"navButton"}
 ] as const;
 export type CustomerTextKey = typeof CUSTOMER_TEXT_FIELDS[number]['id'];
 export interface SiteContent {  customerText: Record<string, string>;
