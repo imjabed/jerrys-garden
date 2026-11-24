@@ -965,7 +965,7 @@ export default function App() {
         />
       )}
 
-      {policyOpen && <StorePolicies selected={policyOpen} onSelect={setPolicyOpen} onClose={() => setPolicyOpen(null)}/>}
+      {policyOpen && <StorePolicies selected={policyOpen} onSelect={setPolicyOpen} onClose={() => setPolicyOpen(null)} policyCopy={siteContent.policyCopy}/>}
       {/* Bouquet Editor Modal (Add/Edit) */}
       {bouquetEditorOpen && (
         <BouquetEditorModal
