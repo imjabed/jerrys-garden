@@ -1,3 +1,4 @@
+import CustomerCopy from './CustomerCopy';
 import { CheckCircle2, Star } from 'lucide-react';
 import type { ProductReview } from '../services/api';
 
@@ -13,7 +14,7 @@ export default function CustomerReviewsSection({
   return (
     <section aria-labelledby="customer-reviews-heading" className="border-y border-stone-200 bg-[#F7F3EF] py-14 sm:py-20">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
-        <p className="text-[11px] uppercase tracking-[0.25em] text-stone-500">Customer notes</p>
+        <p className="text-[11px] uppercase tracking-[0.25em] text-stone-500"><CustomerCopy id={"reviewSection.0"} fallback={"Customer notes"}/></p>
         <h2 id="customer-reviews-heading" className="mt-3 font-serif text-3xl sm:text-4xl font-normal text-stone-900">
           In their own words.
         </h2>
@@ -36,7 +37,7 @@ export default function CustomerReviewsSection({
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-medium text-stone-900">{review.customerName}</span>
                   <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5 text-stone-500"/>
-                  <span className="text-stone-500">Verified purchase</span>
+                  <span className="text-stone-500"><CustomerCopy id={"reviewSection.1"} fallback={"Verified purchase"}/></span>
                 </div>
                 <button type="button" onClick={() => onSelect(review.productId)}
                   className="mt-3 text-left text-xs text-stone-600 underline underline-offset-4 hover:text-stone-900">
