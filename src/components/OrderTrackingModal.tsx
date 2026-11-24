@@ -1,4 +1,4 @@
-import { useCustomerText } from '../services/customerText';
+import CustomerCopy from './CustomerCopy';
 import { PRODUCT_SIZE_LABELS, productSizeFor } from '../../shared/productSizes';
 import { useState, useEffect, type FormEvent } from 'react';
 import { X, Search, CheckCircle2, Clock, Truck, XCircle, PackageCheck, MapPin, Calendar, Phone, ArrowRight, MessageCircle } from 'lucide-react';
@@ -22,7 +22,6 @@ export default function OrderTrackingModal({
   storeSettings,
   preselectedOrderId,
 }: OrderTrackingModalProps) {
-  const customerText = useCustomerText();
   const [searchQuery, setSearchQuery] = useState(preselectedOrderId || '');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(() => {
     if (preselectedOrderId) {
@@ -140,7 +139,7 @@ export default function OrderTrackingModal({
           {/* User past order quick tags */}
           {userPastOrders.length > 0 && (
             <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
-              <span className="text-stone-500 text-[11px]">{customerText("tracking.0","Your Recent Orders:")}</span>
+              <span className="text-stone-500 text-[11px]"><CustomerCopy id={"tracking.0"} fallback={"Your Recent Orders:"}/></span>
               {userPastOrders.map((ord) => (
                 <button
                   key={ord.id}
@@ -162,7 +161,7 @@ export default function OrderTrackingModal({
         <div className="p-6 sm:p-8 overflow-y-auto max-h-[60vh] space-y-6">
           {!selectedOrder ? (
             <div className="text-center py-12 space-y-3">
-              <p className="text-sm font-semibold text-stone-700">{customerText("tracking.1","No order found matching your search")}</p>
+              <p className="text-sm font-semibold text-stone-700"><CustomerCopy id={"tracking.1"} fallback={"No order found matching your search"}/></p>
               <p className="text-xs text-stone-400 max-w-sm mx-auto">
                 Please verify your Order Number (e.g. JB-8492) from your order confirmation.
               </p>
@@ -322,7 +321,7 @@ export default function OrderTrackingModal({
                 <div className="p-3.5 rounded-xl border border-stone-200 bg-white">
                   <div className="flex items-center gap-1.5 font-bold text-stone-800 mb-1">
                     <MapPin className="w-3.5 h-3.5 text-rose-600" />
-                    <span>{customerText("tracking.2","Delivery Address")}</span>
+                    <span><CustomerCopy id={"tracking.2"} fallback={"Delivery Address"}/></span>
                   </div>
                   <p className="text-stone-700">{selectedOrder.customer.deliveryAddress}</p>
                   <p className="text-stone-500 text-[11px]">
@@ -333,7 +332,7 @@ export default function OrderTrackingModal({
                 <div className="p-3.5 rounded-xl border border-stone-200 bg-white">
                   <div className="flex items-center gap-1.5 font-bold text-stone-800 mb-1">
                     <Calendar className="w-3.5 h-3.5 text-rose-600" />
-                    <span>{customerText("tracking.3","Requested Delivery Date")}</span>
+                    <span><CustomerCopy id={"tracking.3"} fallback={"Requested Delivery Date"}/></span>
                   </div>
                   <p className="text-stone-700 font-medium">{selectedOrder.customer.deliveryDate || 'To be confirmed'}</p>
                   <p className="text-stone-500 text-[11px]">
@@ -353,7 +352,7 @@ export default function OrderTrackingModal({
                     target="_blank" rel="noopener noreferrer"
                     className="px-3.5 py-2 rounded-lg bg-stone-900 hover:bg-stone-700 text-white font-medium flex items-center gap-1.5 shrink-0">
                     <MessageCircle className="w-3.5 h-3.5" />
-                    <span>{customerText("tracking.4","WhatsApp us")}</span>
+                    <span><CustomerCopy id={"tracking.4"} fallback={"WhatsApp us"}/></span>
                   </a>
                 ) : (
                   <span className="text-[11px] text-stone-600">Our team will contact you</span>
