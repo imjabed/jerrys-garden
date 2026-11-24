@@ -1573,7 +1573,7 @@ async function startServer() {
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(c.email).trim())) return res.status(400).json({ success: false, error: 'A valid customer email is required.' });
       if (!/^\d{6}$/.test(String(c.pincode).replace(/\s/g, ''))) return res.status(400).json({ success: false, error: 'A valid 6-digit pincode is required.' });
       if (!/^[0-9]{6}$/.test(String(c.pincode || ''))) return res.status(400).json({ success: false, error: 'Enter a valid 6-digit delivery PIN code.' });
-      if (!isValidOptionalDeliveryDate(c.deliveryDate)) return res.status(400).json({ success: false, error: 'Choose a preferred date at least 4 days from today, or leave it blank.' });
+
       // Requested date is optional; our team confirms availability by phone.
       const database = await getMongoDb();
       if (!database) return res.status(503).json({ success: false, error: 'Orders are temporarily unavailable. Please try again in a moment.' });
@@ -1619,6 +1619,8 @@ async function startServer() {
       let deliveryFee: number;
       try {
         const quote = await getShippingQuote(String(c.pincode), Math.ceil(totalPackedWeight));
+        if (c.deliveryDate && (!quote.estimatedDeliveryDate || !isValidOptionalDeliveryDate(c.deliveryDate) || String(c.deliveryDate) < quote.estimatedDeliveryDate))
+          return res.status(400).json({ success: false, error: 'Preferred delivery date must be on or after Delhivery estimated arrival. Leave blank when an estimate is unavailable.' });
         deliveryFee = quote.shippingCharge;
       } catch {
         return res.status(503).json({ success: false, error: 'Courier rate is unavailable. Your order has not been placed. Please try later.' });
