@@ -1,4 +1,4 @@
-import { useCustomerText } from '../services/customerText';
+import CustomerCopy from './CustomerCopy';
 import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck } from 'lucide-react';
 import { CartItem } from '../types';
 import { PRODUCT_SIZE_LABELS, productSizeFor, productDeliveryTotal } from '../../shared/productSizes';
@@ -20,7 +20,6 @@ export default function CartDrawer({
   onRemoveItem,
   onCheckout,
 }: CartDrawerProps) {
-  const customerText = useCustomerText();
   if (!isOpen) return null;
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.bouquet.price * item.quantity, 0);
@@ -63,7 +62,7 @@ export default function CartDrawer({
                   <ShoppingBag className="w-8 h-8" />
                 </div>
                 <div>
-                  <h3 className="font-serif text-lg font-bold text-stone-800">{customerText("cart.0","Your bag is empty")}</h3>
+                  <h3 className="font-serif text-lg font-bold text-stone-800"><CustomerCopy id={"cart.0"} fallback={"Your bag is empty"}/></h3>
                   <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">
                     Explore our handmade collection.
                   </p>
@@ -147,19 +146,19 @@ export default function CartDrawer({
           {cartItems.length > 0 && (
             <div className="p-6 border-t border-stone-200 bg-white space-y-4">
               <div className="flex justify-between text-sm text-stone-800">
-                <span>{customerText("cart.1","Products subtotal")}</span><strong>₹{subtotal}</strong>
+                <span><CustomerCopy id={"cart.1"} fallback={"Products subtotal"}/></span><strong>₹{subtotal}</strong>
               </div>
               <div className="flex justify-between text-sm text-stone-800">
-                <span>{customerText("cart.2","Delivery")}</span><strong>{deliveryFee === 0 ? 'Free Delivery' : `₹${deliveryFee}`}</strong>
+                <span><CustomerCopy id={"cart.2"} fallback={"Delivery"}/></span><strong>{deliveryFee === 0 ? 'Free Delivery' : `₹${deliveryFee}`}</strong>
               </div>
-              <p className="text-xs text-stone-500">{customerText("cart.3","No payment now. We'll call to confirm your order.")}</p>
+              <p className="text-xs text-stone-500"><CustomerCopy id={"cart.3"} fallback={"No payment now. We'll call to confirm your order."}/></p>
               <button
                 id="cart-checkout-btn"
                 onClick={onCheckout}
               disabled={cartItems.some(item => item.bouquet.inStock === false || item.quantity > 20)}
                 className="w-full py-3.5 rounded-xl bg-stone-900 hover:bg-rose-700 text-white font-semibold text-xs tracking-wider uppercase transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>{customerText("cart.4","Buy · Continue")}</span>
+                <span><CustomerCopy id={"cart.4"} fallback={"Buy · Continue"}/></span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
