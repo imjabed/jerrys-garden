@@ -106,13 +106,13 @@ export default function Navbar({
               onClick={onNavigateToShop}
               className="hover:text-rose-600 transition-colors py-2"
             >
-              {navigationLabels?.shop || 'Shop Products'}
+              <CustomerCopy id="navButton.0" fallback={navigationLabels?.shop || 'Shop Products'}/>
             </button>
             <button
               onClick={onNavigateToBuilder}
               className="hover:text-rose-700 transition-colors py-2"
             >
-              {navigationLabels?.custom || 'Custom Orders'}
+              <CustomerCopy id="navButton.1" fallback={navigationLabels?.custom || 'Custom Orders'}/>
             </button>
             <button
               id="nav-track-btn"
@@ -120,14 +120,14 @@ export default function Navbar({
               className="hover:text-rose-600 transition-colors py-2 flex items-center gap-1.5"
             >
               <Package className="w-4 h-4 text-stone-400" />
-              <span>{navigationLabels?.track || 'Track Order'}</span>
+              <span><CustomerCopy id="navButton.2" fallback={navigationLabels?.track || 'Track Order'}/></span>
             </button>
             <button
               id="nav-story-btn"
               onClick={onNavigateToStory}
               className="hover:text-rose-600 transition-colors py-2"
             >
-              {navigationLabels?.story || 'Our Craft'}
+              <CustomerCopy id="navButton.3" fallback={navigationLabels?.story || 'Our Craft'}/>
             </button>
           </nav>
 
@@ -248,7 +248,7 @@ export default function Navbar({
                 className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-stone-700 hover:text-stone-900 px-3 py-2 rounded-lg border border-stone-200 hover:border-stone-300 transition-colors"
               >
                 <UserIcon className="w-4 h-4 text-stone-500" />
-                <span>{navigationLabels?.signIn || 'Sign In'}</span>
+                <span><CustomerCopy id="navButton.4" fallback={navigationLabels?.signIn || 'Sign In'}/></span>
               </button>
             )}
 
