@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
+import type { SiteContent } from '../../shared/siteEditor';
 
 export type PolicyType = 'delivery' | 'returns' | 'privacy' | 'terms';
 const titles: Record<PolicyType, string> = {
@@ -10,11 +11,12 @@ const titles: Record<PolicyType, string> = {
 };
 
 export default function StorePolicies({
-  selected, onClose, onSelect,
+  selected, onClose, onSelect, policyCopy,
 }: {
   selected: PolicyType;
   onClose: () => void;
   onSelect: (policy: PolicyType) => void;
+  policyCopy?: SiteContent['policyCopy'];
 }) {
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
@@ -45,7 +47,8 @@ export default function StorePolicies({
           ))}
         </div>
         <div className="overflow-y-auto px-6 py-7 text-sm leading-7 text-stone-700 sm:px-9">
-          {selected === 'delivery' && (
+          {policyCopy?.[selected]?.trim() ? <div className="whitespace-pre-wrap">{policyCopy[selected]}</div> : null}
+          {!policyCopy?.[selected]?.trim() && selected === 'delivery' && (
             <div className="space-y-5">
               <p><strong>Where we deliver:</strong> We currently accept deliveries within Berhampore, Murshidabad, West Bengal only. We verify that your delivery location is serviceable before confirming an order.</p>
               <p><strong>How an order works:</strong> Submit your selected products and contact details without paying online. Our team will contact you to confirm the arrangement, availability, preferred date, address, final amount and payment arrangements.</p>
@@ -53,7 +56,7 @@ export default function StorePolicies({
               <p>For questions about a pending order, use the order-tracking reference or email <a className="underline underline-offset-2" href="mailto:jamebouquets@gmail.com">jamebouquets@gmail.com</a>.</p>
             </div>
           )}
-          {selected === 'returns' && (
+          {!policyCopy?.[selected]?.trim() && selected === 'returns' && (
             <div className="space-y-5">
               <p><strong>Cancellations:</strong> If you need to change or cancel an order, contact us with the order reference as early as possible. Whether a change can be made depends on whether we have begun making or arranging your order.</p>
               <p><strong>Damaged or incorrect items:</strong> If something arrives damaged or not as agreed, contact us promptly with your order reference, a description and photographs where possible. We will review the issue and discuss an appropriate resolution.</p>
@@ -61,7 +64,7 @@ export default function StorePolicies({
               <p>Reach us at <a className="underline underline-offset-2" href="mailto:jamebouquets@gmail.com">jamebouquets@gmail.com</a>.</p>
             </div>
           )}
-          {selected === 'privacy' && (
+          {!policyCopy?.[selected]?.trim() && selected === 'privacy' && (
             <div className="space-y-5">
               <p>We collect details you choose to provide when registering, placing an order or making an enquiry, such as your name, email, phone number, delivery address, product choices and order history.</p>
               <p>We use these details to verify accounts, process and follow up on orders, send confirmations, provide customer support and verify genuine product reviews. Public reviews show a shortened display name, not a customer's email address.</p>
@@ -69,7 +72,7 @@ export default function StorePolicies({
               <p>To ask about information associated with your account, request a correction or raise a privacy concern, contact <a className="underline underline-offset-2" href="mailto:jamebouquets@gmail.com">jamebouquets@gmail.com</a>.</p>
             </div>
           )}
-          {selected === 'terms' && (
+          {!policyCopy?.[selected]?.trim() && selected === 'terms' && (
             <div className="space-y-5">
               <p>Jame Bouquets offers handmade ribbon bouquets, keepsakes and gifts. Submitting an order request does not take payment online and does not guarantee the availability of a particular item or delivery date.</p>
               <p>Our team confirms availability, customization, delivery details, final price and payment arrangements before proceeding. Custom event price ranges are indicative estimates, not confirmed totals.</p>
