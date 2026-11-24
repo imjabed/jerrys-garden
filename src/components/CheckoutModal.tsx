@@ -164,7 +164,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
           </div>
         ) : (
           <form onSubmit={submit} className="overflow-y-auto px-7 py-7 sm:px-9">
-            <p className="mb-7 text-sm leading-relaxed text-stone-600">Share your details. Our team will call to confirm your order and discuss payment.</p>
+            <p className="mb-7 text-sm leading-relaxed text-stone-600"><CustomerCopy id={"checkoutExtra.0"} fallback={"Share your details. Our team will call to confirm your order and discuss payment."}/></p>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               {field('Full name','fullName','text',true,'Your name')}
               {field('Phone number','phone','tel',true,'Contact number')}
@@ -196,7 +196,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
               </div>
               {couponError && <p role="alert" className="mt-2 text-xs text-red-700">{couponError}</p>}
               {validCoupon && <p className="mt-2 text-xs text-emerald-800">Code {validCoupon.code} applied · Save ₹{discount.toLocaleString('en-IN')}</p>}
-              {appliedCoupon && !couponIsCurrent && <p className="mt-2 text-xs text-amber-800">Details changed. Reapply your code to confirm eligibility.</p>}
+              {appliedCoupon && !couponIsCurrent && <p className="mt-2 text-xs text-amber-800"><CustomerCopy id={"checkoutExtra.1"} fallback={"Details changed. Reapply your code to confirm eligibility."}/></p>}
             </section>
             <div className="mt-8 flex items-center justify-between border-t border-stone-200 pt-5 text-sm text-stone-700">
               <span>{cartItems.reduce((n, item) => n + item.quantity, 0)} item(s) · Product subtotal</span>
@@ -206,7 +206,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
             <div className="mt-2 flex justify-between text-sm text-stone-700"><span>Delivery</span><span>{deliveryFee === null ? 'Awaiting courier quote' : freeDeliveryEligible ? 'Free Delivery' : `₹${deliveryFee.toLocaleString('en-IN')}`}</span></div>
             {validCoupon && <div className="mt-2 flex justify-between text-sm text-emerald-800"><span><CustomerCopy id={"checkout.3"} fallback={"Offer discount"}/></span><span>−₹{discount.toLocaleString('en-IN')}</span></div>}
             <div className="mt-2 flex justify-between text-sm font-medium text-stone-900"><span><CustomerCopy id={"checkout.4"} fallback={"Estimated total"}/></span><span>₹{deliveryFee === null ? 'Pending shipping estimate' : `₹${(Math.max(0, subtotal - discount) + deliveryFee).toLocaleString('en-IN')}`}</span></div>
-            <p className="mt-2 text-[11px] leading-5 text-stone-500">No payment is taken online. Our team confirms your order, delivery and final amount before proceeding.</p>
+            <p className="mt-2 text-[11px] leading-5 text-stone-500"><CustomerCopy id={"checkoutExtra.2"} fallback={"No payment is taken online. Our team confirms your order, delivery and final amount before proceeding."}/></p>
             {error && <p role="alert" className="mt-4 text-sm text-red-700">{error}</p>}
             <button disabled={busy || shippingBusy || deliveryFee === null} type="submit" className="mt-7 flex w-full items-center justify-center gap-2 bg-stone-900 px-6 py-4 text-xs uppercase tracking-widest text-white transition hover:bg-stone-700 disabled:opacity-60">
               {busy ? 'Placing your order...' : 'Place order'} <ArrowRight size={16}/>
