@@ -1,4 +1,4 @@
-import { useCustomerText } from '../services/customerText';
+import CustomerCopy from './CustomerCopy';
 import { useEffect, useState, type FormEvent } from 'react';
 import { ArrowRight, CheckCircle2, X } from 'lucide-react';
 import { CartItem, CustomerDetails, Order, StoreSettings, UserAccount } from '../types';
@@ -15,7 +15,6 @@ interface CheckoutModalProps {
 }
 
 export default function CheckoutModal({ isOpen, onClose, cartItems, storeSettings, activeUser, onOrderSuccess }: CheckoutModalProps) {
-  const customerText = useCustomerText();
   const [step, setStep] = useState<'details' | 'confirmed'>('details');
   const [submittedOrder, setSubmittedOrder] = useState<Order | null>(null);
   const [busy, setBusy] = useState(false);
@@ -158,10 +157,10 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
         {step === 'confirmed' ? (
           <div className="px-8 py-14 text-center">
             <CheckCircle2 className="mx-auto h-12 w-12 text-stone-700" strokeWidth={1.2}/>
-            <h3 className="mt-6 font-serif text-3xl text-stone-900">{customerText("checkout.0","Thank you for your order.")}</h3>
+            <h3 className="mt-6 font-serif text-3xl text-stone-900"><CustomerCopy id={"checkout.0"} fallback={"Thank you for your order."}/></h3>
             <p className="mt-4 text-sm leading-6 text-stone-600">Our team will contact you by phone to confirm your order and arrange payment. No payment is required on the website.</p>
             <p className="mt-5 text-sm text-stone-600">Order reference: <strong className="text-stone-900">{submittedOrder?.orderNumber}</strong></p>
-            <button type="button" onClick={onClose} className="mt-9 bg-stone-900 px-9 py-3 text-xs uppercase tracking-widest text-white hover:bg-stone-700">{customerText("checkout.1","Continue shopping")}</button>
+            <button type="button" onClick={onClose} className="mt-9 bg-stone-900 px-9 py-3 text-xs uppercase tracking-widest text-white hover:bg-stone-700"><CustomerCopy id={"checkout.1"} fallback={"Continue shopping"}/></button>
           </div>
         ) : (
           <form onSubmit={submit} className="overflow-y-auto px-7 py-7 sm:px-9">
@@ -185,7 +184,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
               I confirm that my delivery address and PIN code are correct.
             </label>
             <section aria-label="Apply an offer code" className="mt-7 border-t border-stone-200 pt-5">
-              <label className="text-xs font-medium text-stone-700" htmlFor="checkout-coupon">{customerText("checkout.2","Have an offer code?")}</label>
+              <label className="text-xs font-medium text-stone-700" htmlFor="checkout-coupon"><CustomerCopy id={"checkout.2"} fallback={"Have an offer code?"}/></label>
               <div className="mt-2 flex gap-2">
                 <input id="checkout-coupon" type="text" maxLength={30} autoCapitalize="characters"
                   value={couponText} onChange={event => { setCouponText(event.target.value.toUpperCase()); setAppliedCoupon(null); setCouponError(''); }}
@@ -205,8 +204,8 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
             </div>
             {Number(storeSettings.freeDeliveryThreshold || 0) > 0 && <p className="mt-3 text-xs text-emerald-800">{freeDeliveryEligible ? 'Your order qualifies for free delivery!' : `Free delivery on orders of ₹${Number(storeSettings.freeDeliveryThreshold).toLocaleString('en-IN')} or more.`}</p>}
             <div className="mt-2 flex justify-between text-sm text-stone-700"><span>Delivery</span><span>{deliveryFee === null ? 'Awaiting courier quote' : freeDeliveryEligible ? 'Free Delivery' : `₹${deliveryFee.toLocaleString('en-IN')}`}</span></div>
-            {validCoupon && <div className="mt-2 flex justify-between text-sm text-emerald-800"><span>{customerText("checkout.3","Offer discount")}</span><span>−₹{discount.toLocaleString('en-IN')}</span></div>}
-            <div className="mt-2 flex justify-between text-sm font-medium text-stone-900"><span>{customerText("checkout.4","Estimated total")}</span><span>₹{deliveryFee === null ? 'Pending shipping estimate' : `₹${(Math.max(0, subtotal - discount) + deliveryFee).toLocaleString('en-IN')}`}</span></div>
+            {validCoupon && <div className="mt-2 flex justify-between text-sm text-emerald-800"><span><CustomerCopy id={"checkout.3"} fallback={"Offer discount"}/></span><span>−₹{discount.toLocaleString('en-IN')}</span></div>}
+            <div className="mt-2 flex justify-between text-sm font-medium text-stone-900"><span><CustomerCopy id={"checkout.4"} fallback={"Estimated total"}/></span><span>₹{deliveryFee === null ? 'Pending shipping estimate' : `₹${(Math.max(0, subtotal - discount) + deliveryFee).toLocaleString('en-IN')}`}</span></div>
             <p className="mt-2 text-[11px] leading-5 text-stone-500">No payment is taken online. Our team confirms your order, delivery and final amount before proceeding.</p>
             {error && <p role="alert" className="mt-4 text-sm text-red-700">{error}</p>}
             <button disabled={busy || shippingBusy || deliveryFee === null} type="submit" className="mt-7 flex w-full items-center justify-center gap-2 bg-stone-900 px-6 py-4 text-xs uppercase tracking-widest text-white transition hover:bg-stone-700 disabled:opacity-60">
