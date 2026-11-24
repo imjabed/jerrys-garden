@@ -1,3 +1,5 @@
+import RichText from './RichText';
+import { useCustomerTextStyle } from '../services/customerText';
 import CustomerCopy from './CustomerCopy';
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
@@ -19,6 +21,7 @@ export default function StorePolicies({
   onSelect: (policy: PolicyType) => void;
   policyCopy?: SiteContent['policyCopy'];
 }) {
+  const policyStyle = useCustomerTextStyle('policy.' + selected);
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleKey);
@@ -48,7 +51,7 @@ export default function StorePolicies({
           ))}
         </div>
         <div className="overflow-y-auto px-6 py-7 text-sm leading-7 text-stone-700 sm:px-9">
-          {policyCopy?.[selected]?.trim() ? <div className="whitespace-pre-wrap">{policyCopy[selected]}</div> : null}
+          {policyCopy?.[selected]?.trim() ? <div className="whitespace-pre-wrap"><RichText value={policyCopy[selected]} presentation={policyStyle}/></div> : null}
           {!policyCopy?.[selected]?.trim() && selected === 'delivery' && (
             <div className="space-y-5">
               <p><strong>Where we deliver:</strong> We currently accept deliveries within Berhampore, Murshidabad, West Bengal only. We verify that your delivery location is serviceable before confirming an order.</p>
