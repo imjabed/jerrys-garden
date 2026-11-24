@@ -1,3 +1,4 @@
+import CustomerCopy from './CustomerCopy';
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { SiteContent } from '../../shared/siteEditor';
@@ -30,7 +31,7 @@ export default function StorePolicies({
       <div className="jb-customer-panel flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden bg-[#FCFAF7] text-stone-800 shadow-2xl">
         <div className="flex items-start justify-between border-b border-stone-200 px-6 py-5 sm:px-9">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-stone-500">Jame Bouquets · Customer information</p>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-stone-500"><CustomerCopy id={"policies.0"} fallback={"Jame Bouquets · Customer information"}/></p>
             <h2 id="policy-title" className="mt-2 font-serif text-3xl font-normal">{titles[selected]}</h2>
           </div>
           <button type="button" onClick={onClose} aria-label="Close policies"
@@ -80,7 +81,7 @@ export default function StorePolicies({
               <p>For changes, concerns or questions, contact <a className="underline underline-offset-2" href="mailto:jamebouquets@gmail.com">jamebouquets@gmail.com</a> with your order number.</p>
             </div>
           )}
-          <p className="mt-9 border-t border-stone-200 pt-4 text-xs text-stone-500">Jame Bouquets · Berhampore, Murshidabad, West Bengal</p>
+          <p className="mt-9 border-t border-stone-200 pt-4 text-xs text-stone-500"><CustomerCopy id={"policies.1"} fallback={"Jame Bouquets · Berhampore, Murshidabad, West Bengal"}/></p>
         </div>
       </div>
     </div>
