@@ -2010,10 +2010,11 @@ export default function SiteEditor({
                   {(['delivery', 'returns', 'privacy', 'terms'] as const).map(key => (
                     <label key={key} className="block text-xs font-medium text-stone-700">
                       {({delivery:'Delivery & ordering',returns:'Cancellations & concerns',privacy:'Privacy notice',terms:'Ordering terms'} as const)[key]}
-                      <textarea value={draft.policyCopy?.[key] || ''} rows={5} maxLength={6000}
-                        onChange={event => update(prev => ({...prev, policyCopy:{...prev.policyCopy,[key]:event.target.value}}))}
-                        placeholder="Leave empty to use the existing policy text."
-                        className="mt-2 w-full resize-y border border-stone-300 bg-white p-3 text-sm font-normal leading-6 text-stone-900"/>
+                      <RichTextEditor key={'policy-'+key} label={key+' policy content'} maxLength={6000}
+                        value={draft.policyCopy?.[key] || ''}
+                        onChange={value => update(prev => ({...prev, policyCopy:{...prev.policyCopy,[key]:value}}))}
+                        presentation={draft.customerTextStyles?.['policy.'+key] || {font:'inherit',size:0,align:'left',bold:false,italic:false,color:'',lineHeight:0,letterSpacing:0,transform:'none'}}
+                        onPresentationChange={value => update(prev => ({...prev,customerTextStyles:{...prev.customerTextStyles,['policy.'+key]:value}}))}/>
                     </label>
                   ))}
                 </div>
