@@ -1984,13 +1984,26 @@ export default function SiteEditor({
             {panel === 'text' && (
               <>
                 <div>
-                  <h2 className="font-serif text-2xl">Website typography editor</h2>
+                  <h2 className="font-serif text-2xl">Text Content Editor</h2>
                   <p className="mt-2 text-xs leading-6 text-stone-600">
-                    Edit Winter/Christmas text without affecting other themes. Add line breaks,
-                    format selected words with bold or italic, and choose a font, size, and alignment
-                    for each field. Live storefront rendering treats the text as plain content, never raw HTML.
+                    Edit customer-facing homepage copy, navigation, banners and footer from one workspace.
+                    Select a text field to change its wording, font, size, colour, alignment and selected-word formatting.
+                    Theme-specific content is saved with its theme.
                   </p>
                 </div>
+                <div className="rounded-xl border border-stone-200 bg-white p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-stone-900">Navigation labels</h3>
+                  {(['shop', 'custom', 'track', 'story', 'signIn'] as const).map(key => (
+                    <label key={key} className="block text-xs text-stone-600">
+                      {({shop:'Shop products',custom:'Custom orders',track:'Track order',story:'Our craft',signIn:'Sign in'} as const)[key]}
+                      <input value={draft.navigationLabels[draft.theme][key]}
+                        maxLength={70}
+                        onChange={event => update(prev => ({...prev, navigationLabels: {...prev.navigationLabels, [prev.theme]: {...prev.navigationLabels[prev.theme], [key]: event.target.value}}}))}
+                        className="mt-1 w-full border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900"/>
+                    </label>
+                  ))}
+                </div>
+                <h3 className="text-sm font-semibold text-stone-900">Homepage and footer text</h3>
                 {option('Text element', textSlot, TEXT_SLOTS.map(x => ({id:x.id,label:x.label})),
                   id => setTextSlot(id as TextSlot))}
                 <div className="rounded-xl border border-stone-200 bg-white p-4">
