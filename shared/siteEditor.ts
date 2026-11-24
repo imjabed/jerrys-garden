@@ -457,6 +457,7 @@ export const CUSTOMER_TEXT_FIELDS = [
 ] as const;
 export type CustomerTextKey = typeof CUSTOMER_TEXT_FIELDS[number]['id'];
 export interface SiteContent {  customerText: Record<string, string>;
+  customerTextStyles: Record<string, TextPresentation>;
 
   policyCopy: Record<'delivery' | 'returns' | 'privacy' | 'terms', string>;
   theme: ThemeId;
@@ -599,6 +600,7 @@ const defaultThemeBanners = () => Object.fromEntries(THEME_PRESETS.map(p => [p.i
 }])) as Record<ThemeId, ThemeBanner>;
 export const DEFAULT_SITE_CONTENT: SiteContent = {
   customerText: {},
+  customerTextStyles: {},
   policyCopy: { delivery: '', returns: '', privacy: '', terms: '' },
   theme: 'default',
   originalImages: {},
@@ -925,6 +927,7 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
   })) as SiteContent['themeExtras'];
   const fx = raw.effects || {};
   const content: SiteContent = {
+    customerTextStyles: Object.fromEntries(Object.entries(raw.customerTextStyles && typeof raw.customerTextStyles === 'object' ? raw.customerTextStyles : {}).filter(([key,value]) => CUSTOMER_TEXT_FIELDS.some(field => field.id === key) && value && typeof value === 'object').map(([key,value]) => [key, {font: FONT_LABELS[(value as any).font as FontId] ? (value as any).font : 'inherit', size: numberRange((value as any).size,0,0,90), align: ['left','center','right'].includes((value as any).align) ? (value as any).align : 'left',bold:(value as any).bold===true,italic:(value as any).italic===true,color:(value as any).color ? hex((value as any).color,'#292524') : '',lineHeight:numberRange((value as any).lineHeight,0,0,3),letterSpacing:numberRange((value as any).letterSpacing,0,-3,12),transform:['none','uppercase','lowercase','capitalize'].includes((value as any).transform) ? (value as any).transform : 'none'}])),
     customerText: Object.fromEntries(Object.entries(raw.customerText && typeof raw.customerText === 'object' ? raw.customerText : {}).filter(([key,value]) => CUSTOMER_TEXT_FIELDS.some(field => field.id === key) && typeof value === 'string').map(([key,value]) => [key, String(value).slice(0, 500)])),
     policyCopy: Object.fromEntries((['delivery','returns','privacy','terms'] as const).map(key => [key, typeof raw.policyCopy?.[key] === 'string' ? raw.policyCopy[key].slice(0, 6000) : ''])) as SiteContent['policyCopy'],
     theme, themeMedia, themeMobileMedia, heroCrop, textPresentations, winterAssetsReady: true,
