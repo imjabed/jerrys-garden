@@ -1,3 +1,4 @@
+import CustomerCopy from './CustomerCopy';
 import { Instagram, Mail, MapPin, Phone, MessageCircle, ShieldCheck } from 'lucide-react';
 import Logo from './Logo';
 import WhatsAppIcon from './WhatsAppIcon';
@@ -142,11 +143,11 @@ export default function Footer({
                 </button>
               </li>
               <li>
-                <span className="text-stone-400">Berhampore deliveries · by confirmation</span>
+                <span className="text-stone-400"><CustomerCopy id={"footer.0"} fallback={"Berhampore deliveries · by confirmation"}/></span>
               </li>
             </ul>
             <div className="border-t border-stone-700/70 pt-4">
-              <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-stone-300">Customer information</p>
+              <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-stone-300"><CustomerCopy id={"footer.1"} fallback={"Customer information"}/></p>
               <div className="flex flex-col items-start gap-3 text-xs text-stone-400">
                 {([
                   ['delivery', 'Delivery & ordering'],
@@ -167,10 +168,10 @@ export default function Footer({
               Ribbon Flower Care
             </h4>
             <ul className="space-y-2 text-xs text-stone-400">
-              <li>• Keep in room temperature away from direct rain</li>
-              <li>• No watering needed for ribbon flowers</li>
-              <li>• Gentle dusting with dry soft brush if required</li>
-              <li>• Keep away from flames and unattended young children</li>
+              <li><CustomerCopy id={"footer.2"} fallback={"• Keep in room temperature away from direct rain"}/></li>
+              <li><CustomerCopy id={"footer.3"} fallback={"• No watering needed for ribbon flowers"}/></li>
+              <li><CustomerCopy id={"footer.4"} fallback={"• Gentle dusting with dry soft brush if required"}/></li>
+              <li><CustomerCopy id={"footer.5"} fallback={"• Keep away from flames and unattended young children"}/></li>
             </ul>
           </div>
 
@@ -182,19 +183,19 @@ export default function Footer({
             <div className="space-y-2.5 text-xs text-stone-400">
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                <span>Berhampore, Murshidabad, West Bengal</span>
+                <span><CustomerCopy id={"footer.6"} fallback={"Berhampore, Murshidabad, West Bengal"}/></span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-rose-400 shrink-0" />
                 {/^\+?[0-9\s()-]{10,20}$/.test(storeSettings.phone || '') ?
                   <a href={`tel:${storeSettings.phone.replace(/[^+0-9]/g, '')}`} className="hover:text-white">{storeSettings.phone}</a> :
-                  <span>Support available after order confirmation</span>}
+                  <span><CustomerCopy id={"footer.7"} fallback={"Support available after order confirmation"}/></span>}
               </div>
               <div className="flex items-center gap-2">
                 <MessageCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                 {/^\+?[0-9\s()-]{10,20}$/.test(storeSettings.whatsapp || '') ?
-                  <a href={`https://wa.me/${storeSettings.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="hover:text-white">WhatsApp our team</a> :
-                  <button type="button" onClick={onOpenTracking} className="hover:text-white">Track or enquire about an order</button>}
+                  <a href={`https://wa.me/${storeSettings.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="hover:text-white"><CustomerCopy id={"footer.8"} fallback={"WhatsApp our team"}/></a> :
+                  <button type="button" onClick={onOpenTracking} className="hover:text-white"><CustomerCopy id={"footer.9"} fallback={"Track or enquire about an order"}/></button>}
               </div>
             </div>
           </div>
@@ -203,7 +204,7 @@ export default function Footer({
 
         {/* Bottom copyright & Owner Portal trigger (Invisible unless logged in as Owner) */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
-          <p>© 2026 Jame Bouquets · Handmade in Berhampore</p>
+          <p><CustomerCopy id={"footer.10"} fallback={"© 2026 Jame Bouquets · Handmade in Berhampore"}/></p>
 
           <div className="flex items-center gap-4">
             {isOwner && <button
