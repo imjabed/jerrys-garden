@@ -2025,9 +2025,11 @@ export default function SiteEditor({
                       {CUSTOMER_TEXT_FIELDS.filter(field => field.section === group).map(field => (
                         <label key={field.id} className="block text-xs text-stone-600">
                           {field.label}
-                          <input value={draft.customerText?.[field.id] ?? ''} placeholder={field.label} maxLength={500}
-                            onChange={event => update(prev => ({...prev,customerText:{...prev.customerText,[field.id]:event.target.value}}))}
-                            className="mt-1 w-full border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900"/>
+                          <RichTextEditor key={field.id} label={field.label} maxLength={500}
+                            value={draft.customerText?.[field.id] ?? field.label}
+                            onChange={value => update(prev => ({...prev,customerText:{...prev.customerText,[field.id]:value}}))}
+                            presentation={draft.customerTextStyles?.[field.id] || {font:'inherit',size:0,align:'left',bold:false,italic:false,color:'',lineHeight:0,letterSpacing:0,transform:'none'}}
+                            onPresentationChange={value => update(prev => ({...prev,customerTextStyles:{...prev.customerTextStyles,[field.id]:value}}))}/>
                         </label>
                       ))}
                     </div>
