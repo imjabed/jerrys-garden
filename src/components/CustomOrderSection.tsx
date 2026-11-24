@@ -1,3 +1,4 @@
+import CustomerCopy from './CustomerCopy';
 import { useEffect, useMemo, useState, type FormEvent, type CSSProperties } from 'react';
 import { ArrowRight, CheckCircle2, Flower2, Gift, Minus, Plus } from 'lucide-react';
 import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
@@ -194,7 +195,7 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
             <div className="jb-price-card mt-10 border border-stone-300/80 bg-[#FCFAF7] p-7 sm:p-9">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-stone-500">Approximate price</p>
+                  <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-stone-500"><CustomerCopy id={"custom.0"} fallback={"Approximate price"}/></p>
                   <p className="mt-3 font-serif text-3xl tracking-tight text-stone-900 sm:text-4xl">
                     ₹{quote.minimum.toLocaleString('en-IN')} – ₹{quote.maximum.toLocaleString('en-IN')}
                   </p>
@@ -217,15 +218,15 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
 
           <div className="jb-order-form-shell border border-stone-200/80 bg-[#FCFAF7] p-6 shadow-sm sm:p-10">
             <div className="mb-7 border-b border-stone-200 pb-6 lg:hidden" aria-live="polite">
-              <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-stone-500">Live approximate price</p>
+              <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-stone-500"><CustomerCopy id={"custom.2"} fallback={"Live approximate price"}/></p>
               <p className="mt-3 font-serif text-2xl text-stone-900">₹{quote.minimum.toLocaleString('en-IN')} – ₹{quote.maximum.toLocaleString('en-IN')}</p>
-              <p className="mt-2 text-xs leading-5 text-stone-500">Estimate only. Our team will confirm the final price before your order.</p>
+              <p className="mt-2 text-xs leading-5 text-stone-500"><CustomerCopy id={"custom.3"} fallback={"Estimate only. Our team will confirm the final price before your order."}/></p>
             </div>
             {confirmed && (
               <div className="fixed inset-0 z-[80] flex items-center justify-center bg-stone-950/60 p-5 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Custom enquiry received">
                 <div className="w-full max-w-md border border-stone-200 bg-[#FCFAF7] px-8 py-12 text-center shadow-2xl">
                   <CheckCircle2 className="mx-auto h-12 w-12 text-stone-700" strokeWidth={1.25}/>
-                  <h3 className="mt-6 font-serif text-3xl text-stone-900">Enquiry received.</h3>
+                  <h3 className="mt-6 font-serif text-3xl text-stone-900"><CustomerCopy id={"custom.4"} fallback={"Enquiry received."}/></h3>
                   <p className="mt-4 text-sm leading-7 text-stone-600">
                     Our team will contact <strong>{name}</strong> at <strong>{phone}</strong> to discuss your custom order.
                   </p>
@@ -239,18 +240,18 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
                 <div className="flex items-center gap-3 border-b border-stone-200 pb-6">
                   <Flower2 className="h-6 w-6 text-[#9E777C]" strokeWidth={1.4}/>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-stone-500">Custom order</p>
-                    <h3 className="mt-1 font-serif text-2xl text-stone-900">Create your arrangement</h3>
+                    <p className="text-xs uppercase tracking-[0.2em] text-stone-500"><CustomerCopy id={"custom.5"} fallback={"Custom order"}/></p>
+                    <h3 className="mt-1 font-serif text-2xl text-stone-900"><CustomerCopy id={"custom.6"} fallback={"Create your arrangement"}/></h3>
                   </div>
                 </div>
 
                 <div className="mb-5 flex items-center justify-between border-b border-stone-200 pb-4 text-[11px] font-semibold uppercase tracking-[.12em]">
-                  <span className={contactStep ? 'text-stone-400' : 'text-stone-900'}>01 · Bouquet</span>
-                  <span className={contactStep ? 'text-stone-900' : 'text-stone-400'}>02 · Contact details</span>
+                  <span className={contactStep ? 'text-stone-400' : 'text-stone-900'}><CustomerCopy id={"custom.7"} fallback={"01 · Bouquet"}/></span>
+                  <span className={contactStep ? 'text-stone-900' : 'text-stone-400'}><CustomerCopy id={"custom.8"} fallback={"02 · Contact details"}/></span>
                 </div>
                 {!contactStep && <div className="space-y-7 py-7">
                   <div>
-                    <span className={labelClass}>Occasion</span>
+                    <span className={labelClass}><CustomerCopy id={"custom.9"} fallback={"Occasion"}/></span>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {occasions.map(value => (
                         <button key={value} type="button" onClick={() => setOccasion(value)}
@@ -261,7 +262,7 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
                     </div>
                   </div>
                   <section aria-label="Custom bouquet size">
-                    <span className={labelClass}>Choose bouquet size</span>
+                    <span className={labelClass}><CustomerCopy id={"custom.10"} fallback={"Choose bouquet size"}/></span>
                     <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                       {PRODUCT_SIZE_KEYS.map(key => (
                         <button key={key} type="button" aria-pressed={size === key} onClick={() => selectSize(key)}
@@ -286,7 +287,7 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
                   <div className="grid gap-5 sm:grid-cols-2">
                     <label className={labelClass}>Wrapper material
                       <select value={wrapperType} onChange={e => setWrapperType(e.target.value as WrapperType)} className={fieldClass}>
-                        <option value="paper">Paper</option>
+                        <option value="paper"><CustomerCopy id={"custom.11"} fallback={"Paper"}/></option>
                         <option value="net">Net</option>
                       </select>
                     </label>
@@ -300,7 +301,7 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
                     </div>
                   </div>
                   <div>
-                    <span className={labelClass}>Decorations</span>
+                    <span className={labelClass}><CustomerCopy id={"custom.12"} fallback={"Decorations"}/></span>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       <label className="flex cursor-pointer items-center gap-3 border border-stone-200 px-4 py-4 text-sm text-stone-800">
                         <input type="checkbox" checked={gypsy} onChange={e => setGypsy(e.target.checked)} className="h-4 w-4 accent-stone-900"/> Gypsy accents
@@ -320,9 +321,9 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
                 </div>}
                 {contactStep && <div className="border-t border-stone-200 pt-7">
                   <button type="button" className="mb-4 text-xs font-medium underline underline-offset-4 text-stone-700"
-                    onClick={() => { setContactStep(false); setError(''); }}>Back to bouquet details</button>
-                  <p className="text-[10px] uppercase tracking-[0.23em] text-stone-500">Your contact details</p>
-                  <h4 className="mt-2 font-serif text-2xl text-stone-900">Where should we reach you?</h4>
+                    onClick={() => { setContactStep(false); setError(''); }}><CustomerCopy id={"custom.13"} fallback={"Back to bouquet details"}/></button>
+                  <p className="text-[10px] uppercase tracking-[0.23em] text-stone-500"><CustomerCopy id={"custom.14"} fallback={"Your contact details"}/></p>
+                  <h4 className="mt-2 font-serif text-2xl text-stone-900"><CustomerCopy id={"custom.15"} fallback={"Where should we reach you?"}/></h4>
                   <div className="mt-6 grid gap-5 sm:grid-cols-2">
                     <label className={labelClass}>Full name *
                       <input required maxLength={120} autoComplete="name" value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name" className={fieldClass}/>
@@ -355,7 +356,7 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
                     <button disabled={sending} type="submit" className="jb-order-submit mt-8 flex w-full items-center justify-center gap-3 bg-stone-900 px-6 py-4 text-xs uppercase tracking-[0.18em] text-white transition hover:bg-stone-700 disabled:opacity-50">
                       {sending ? 'Sending enquiry…' : 'Send Enquiry'} <ArrowRight size={17}/>
                     </button>
-                    <p className="mt-4 text-center text-[11px] text-stone-500">Our team will call to confirm the design, availability and final price.</p>
+                    <p className="mt-4 text-center text-[11px] text-stone-500"><CustomerCopy id={"custom.16"} fallback={"Our team will call to confirm the design, availability and final price."}/></p>
                   </>
                 )}
               </form>
