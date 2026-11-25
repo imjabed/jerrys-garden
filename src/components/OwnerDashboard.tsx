@@ -219,6 +219,7 @@ export default function OwnerDashboard({
               className="flex items-center gap-2 bg-stone-900 px-3 py-2.5 text-xs font-semibold text-white hover:bg-stone-700">
               <Edit size={15}/> <span className="hidden sm:inline">Website Editor</span><span className="sm:hidden">Editor</span>
             </button>
+            <button type="button" onClick={()=>window.location.assign('/admin/editor?mode=themes')} className="flex items-center gap-2 border border-stone-300 px-3 py-2.5 text-xs font-semibold">Theme Manager</button>
             <button onClick={onLogoutOwner} className="flex items-center gap-2 border border-stone-300 px-3 py-2.5 text-xs text-stone-700 transition hover:bg-stone-100">
               <LogOut size={15}/> Sign out
             </button>

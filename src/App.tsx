@@ -68,10 +68,10 @@ import Footer from './components/Footer';
 import CustomerReviewsSection from './components/CustomerReviewsSection';
 import StorePolicies, { type PolicyType } from './components/StorePolicies';
 import CollectionShowcase from './components/CollectionShowcase';
-import SiteEditor from './components/SiteEditor';
+import WebsiteStudio from './studio/WebsiteStudio';
 import StudioErrorBoundary from './components/StudioErrorBoundary';
 import CustomPageBlock from './components/CustomPageBlock';
-import { DEFAULT_SITE_CONTENT, FONT_STACKS, safeEditorLink } from '../shared/siteEditor';
+import { DEFAULT_SITE_CONTENT, FONT_STACKS, safeEditorLink, sanitizeSiteContent } from '../shared/siteEditor';
 import type { SiteContent } from '../shared/siteEditor';
 import { storeDesignStyle, PromotionPopup } from './components/StoreDesignControls';
 
@@ -106,6 +106,8 @@ export default function App() {
   const [siteContent, setSiteContent] = useState<SiteContent>(DEFAULT_SITE_CONTENT);
   const [ownerChecked, setOwnerChecked] = useState(false);
   const editorRoute = window.location.pathname.startsWith('/admin/editor');
+  const studioPreview = window.parent !== window && new URLSearchParams(window.location.search).get('studio-preview') === '1';
+  const [previewReady,setPreviewReady] = useState(false);
   // The Studio is a viewport-sized workspace. A crop dialog is portalled to
   // document.body; without locking document scrolling, closing the dialog can
   // leave the browser scrolled below the fixed editor (a completely blank view).
@@ -126,8 +128,8 @@ export default function App() {
   const [reviewSummaries, setReviewSummaries] = useState<Record<string, ReviewSummary>>({});
   const [reviewHighlights, setReviewHighlights] = useState<ProductReview[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [cart, setCartItems] = useState<CartItem[]>(getCart);
-  const [activeUser, setUser] = useState<UserAccount | null>(getActiveUser);
+  const [cart, setCartItems] = useState<CartItem[]>(() => studioPreview ? [] : getCart());
+  const [activeUser, setUser] = useState<UserAccount | null>(() => studioPreview ? null : getActiveUser());
   const [isOwner, setIsOwner] = useState<boolean>(false);
   const [isOwnerView, setIsOwnerView] = useState<boolean>(false);
   const [storeSettings, setSettings] = useState<StoreSettings>(getStoreSettings);
@@ -187,7 +189,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!productId || !bouquets.some(p => p.id === productId)) return;
+    if (studioPreview || !productId || !bouquets.some(p => p.id === productId)) return;
     setRecentlyViewed(previous => {
       const next = [productId, ...previous.filter(id => id !== productId)].slice(0, 20);
       try { localStorage.setItem('jb_recent_products_v1', JSON.stringify(next)); } catch {}
@@ -196,6 +198,7 @@ export default function App() {
   }, [productId, bouquets.length]);
 
   const navigateToProduct = (product: RibbonBouquet | string) => {
+    if(studioPreview)return;
     const id = typeof product === 'string' ? product : product.id;
     if (!id) return;
     const path = '/products/' + encodeURIComponent(id);
@@ -205,6 +208,7 @@ export default function App() {
     window.scrollTo(0, 0);
   };
   const navigateHome = (category?: string) => {
+    if(studioPreview)return;
     if (window.location.pathname !== '/') window.history.pushState({}, '', '/');
     setProductId(null);
     setIsOwnerView(false);
@@ -215,6 +219,7 @@ export default function App() {
   // Sync state with storage updates & remote MongoDB
   useEffect(() => {
     const handleStorageChange = () => {
+      if (studioPreview) return;
       setCartItems(getCart());
       setUser(getActiveUser());
       setSettings(getStoreSettings());
@@ -227,14 +232,13 @@ export default function App() {
         const [bRes, sRes] = await Promise.all([apiGetBouquets(), apiGetSettings()]);
         if (bRes.connected) { setBouquets(bRes.bouquets); setCatalogStatus('ready'); }
         else setCatalogStatus('offline');
-        if (sRes.connected && sRes.settings) { setSettings(sRes.settings); updateStoreSettings(sRes.settings); }
+        if (sRes.connected && sRes.settings) { setSettings(sRes.settings); if(!studioPreview) updateStoreSettings(sRes.settings); }
         const owner = await ownerSession();
         if (owner.authenticated) {
           setIsOwner(true);
           if (window.location.search.includes('owner=dashboard')) setIsOwnerView(true);
-          const oRes = await apiGetOrders();
-          if (oRes.connected) setOrders(oRes.orders);
-        } else {
+          if(!studioPreview){const oRes = await apiGetOrders(); if (oRes.connected) setOrders(oRes.orders);}
+        } else if (!studioPreview) {
           const customer = await apiCustomerSession();
           if (customer.authenticated && customer.user) {
             setUser(customer.user);
@@ -251,7 +255,7 @@ export default function App() {
     };
     initRemoteData();
     refreshReviewDisplays();
-    void apiGetPublishedSiteContent().then(setSiteContent).catch(() => {
+    if(!studioPreview) void apiGetPublishedSiteContent().then(setSiteContent).catch(() => {
       // Render may be cold or offline; keep the storefront usable regardless.
     });
 
@@ -268,7 +272,7 @@ export default function App() {
 
   useEffect(() => {
     const sync = () => {
-      if (document.visibilityState !== 'visible') return;
+      if (studioPreview || document.visibilityState !== 'visible') return;
       void apiGetPublishedSiteContent().then(setSiteContent).catch(() => {});
     };
     document.addEventListener('visibilitychange', sync);
@@ -565,6 +569,36 @@ export default function App() {
     }, 50);
   };
 
+  useEffect(()=>{
+    if(!studioPreview||!ownerChecked||!isOwner)return;
+    const receive=(event:MessageEvent)=>{
+      if(event.origin!==window.location.origin||event.source!==window.parent||event.data?.type!=='jb-studio-draft')return;
+      setSiteContent(sanitizeSiteContent(event.data.content));setPreviewReady(true);
+      const area=event.data.area;
+      const product=bouquets.find(p=>p.id===event.data.productId)||bouquets[0];
+      setProductId(area==='product'&&product?product.id:null);
+      setCartDrawerOpen(area==='cart');setCheckoutModalOpen(area==='checkout');
+      setAuthModalOpen(area==='auth');setTrackingModalOpen(area==='tracking');
+      setPolicyOpen(area==='policy'?'delivery':null);setCustomMobileOpen(true);
+      setCartItems(product&&(area==='cart'||area==='checkout')?[{bouquet:product,quantity:1}]:[]);
+    };
+    const select=(event:Event)=>{
+      if(event.type==='keydown'&&!['Enter',' ','Spacebar'].includes((event as KeyboardEvent).key))return;
+      event.preventDefault();event.stopImmediatePropagation();
+      const target=event.target instanceof Element?event.target:null;
+      if(!target)return;
+      const slot=target.closest('[data-editor-slot]')?.getAttribute('data-editor-slot');
+      const customer=target.closest('[data-studio-copy]')?.getAttribute('data-studio-copy');
+      const section=target.closest('[data-studio-section]')?.getAttribute('data-studio-section')|| (target.closest('.jb-product-card')?'cards':target.closest('footer')?'footer':target.closest('header')?'navbar':target.closest('#product-page')?'product':'');
+      const banner=target.closest('[data-banner-field]')?.getAttribute('data-banner-field');
+      window.parent.postMessage({type:'jb-studio-select',slot,customer,section,banner},window.location.origin);
+    };
+    window.addEventListener('message',receive);
+    const events=['click','submit','keydown','auxclick','contextmenu'];
+    events.forEach(type=>document.addEventListener(type,select,true));
+    window.parent.postMessage({type:'jb-studio-ready'},window.location.origin);
+    return()=>{window.removeEventListener('message',receive);events.forEach(type=>document.removeEventListener(type,select,true));};
+  },[studioPreview,ownerChecked,isOwner,bouquets]);
   const storefrontStyle = {
     ...storeDesignStyle(siteContent.storeDesign),
     '--font-serif': FONT_STACKS[siteContent.appearance.headingFont],
@@ -602,6 +636,7 @@ export default function App() {
     color: siteContent.appearance.text,
   } as CSSProperties;
 
+  if(studioPreview&&(!ownerChecked||!isOwner||!previewReady))return <div className="p-8 text-sm">{ownerChecked&&!isOwner?'Owner session required for preview.':'Preparing secure storefront preview…'}</div>;
   return (
     <div className={`site-shell flex flex-col selection:bg-rose-100 selection:text-rose-900 ${editorRoute ? 'min-h-0 md:fixed md:inset-0 md:h-dvh md:w-screen md:overflow-hidden' : 'min-h-screen'}`} style={storefrontStyle} data-store-design={!editorRoute && siteContent.storeDesign.enabled ? "on" : "off"} data-site-theme={siteContent.theme} data-hover-lift={siteContent.effects.hoverLift ? "on" : "off"} data-festive-decor={siteContent.effects.enabled && siteContent.effects.illustrationEnabled ? "on" : "off"} data-illustration-placement={siteContent.effects.illustrationPlacement} data-festive-motion={siteContent.effects.enabled && siteContent.effects.artworkMotion ? "on" : "off"}>
       
@@ -617,7 +652,7 @@ export default function App() {
       {editorRoute ? (
         isOwner ? (
           <StudioErrorBoundary label="Website Studio">
-            <SiteEditor products={bouquets} onPublished={setSiteContent}
+            <WebsiteStudio products={bouquets} onPublished={setSiteContent}
               onExit={() => window.location.assign('/?owner=dashboard')}/>
           </StudioErrorBoundary>
         ) : (
@@ -662,7 +697,7 @@ export default function App() {
       ) : (
         /* CUSTOMER SHOP VIEW */
         <>
-          {!cartDrawerOpen && !checkoutModalOpen && !authModalOpen && <PromotionPopup config={siteContent.promotion} product={Boolean(productId)}/>}
+          {!studioPreview && !cartDrawerOpen && !checkoutModalOpen && !authModalOpen && <PromotionPopup config={siteContent.promotion} product={Boolean(productId)}/>}
           {/* Header & Navigation */}
           <Navbar
             theme={siteContent.theme}
@@ -685,7 +720,7 @@ export default function App() {
             onNavigateToBuilder={() => { setCustomMobileOpen(true); scrollToSection('custom-builder'); }}
             onNavigateToShop={() => scrollToSection('shop-section')}
             onNavigateToStory={() => scrollToSection('ribbon-story')}
-            activeUser={activeUser}
+            activeUser={studioPreview?null:activeUser}
             onLogoutUser={async () => {
               await apiLogoutCustomer();
               setActiveUser(null);
@@ -694,7 +729,7 @@ export default function App() {
               setPreselectedTrackingId(undefined);
               showToast('Logged out of customer account.');
             }}
-            isOwner={isOwner}
+            isOwner={studioPreview?false:isOwner}
             onOpenOwnerDashboard={() => setIsOwnerView(true)}
             storeSettings={storeSettings}
             searchQuery={searchQuery}
@@ -723,8 +758,8 @@ export default function App() {
           {/* Shared published homepage layout; the editor controls section order. */}
           {siteContent.sections.order.filter(id => siteContent.sections.visible[id]).map(id => {
             if (id === 'hero') return (
-              <div key={id}>
-                <ThemeBanner theme={siteContent.theme} config={siteContent.themeBanners[siteContent.theme]}/>
+              <div key={id} data-studio-section="hero">
+                <div data-studio-section="banner"><ThemeBanner theme={siteContent.theme} config={siteContent.themeBanners[siteContent.theme]} editorPreview={studioPreview}/></div>
                 <Hero
                 content={siteContent.theme === 'valentines' ? siteContent.valentines.hero : siteContent.hero} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects} theme={siteContent.theme}
                 photoUrl={siteContent.themeMedia[siteContent.theme]}
@@ -740,21 +775,21 @@ export default function App() {
               </div>
             );
             if (id === 'collections') return (
-              <CollectionShowcase key={id} content={siteContent.collections} products={bouquets} headingScale={siteContent.appearance.headingScale} textPresentations={siteContent.textPresentations[siteContent.theme]}
+              <CollectionShowcase key={id} editorPreview={studioPreview} content={siteContent.collections} products={bouquets} headingScale={siteContent.appearance.headingScale} textPresentations={siteContent.textPresentations[siteContent.theme]}
                 onCategoryClick={cat => { setSelectedCategory(cat); scrollToSection('shop-section'); }}/>
             );
             if (id === 'shop') return (
-<main key="shop" id="shop-section" className="jb-shop-section relative isolate py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+<main key="shop" data-studio-section="shop" id="shop-section" className="jb-shop-section relative isolate py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
             
             {/* Catalog Section Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-3">{siteContent.shop.eyebrow}</p>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-3"><RichText value={siteContent.shop.eyebrow} presentation={siteContent.textPresentations[siteContent.theme]['shop.eyebrow']} editorSlot="shop.eyebrow"/></p>
                 <h2 className="site-editable-heading font-serif font-normal text-stone-900" style={{ fontSize: `clamp(${2.2 * siteContent.appearance.headingScale}rem, ${4 * siteContent.appearance.headingScale}vw, ${3.2 * siteContent.appearance.headingScale}rem)` }}>
-                  <RichText value={siteContent.shop.heading} presentation={siteContent.textPresentations[siteContent.theme]['shop.heading']}/>
+                  <RichText value={siteContent.shop.heading} presentation={siteContent.textPresentations[siteContent.theme]['shop.heading']} editorSlot="shop.heading"/>
                 </h2>
                 <p className="site-body-copy mt-1 max-w-xl">
-                  <RichText value={siteContent.shop.description} presentation={siteContent.textPresentations[siteContent.theme]['shop.description']}/>
+                  <RichText value={siteContent.shop.description} presentation={siteContent.textPresentations[siteContent.theme]['shop.description']} editorSlot="shop.description"/>
                 </p>
               </div>
 
@@ -851,6 +886,7 @@ export default function App() {
                 headingScale={siteContent.appearance.headingScale} sizeChart={storeSettings.customSizeFlowers} effects={siteContent.effects} theme={siteContent.theme}
                 mobileOpen={customMobileOpen} onMobileToggle={() => setCustomMobileOpen(current => !current)}
                 onSubmit={async payload => {
+                  if(studioPreview)throw new Error('Preview cannot submit orders.');
                   const result = await apiSendCustomEnquiry(payload);
                   return { orderNumber: result.orderNumber };
                 }}/>
@@ -858,7 +894,7 @@ export default function App() {
             );
             if (id === 'story') return <RibbonStory key={id} content={siteContent.story} headingScale={siteContent.appearance.headingScale} effects={siteContent.effects} theme={siteContent.theme} textPresentations={siteContent.textPresentations[siteContent.theme]}/>;
             const block = siteContent.blocks.find(item => item.id === id);
-            return block ? <CustomPageBlock key={block.id} block={block}/> : null;
+            return block ? <div key={block.id} data-studio-section={block.id}><CustomPageBlock block={block}/></div> : null;
           })}
 
           </>)}
@@ -914,6 +950,7 @@ export default function App() {
           storeSettings={storeSettings}
           activeUser={activeUser}
           onOrderSuccess={async (order) => {
+            if(studioPreview)throw new Error('Preview cannot submit orders.');
             const savedOrder = await handleOrderSuccess(order);
             setPreselectedTrackingId(savedOrder.orderNumber);
             // Confirmation stays visible; the customer can track later with the order reference.
@@ -927,8 +964,8 @@ export default function App() {
         <OrderTrackingModal
           isOpen={trackingModalOpen}
           onClose={() => setTrackingModalOpen(false)}
-          orders={orders}
-          activeUser={activeUser}
+          orders={studioPreview?[]:orders}
+          activeUser={studioPreview?null:activeUser}
           storeSettings={storeSettings}
           preselectedOrderId={preselectedTrackingId}
         />

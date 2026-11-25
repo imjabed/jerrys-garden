@@ -553,7 +553,15 @@ export function promotionActive(p: PromotionConfig, product: boolean, now = Date
   return p.enabled && (p.location === 'all' || p.location === (product ? 'product' : 'home')) &&
     (!p.start || Date.parse(p.start) <= now) && (!p.end || Date.parse(p.end) > now);
 }
+export type ThemeSnapshot = Pick<SiteContent,'theme'|'appearance'|'effects'|'hero'|'custom'|'story'|'footer'|'valentines'|'storeDesign'> & {
+  desktopImage:string; mobileImage:string; crop:SiteContent['heroCrop'][ThemeId]; imagePosition:number;
+  banner:ThemeBanner; extras:ThemeExtras; navigation:NavigationLabels; typography:Record<TextSlot,TextPresentation>;
+  collectionBackground:string; collectionText:string;
+};
+export interface StudioTheme { id:string; name:string; snapshot:ThemeSnapshot }
+export interface StudioThemeLibrary { active:string; custom:StudioTheme[]; archived:ThemeId[]; originals:Partial<Record<ThemeId,ThemeSnapshot>> }
 export interface SiteContent {
+  studioThemes: StudioThemeLibrary;
   storeDesign: StoreDesign;
   promotion: PromotionConfig;
   customerText: Record<string, string>;
@@ -699,6 +707,7 @@ const defaultThemeBanners = () => Object.fromEntries(THEME_PRESETS.map(p => [p.i
     : p.id === 'valentines' ? '#4B1024' : '#292524',
 }])) as Record<ThemeId, ThemeBanner>;
 export const DEFAULT_SITE_CONTENT: SiteContent = {
+  studioThemes: {active:'',custom:[],archived:[],originals:{}},
   storeDesign: DEFAULT_STORE_DESIGN,
   promotion: DEFAULT_PROMOTION,
   customerText: {},
@@ -811,7 +820,7 @@ const crop = (raw: any, fallback: CropPosition): CropPosition => ({
 });
 const fieldText = (obj: any, key: string, fallback: string, max = 700) => copyText(obj?.[key], fallback, max);
 
-export function sanitizeSiteContent(value: unknown): SiteContent {
+export function sanitizeSiteContent(value: unknown, includeLibrary = true): SiteContent {
   const raw: any = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   const d = DEFAULT_SITE_CONTENT;
   const rawBlocks = Array.isArray(raw.blocks) ? raw.blocks.slice(0, 24) : [];
@@ -1035,6 +1044,7 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
   const ratio = (v: unknown, fallback: string) => typeof v === 'string' && ['1/1','4/5','3/4','4/3','16/9'].includes(v) ? v : fallback;
   const date = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{3})?)?Z$/.test(v) && Number.isFinite(Date.parse(v)) ? new Date(v).toISOString() : '';
   const content: SiteContent = {
+    studioThemes: {active:'',custom:[],archived:[],originals:{}},
     storeDesign: {
       enabled: sd.enabled === true,
       mobileColumns: Math.round(numberRange(sd.mobileColumns,ds.mobileColumns,1,3)),
@@ -1211,5 +1221,76 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
     hero: { ...content.hero }, custom: { ...content.custom },
     story: { ...content.story }, footer: { ...content.footer },
   };
+  if (includeLibrary) content.studioThemes = sanitizeStudioThemes(raw.studioThemes, content);
   return content;
+}
+
+/** A theme contains visual settings only; products, page blocks, policies and orders are never copied. */
+export function captureStudioTheme(c:SiteContent):ThemeSnapshot {
+  const id=c.theme;
+  return {theme:id,appearance:c.appearance,effects:c.effects,hero:c.hero,custom:c.custom,story:c.story,footer:c.footer,
+    valentines:c.valentines,storeDesign:c.storeDesign,desktopImage:c.themeMedia[id],mobileImage:c.themeMobileMedia[id],
+    crop:c.heroCrop[id],imagePosition:c.heroImagePosition[id],banner:c.themeBanners[id],extras:c.themeExtras[id],
+    navigation:c.navigationLabels[id],typography:c.textPresentations[id],collectionBackground:c.collections.background,collectionText:c.collections.text};
+}
+export function applyStudioTheme(c:SiteContent,t:ThemeSnapshot):SiteContent {
+  const id=t.theme;
+  return {...c,theme:id,appearance:t.appearance,effects:t.effects,hero:t.hero,custom:t.custom,story:t.story,footer:t.footer,
+    valentines:id==='valentines'?t.valentines:c.valentines,storeDesign:t.storeDesign,
+    themeMedia:{...c.themeMedia,[id]:t.desktopImage},themeMobileMedia:{...c.themeMobileMedia,[id]:t.mobileImage},
+    heroCrop:{...c.heroCrop,[id]:t.crop},heroImagePosition:{...c.heroImagePosition,[id]:t.imagePosition},
+    themeBanners:{...c.themeBanners,[id]:t.banner},themeExtras:{...c.themeExtras,[id]:t.extras},
+    navigationLabels:{...c.navigationLabels,[id]:t.navigation},textPresentations:{...c.textPresentations,[id]:t.typography},
+    collections:{...c.collections,background:t.collectionBackground,text:t.collectionText}};
+}
+function sanitizeSnapshot(raw:any):ThemeSnapshot {
+  const id:ThemeId=ALL_THEME_IDS.includes(raw?.theme)?raw.theme:'default';
+  const input={...DEFAULT_SITE_CONTENT,theme:id,appearance:raw?.appearance,effects:raw?.effects,
+    hero:raw?.hero,custom:raw?.custom,story:raw?.story,footer:raw?.footer,valentines:raw?.valentines,storeDesign:raw?.storeDesign,
+    themeMedia:{[id]:raw?.desktopImage},themeMobileMedia:{[id]:raw?.mobileImage},heroCrop:{[id]:raw?.crop},
+    heroImagePosition:{[id]:raw?.imagePosition},themeBanners:{[id]:raw?.banner},themeExtras:{[id]:raw?.extras},
+    navigationLabels:{[id]:raw?.navigation},textPresentations:{[id]:raw?.typography},
+    collections:{...DEFAULT_SITE_CONTENT.collections,background:raw?.collectionBackground,text:raw?.collectionText}};
+  return captureStudioTheme(sanitizeSiteContent(input,false));
+}
+function sanitizeStudioThemes(raw:any, current:SiteContent):StudioThemeLibrary {
+  const ids=new Set<string>();
+  const custom:StudioTheme[]=(Array.isArray(raw?.custom)?raw.custom:[]).slice(0,8).flatMap((t:any)=>{
+    if(typeof t?.id!=='string'||!/^theme-[a-zA-Z0-9-]{5,60}$/.test(t.id)||ids.has(t.id))return [];
+    ids.add(t.id);return [{id:t.id,name:copyText(t.name,'Custom theme',60),snapshot:sanitizeSnapshot(t.snapshot)}];
+  });
+  const active=custom.some(t=>t.id===raw?.active)?raw.active:'';
+  const originals:StudioThemeLibrary['originals']={};
+  for(const id of ALL_THEME_IDS)if(raw?.originals?.[id]){const t=sanitizeSnapshot(raw.originals[id]);if(t.theme===id)originals[id]=t;}
+  const archived=ALL_THEME_IDS.filter(id=>id!=='default'&&(active||id!==current.theme)&&Array.isArray(raw?.archived)&&raw.archived.includes(id));
+  return {active,custom:custom.map(t=>t.id===active?{...t,snapshot:captureStudioTheme(current)}:t),archived,originals};
+}
+export function switchStudioTheme(c:SiteContent,target:string):SiteContent {
+  const lib=c.studioThemes;
+  if(target===(lib.active||c.theme))return c;
+  let next=c;
+  let custom=lib.custom;
+  const originals={...lib.originals};
+  if(lib.active){
+    custom=custom.map(t=>t.id===lib.active?{...t,snapshot:captureStudioTheme(c)}:t);
+    if(originals[c.theme])next=applyStudioTheme(c,originals[c.theme]!);
+  } else originals[c.theme]=captureStudioTheme(c);
+  const chosen=custom.find(t=>t.id===target);
+  if(chosen){
+    if(!originals[chosen.snapshot.theme]){
+      const original=next.theme===chosen.snapshot.theme?next:applyThemePreset(next,chosen.snapshot.theme);
+      originals[chosen.snapshot.theme]=captureStudioTheme(original);
+    }
+    next=applyStudioTheme(next,chosen.snapshot);
+    return {...next,studioThemes:{...lib,active:chosen.id,custom,originals}};
+  }
+  if(!ALL_THEME_IDS.includes(target as ThemeId)||lib.archived.includes(target as ThemeId))return c;
+  const id=target as ThemeId;
+  next=originals[id]?applyStudioTheme(next,originals[id]!):applyThemePreset(next,id);
+  return {...next,studioThemes:{...lib,active:'',custom,originals}};
+}
+export function createStudioTheme(c:SiteContent,id:string,name:string):SiteContent {
+  if(c.studioThemes.custom.length>=8||!name.trim())return c;
+  const snapshot=captureStudioTheme(c);
+  return switchStudioTheme({...c,studioThemes:{...c.studioThemes,custom:[...c.studioThemes.custom,{id,name:name.trim().slice(0,60),snapshot}]}},id);
 }

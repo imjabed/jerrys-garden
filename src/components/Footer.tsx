@@ -98,10 +98,10 @@ export default function Footer({
             </div>
             
             <p className="text-xs text-stone-400 leading-relaxed">
-              <RichText value={footerContent.description} presentation={textPresentations?.['footer.description']}/>
+              <RichText value={footerContent.description} presentation={textPresentations?.['footer.description']} editorSlot="footer.description"/>
             </p>
 
-            <p className="text-[11px] tracking-wide text-stone-400"><RichText value={footerContent.orderNote} presentation={textPresentations?.['footer.orderNote']}/></p>
+            <p className="text-[11px] tracking-wide text-stone-400"><RichText value={footerContent.orderNote} presentation={textPresentations?.['footer.orderNote']} editorSlot="footer.orderNote"/></p>
             <nav aria-label="Connect with Jame Bouquets" className="flex items-center gap-3 pt-3">
               <a href="https://www.instagram.com/jamebouquets" target="_blank" rel="noopener noreferrer"
                 aria-label="Follow Jame Bouquets on Instagram" title="Instagram"

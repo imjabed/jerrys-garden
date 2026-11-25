@@ -356,7 +356,7 @@ async function startServer() {
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('X-Content-Type-Options', 'nosniff');
     res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.header('X-Frame-Options', 'DENY');
+    res.header('X-Frame-Options', req.method==='GET' && req.query['studio-preview']==='1' && !req.path.startsWith('/api/') ? 'SAMEORIGIN' : 'DENY');
     if (isProduction) res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     if (req.path.startsWith('/api/')) res.header('Cache-Control', 'no-store');
     const fetchSite = req.headers['sec-fetch-site'];
