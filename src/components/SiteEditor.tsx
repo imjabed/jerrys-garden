@@ -61,7 +61,10 @@ export default function SiteEditor({
   const deferredCleanup = useRef<string[]>([]);
   const [heroAssetInfo, setHeroAssetInfo] = useState<{ url: string; width: number; height: number } | null>(null);
   const [showPreview, setShowPreview] = useState(true);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(true);
+  const [undoStack, setUndoStack] = useState<SiteContent[]>([]);
+  const [redoStack, setRedoStack] = useState<SiteContent[]>([]);
+  const dragSection = useRef<string | null>(null);
   const [textSlot, setTextSlot] = useState<TextSlot>('hero.heading');
   const [customerTextGroup, setCustomerTextGroup] = useState<string>('product');
   const [focusedPreview, setFocusedPreview] = useState<string | null>(null);
@@ -78,6 +81,7 @@ export default function SiteEditor({
       setData(result);
       setRevision(result.revision);
       setDraft(result.draft);
+      setUndoStack([]); setRedoStack([]);
       setPhotoTheme(result.draft.theme);
       setBannerTheme(result.draft.theme);
       setLastSaved(result.draft);
@@ -95,10 +99,34 @@ export default function SiteEditor({
   }, [dirty]);
 
   const update = (fn: (previous: SiteContent) => SiteContent) => {
+    if (busy) return;
     setDraft(previous => fn(previous));
     setDirty(true);
     setNotice('');
     setError('');
+  };
+  const previousDraft = useRef(draft);
+  const skipHistory = useRef(false);
+  useEffect(() => {
+    const previous = previousDraft.current;
+    previousDraft.current = draft;
+    if (previous === draft) return;
+    if (skipHistory.current) { skipHistory.current = false; return; }
+    if (!dirty) return;
+    setUndoStack(history => [...history.slice(-39), previous]);
+    setRedoStack([]);
+  }, [draft, dirty]);
+  const undo = () => {
+    const previous = undoStack[undoStack.length - 1]; if (!previous || busy) return;
+    setRedoStack(history => [...history.slice(-39), draft]);
+    setUndoStack(history => history.slice(0,-1));
+    skipHistory.current = true; setDraft(previous); setDirty(JSON.stringify(previous) !== JSON.stringify(lastSaved));
+  };
+  const redo = () => {
+    const next = redoStack[redoStack.length - 1]; if (!next || busy) return;
+    setUndoStack(history => [...history.slice(-39), draft]);
+    setRedoStack(history => history.slice(0,-1));
+    skipHistory.current = true; setDraft(next); setDirty(JSON.stringify(next) !== JSON.stringify(lastSaved));
   };
   /** Image crops are kept as Cloudinary URL transforms; the original URL stays
    * in the draft so future recrops never compound quality loss. */
@@ -691,6 +719,8 @@ export default function SiteEditor({
           <h1 className="font-serif text-lg font-medium leading-tight">Jame Bouquets Studio</h1>
           <p className="text-[11px] text-stone-500">{dirty ? 'Unsaved draft changes' : 'Changes are saved as a draft'}</p>
         </div>
+        <button type="button" disabled={busy || !undoStack.length} onClick={undo} className="rounded border px-3 py-2 text-xs disabled:opacity-40">Undo</button>
+        <button type="button" disabled={busy || !redoStack.length} onClick={redo} className="rounded border px-3 py-2 text-xs disabled:opacity-40">Redo</button>
         <button type="button" onClick={() => void save()} disabled={busy || !dirty}
           className="flex items-center gap-2 border border-stone-300 px-4 py-2.5 text-xs font-semibold text-stone-800 hover:bg-stone-50 disabled:opacity-40">
           <Save className="h-4 w-4"/> Save draft
@@ -704,26 +734,25 @@ export default function SiteEditor({
         <div className={`mx-4 mt-3 border px-4 py-3 text-sm sm:mx-6 ${error ? 'border-red-200 bg-red-50 text-red-800' : 'border-stone-200 bg-white text-stone-700'}`}
           role={error ? 'alert' : 'status'}>{error || notice}</div>
       )}
-      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 md:grid-cols-[minmax(300px,370px)_minmax(0,1fr)] xl:grid-cols-[minmax(340px,430px)_minmax(0,1fr)]">
-        <aside className="flex min-h-0 min-w-0 flex-col border-r border-stone-200 bg-white max-md:max-h-[56dvh]">
-          <nav className="flex w-full min-w-0 shrink-0 flex-nowrap gap-1.5 overflow-x-auto border-b border-stone-200 p-2 [scrollbar-width:thin]" aria-label="Editor panels">
+      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 md:grid-cols-[minmax(300px,370px)_minmax(0,1fr)] xl:grid-cols-[190px_minmax(0,1fr)_minmax(320px,390px)]">
+        <nav className="flex w-full min-w-0 shrink-0 flex-nowrap gap-1.5 overflow-x-auto border-b border-stone-200 bg-white p-2 [scrollbar-width:thin] md:col-span-2 xl:col-span-1 xl:row-start-1 xl:flex-col xl:overflow-y-auto xl:border-r" aria-label="Editor panels">
             {([
-              ['themes', Palette, 'Themes'],
+              ['themes', Palette, 'Theme Manager'],
               ['guide', BookOpen, 'Editor Guide'],
-              ['hero', ImageIcon, 'Hero Photos'],
-              ['banner', BadgePercent, 'Banner'],
-              ['theme-detail', Settings2, 'Theme Details'],
+              ['hero', ImageIcon, 'Hero & Media'],
+              ['banner', BadgePercent, 'Announcement Banner'],
+              ['theme-detail', Settings2, 'Navbar & Footer'],
               ...(draft.theme === 'valentines' ? [['valentines', Heart, 'Valentine Studio'] as const] : []),
               ['offers', BadgePercent, 'Coupon Offers'],
-              ['blocks', Layers3, 'Page Builder'],
-              ['effects', Sparkles, 'Effects'],
-              ['branding', Settings2, 'Identity'],
-              ['text', Type, 'Text'],
-              ['collections', LayoutGrid, 'Collections'],
-              ['appearance', Settings2, 'Style'],
-              ['sections', Eye, 'Arrange'],
-              ['seo', Type, 'SEO'],
-              ['history', RotateCcw, 'Versions'],
+              ['blocks', Layers3, 'Custom Sections'],
+              ['effects', Sparkles, 'Animation & Effects'],
+              ['branding', Settings2, 'Brand Identity'],
+              ['text', Type, 'Text Content Editor'],
+              ['collections', LayoutGrid, 'Collection Cards'],
+              ['appearance', Settings2, 'Global Design'],
+              ['sections', Eye, 'Section Manager'],
+              ['seo', Type, 'SEO & Accessibility'],
+              ['history', RotateCcw, 'Publishing & Versions'],
             ] as const).filter(([id]) => showAdvanced || !(['offers', 'blocks', 'sections', 'seo', 'history'] as string[]).includes(id)).map(([id, Icon, label]) => (
               <button type="button" key={id} onClick={() => setPanel(id)}
                 className={`flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-md border border-stone-200 px-2.5 py-2 text-center text-[11px] font-medium leading-tight ${panel === id ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'}`}>
@@ -737,6 +766,7 @@ export default function SiteEditor({
               <Settings2 className="h-4 w-4 shrink-0"/><span>{showAdvanced ? 'Fewer tools' : 'More tools'}</span>
             </button>
           </nav>
+        <aside className="flex min-h-0 min-w-0 flex-col border-r border-stone-200 bg-white max-md:max-h-[56dvh] xl:col-start-3 xl:row-start-1 xl:border-l xl:border-r-0">
           <div ref={inspectorRef} className="min-h-0 min-w-0 flex-1 space-y-5 overflow-x-hidden overflow-y-auto overscroll-contain p-4 pb-12 sm:p-5">
             {focusedPreview && (
               <div className="rounded-xl border border-stone-200 bg-[#FBF8F4] p-3">
@@ -2218,12 +2248,12 @@ export default function SiteEditor({
             {panel === 'sections' && (
               <>
                 <h2 className="font-serif text-2xl">Homepage sections</h2>
-                <p className="text-xs leading-6 text-stone-500">Arrange all built-in and custom sections. Hide what you do not need; the shop remains accessible via navigation.</p>
+                <p className="text-xs leading-6 text-stone-500">Drag sections to reorder, or use the arrow buttons. Arrange all built-in and custom sections. Hide what you do not need; the shop remains accessible via navigation.</p>
                 <button type="button" onClick={() => setPanel('blocks')} className="mb-3 flex items-center gap-2 border border-stone-300 px-4 py-3 text-xs font-semibold">
                   <Plus className="h-4 w-4"/> Add a new section
                 </button>
                 {draft.sections.order.map((id, i) => (
-                  <div key={id} className="flex items-center gap-3 border border-stone-200 p-3">
+                  <div key={id} draggable={!busy} onDragStart={e => { dragSection.current = id; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", id); }} onDragEnd={() => { dragSection.current = null; }} onDragOver={e => { if (dragSection.current) e.preventDefault(); }} onDrop={e => { e.preventDefault(); const source = dragSection.current; dragSection.current = null; if (!source || source === id) return; update(prev => { const order = [...prev.sections.order]; const from = order.indexOf(source); const to = order.indexOf(id); if (from < 0 || to < 0) return prev; order.splice(from,1); order.splice(to,0,source); return {...prev,sections:{...prev.sections,order}}; }); }} className="flex cursor-grab items-center gap-3 border border-stone-200 p-3">
                     <span className="w-5 text-xs text-stone-400">{i + 1}</span>
                     <label className="flex flex-1 items-center gap-2 text-sm">
                       <input type="checkbox" checked={draft.sections.visible[id]} onChange={e => update(prev => ({
@@ -2293,7 +2323,7 @@ export default function SiteEditor({
             )}
           </div>
         </aside>
-        <main className="min-h-[420px] min-w-0 overflow-y-auto overscroll-contain bg-[#E7E3DE] p-3 md:min-h-0 sm:p-5">
+        <main className="min-h-[420px] min-w-0 overflow-y-auto overscroll-contain bg-[#E7E3DE] p-3 md:min-h-0 sm:p-5 xl:col-start-2 xl:row-start-1">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-stone-800">Visual preview</p>
@@ -2301,7 +2331,7 @@ export default function SiteEditor({
               {focusedPreview && (
                 <p className="mt-2 inline-flex rounded border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-800">
                   Selected: {focusedPreview === 'header' ? 'Navigation' : focusedPreview === 'block' ? 'Custom section' : labels[focusedPreview] || focusedPreview}
-                  {' · '}Edit with the tools on the left
+                  {' · '}Edit in the properties panel
                 </p>
               )}
             </div>
