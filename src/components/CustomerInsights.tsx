@@ -5,6 +5,8 @@ import type { Order, UserAccount } from '../types';
 type Segment = 'Priority' | 'Needs follow-up' | 'Re-engage' | 'New' | 'Regular';
 interface CustomerRow {
   key: string;
+  customerId?: string;
+  registeredAt?: string;
   name: string;
   email: string;
   phone: string;
@@ -31,6 +33,8 @@ export default function CustomerInsights({ customers, orders, onViewOrder }: {
 }) {
   const [filter, setFilter] = useState<Segment | 'All'>('All');
   const [query, setQuery] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [sort, setSort] = useState<'priority' | 'value' | 'recent' | 'orders'>('priority');
   const [selected, setSelected] = useState<string | null>(null);
   const now = Date.now();
@@ -50,7 +54,7 @@ export default function CustomerInsights({ customers, orders, onViewOrder }: {
       const phone = String(customer.phone || '');
       const key = findExisting(email, phone) || findKey(email, phone) || 'registered:' + customer.id;
       grouped.set(key, {
-        key, name: String(customer.name || 'Customer'), email, phone,
+        key, customerId: (customer as UserAccount & {customerId?:string}).customerId, registeredAt: customer.createdAt, name: String(customer.name || 'Customer'), email, phone,
         address: String(customer.address || ''), registered: true, orders: [],
         openOrders: 0, completed: 0, orderValue: 0, completedValue: 0,
         daysSinceLast: null, segment: 'New',
@@ -102,8 +106,10 @@ export default function CustomerInsights({ customers, orders, onViewOrder }: {
   const segments: Array<Segment | 'All'> = ['All', 'Needs follow-up', 'Priority', 'Re-engage', 'New', 'Regular'];
   const visible = rows.filter(row => {
     const q = query.trim().toLowerCase();
-    return (filter === 'All' || row.segment === filter)
-      && (!q || [row.name, row.email, row.phone, row.address].some(v => v.toLowerCase().includes(q)));
+    const date = row.registeredAt || row.lastOrder?.createdAt;
+    const day = date ? new Date(date).toLocaleDateString('en-CA', {timeZone:'Asia/Kolkata'}) : '';
+    return (!from || day >= from) && (!to || (!!day && day <= to)) && (filter === 'All' || row.segment === filter)
+      && (!q || [row.name, row.email, row.phone, row.address, row.customerId || '', ...row.orders.map(o=>o.orderNumber)].some(v => v.toLowerCase().includes(q)));
   }).sort((a, b) => {
     if (sort === 'value') return b.completedValue - a.completedValue;
     if (sort === 'orders') return b.orders.length - a.orders.length;
@@ -149,7 +155,7 @@ export default function CustomerInsights({ customers, orders, onViewOrder }: {
               <label className="flex flex-1 items-center gap-2 border border-stone-200 px-3">
                 <Search className="h-4 w-4 shrink-0 text-stone-400"/>
                 <input aria-label="Search customers" value={query} onChange={e => setQuery(e.target.value)}
-                  placeholder="Search name, phone, email or address" className="w-full bg-transparent py-3 text-sm outline-none"/>
+                  placeholder="Search customer ID, order ID, phone or email" className="w-full bg-transparent py-3 text-sm outline-none"/>
               </label>
               <select aria-label="Sort customers" value={sort} onChange={e => setSort(e.target.value as typeof sort)}
                 className="border border-stone-200 bg-white px-3 py-2 text-xs text-stone-700">
@@ -159,6 +165,7 @@ export default function CustomerInsights({ customers, orders, onViewOrder }: {
                 <option value="orders">Most orders</option>
               </select>
             </div>
+            <div className="flex flex-wrap gap-3 text-xs"><label>From <input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label>To <input type="date" min={from || undefined} value={to} onChange={e=>setTo(e.target.value)}/></label><button onClick={()=>{setFrom("");setTo("");}}>Clear dates</button></div>
             <div className="flex flex-wrap gap-2">
               {segments.map(segment => <button key={segment} onClick={() => setFilter(segment)}
                 className={`border px-3 py-1.5 text-[11px] transition-colors ${filter === segment ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-200 text-stone-600 hover:border-stone-500'}`}>{segment}</button>)}
@@ -170,7 +177,7 @@ export default function CustomerInsights({ customers, orders, onViewOrder }: {
               className={`grid w-full gap-3 px-4 py-4 text-left transition-colors hover:bg-stone-50 sm:grid-cols-[minmax(0,1fr)_120px_125px_24px] sm:items-center ${selected === row.key ? 'bg-[#F6F3EF]' : ''}`}>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-stone-900">{row.name}</p>
-                <p className="mt-1 truncate text-xs text-stone-500">{row.phone || row.email || 'No contact details'}</p>
+                <p className="mt-1 truncate text-xs text-stone-500">{row.customerId ? row.customerId + ' · ' : ''}{row.phone || row.email || 'No contact details'}</p>
               </div>
               <div><span className="inline-block border border-stone-200 px-2 py-1 text-[10px] text-stone-700">{row.segment}</span></div>
               <div className="text-xs text-stone-700">
@@ -185,6 +192,7 @@ export default function CustomerInsights({ customers, orders, onViewOrder }: {
           {active ? <>
             <p className="text-[10px] uppercase tracking-widest text-stone-500">Customer profile</p>
             <h3 className="mt-2 font-serif text-2xl text-stone-900">{active.name}</h3>
+            <p className="text-xs text-stone-500">{active.customerId || (active.registered ? 'Legacy account' : 'Guest')}</p>
             <span className="mt-3 inline-block border border-stone-300 px-2 py-1 text-[10px] text-stone-700">{active.segment}</span>
             <div className="mt-6 space-y-3 text-xs text-stone-600">
               {active.phone && <a className="flex items-center gap-2 hover:text-stone-900" href={`tel:${active.phone}`}><Phone size={14}/>{active.phone}</a>}
