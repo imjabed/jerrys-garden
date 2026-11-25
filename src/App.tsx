@@ -133,6 +133,31 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [cart, setCartItems] = useState<CartItem[]>(() => studioPreview ? [] : getCart());
   const [activeUser, setUser] = useState<UserAccount | null>(() => studioPreview ? null : getActiveUser());
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [profileAddress, setProfileAddress] = useState('');
+  const [profileAddresses, setProfileAddresses] = useState<string[]>([]);
+  const [profileError, setProfileError] = useState('');
+  const [profileBusy, setProfileBusy] = useState(false);
+  const openProfile = () => {
+    if (!activeUser) return;
+    setProfileName(activeUser.name);
+    setProfileAddress(activeUser.address || '');
+    setProfileAddresses((activeUser as UserAccount & { addresses?: string[] }).addresses || []);
+    setProfileError('');
+    setProfileOpen(true);
+  };
+  const saveProfile = async () => {
+    setProfileBusy(true); setProfileError('');
+    try {
+      const base = (import.meta.env.VITE_API_URL || (['localhost','127.0.0.1'].includes(window.location.hostname) ? 'http://localhost:3000' : 'https://jerrys-garden.onrender.com')).replace(/\/$/, '');
+      const res = await fetch(base + '/api/customers/profile', { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json', 'X-JG-Client': '1' }, body: JSON.stringify({ name: profileName, address: profileAddress, addresses: profileAddresses.filter(a => a.trim()) }) });
+      const data = await res.json();
+      if (!res.ok || !data.user) throw new Error(data.error || 'Unable to save profile.');
+      setUser(data.user); setActiveUser(data.user); setProfileOpen(false);
+    } catch (e) { setProfileError(e instanceof Error ? e.message : 'Unable to save profile.'); }
+    finally { setProfileBusy(false); }
+  };
   const [isOwner, setIsOwner] = useState<boolean>(false);
   const [isOwnerView, setIsOwnerView] = useState<boolean>(false);
   const [storeSettings, setSettings] = useState<StoreSettings>(getStoreSettings);
@@ -845,6 +870,7 @@ export default function App() {
             textLinks={siteContent.textLinks}
             onNavigateToStory={() => scrollToSection('ribbon-story')}
             activeUser={studioPreview?null:activeUser}
+            onOpenProfile={openProfile}
             onLogoutUser={async () => {
               await apiLogoutCustomer();
               setActiveUser(null);
@@ -863,6 +889,19 @@ export default function App() {
             onSelectProduct={p=>{setSearchQuery('');navigateToProduct(p);}}
             onSearchSubmit={()=>navigateCatalogue('ALL',true)}
           />
+          {profileOpen && activeUser && <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="My profile">
+            <form className="bg-white text-stone-800 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-auto space-y-3" onSubmit={e => { e.preventDefault(); void saveProfile(); }}>
+              <h2 className="text-xl font-semibold">My Profile</h2>
+              <label className="block text-sm">Name<input className="block w-full border rounded p-2" required maxLength={120} value={profileName} onChange={e => setProfileName(e.target.value)} /></label>
+              <label className="block text-sm">Email<input className="block w-full border rounded p-2 bg-stone-100" readOnly value={activeUser.email} /></label>
+              <label className="block text-sm">Phone (locked)<input className="block w-full border rounded p-2 bg-stone-100" readOnly value={activeUser.phone || ''} /></label>
+              <label className="block text-sm">Default address<textarea className="block w-full border rounded p-2" maxLength={500} value={profileAddress} onChange={e => setProfileAddress(e.target.value)} /></label>
+              {profileAddresses.map((address,i) => <div key={i} className="flex gap-2"><textarea aria-label={'Saved address '+(i+1)} className="flex-1 border rounded p-2" maxLength={500} value={address} onChange={e => setProfileAddresses(prev => prev.map((a,j) => i===j ? e.target.value : a))}/><button type="button" onClick={() => setProfileAddresses(prev => prev.filter((_,j) => i!==j))}>Remove</button></div>)}
+              <button type="button" disabled={profileAddresses.length>=10} className="text-rose-600 text-sm" onClick={() => setProfileAddresses(prev => [...prev,''])}>+ Add address</button>
+              {profileError && <p role="alert" className="text-red-600 text-sm">{profileError}</p>}
+              <div className="flex gap-3"><button type="submit" disabled={profileBusy} className="bg-stone-900 text-white rounded px-4 py-2">{profileBusy?'Saving…':'Save changes'}</button><button type="button" onClick={() => setProfileOpen(false)}>Close</button></div>
+            </form>
+          </div>}
 
           {productId ? (
             bouquets.find(item => item.id === productId) ? (
