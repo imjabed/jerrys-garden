@@ -5,6 +5,8 @@ import { ShoppingBag, Search, ShieldCheck, User as UserIcon, Menu, X, Instagram,
 import Logo from './Logo';
 import WhatsAppIcon from './WhatsAppIcon';
 import { UserAccount, StoreSettings, RibbonBouquet } from '../types';
+import RichText from './RichText';
+import {safeTextLink,type NavTextBox} from '../../shared/siteEditor';
 import type { ThemeId, ThemeExtras, NavigationLabels } from '../../shared/siteEditor';
 
 interface NavbarProps {
@@ -19,6 +21,9 @@ interface NavbarProps {
   onOpenOwnerModal: () => void;
   onNavigateToBuilder: () => void;
   onNavigateToShop: () => void;
+  onNavigateHome?: () => void;
+  navigationBoxes?: NavTextBox[];
+  textLinks?: Record<string,string>;
   onNavigateToStory: () => void;
   activeUser: UserAccount | null;
   onLogoutUser: () => void;
@@ -43,7 +48,7 @@ export default function Navbar({
   onOpenAuth,
   onOpenOwnerModal,
   onNavigateToBuilder,
-  onNavigateToShop,
+  onNavigateToShop, onNavigateHome, navigationBoxes=[],textLinks={},
   onNavigateToStory,
   activeUser,
   onLogoutUser,
@@ -53,6 +58,9 @@ export default function Navbar({
   setSearchQuery,
   products = [], cartIconUrl = '', onSelectProduct, onSearchSubmit,
 }: NavbarProps) {
+  const shopLabel=navigationLabels?.shop&&navigationLabels.shop!=='Shop Products'?navigationLabels.shop:'All Products';
+  const follow=(key:string,fallback:()=>void)=>{const link=safeTextLink(textLinks[key]);if(link)window.location.assign(link);else fallback();};
+  const navBoxes=(mobile:boolean)=>navigationBoxes.map(box=>{const link=safeTextLink(box.link),classes=mobile?'block w-full py-2 text-left text-sm border-b border-stone-100':'shrink-0 py-2 text-sm';const content=<span data-studio-copy={box.id}><RichText value={box.text} presentation={box.presentation} inline/></span>;return link?<a key={box.id} href={link} className={classes} onClick={()=>setMobileMenuOpen(false)}>{content}</a>:<span key={box.id} className={classes}>{content}</span>;});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
@@ -108,21 +116,21 @@ export default function Navbar({
       <div className="relative max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="jb-nav-inner flex h-[68px] items-center justify-between gap-2 sm:h-20">
           {/* Brand Logo */}
-          <div onClick={onNavigateToShop} className="jb-nav-brand min-w-0 shrink cursor-pointer">
+          <div onClick={onNavigateHome||onNavigateToShop} className="jb-nav-brand min-w-0 shrink cursor-pointer">
             <Logo editableBrand size="md" logoUrl={storeSettings.logoUrl} brandName={storeSettings.storeName || "Jame Bouquets"} />
           </div>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-stone-600">
+          <nav className="hidden lg:flex min-w-0 flex-wrap items-center justify-center gap-x-5 gap-y-0 text-sm font-medium text-stone-600">
             <button
               id="nav-shop-btn"
-              onClick={onNavigateToShop}
+              onClick={()=>follow('navButton.0',onNavigateToShop)}
               className="hover:text-rose-600 transition-colors py-2"
             >
-              <CustomerCopy id="navButton.0" fallback=<CustomerCopy id="navButton.0" fallback={navigationLabels?.shop || 'Shop Products'}/>/>
+              <CustomerCopy id="navButton.0" fallback={shopLabel}/>
             </button>
             <button
-              onClick={onNavigateToBuilder}
+              onClick={()=>follow('navButton.1',onNavigateToBuilder)}
               className="hover:text-rose-700 transition-colors py-2"
             >
               <CustomerCopy id="navButton.1" fallback={navigationLabels?.custom || 'Custom Orders'}/>
@@ -137,11 +145,12 @@ export default function Navbar({
             </button>
             <button
               id="nav-story-btn"
-              onClick={onNavigateToStory}
+              onClick={()=>follow('navButton.3',onNavigateToStory)}
               className="hover:text-rose-600 transition-colors py-2"
             >
-              <CustomerCopy id="navButton.3" fallback=<CustomerCopy id="navButton.3" fallback={navigationLabels?.story || 'Our Craft'}/>/>
+              <CustomerCopy id="navButton.3" fallback={navigationLabels?.story || 'Our Craft'}/>
             </button>
+            {navBoxes(false)}
           </nav>
 
           {/* Right Action Icons */}
@@ -272,16 +281,16 @@ export default function Navbar({
         <div id="jb-mobile-menu" className="jb-mobile-menu lg:hidden border-b border-stone-200 px-4 pt-2 pb-6 space-y-3 shadow-lg">
           <button
             onClick={() => {
-              onNavigateToShop();
+              follow('navButton.0',onNavigateToShop);
               setMobileMenuOpen(false);
             }}
             className="block w-full text-left py-2 text-sm font-medium text-stone-800 hover:text-rose-600 border-b border-stone-100"
           >
-            {navigationLabels?.shop || 'Shop Products'}
+            <CustomerCopy id="navButton.0" fallback={shopLabel}/>
           </button>
           <button
             onClick={() => {
-              onNavigateToBuilder();
+              follow('navButton.1',onNavigateToBuilder);
               setMobileMenuOpen(false);
             }}
             className="block w-full text-left py-2 text-sm font-medium text-stone-800 hover:text-rose-600 border-b border-stone-100"
@@ -299,13 +308,14 @@ export default function Navbar({
           </button>
           <button
             onClick={() => {
-              onNavigateToStory();
+              follow('navButton.3',onNavigateToStory);
               setMobileMenuOpen(false);
             }}
             className="block w-full text-left py-2 text-sm font-medium text-stone-800 hover:text-rose-600 border-b border-stone-100"
           >
-            {navigationLabels?.story || 'Our Craft'}
+            <CustomerCopy id="navButton.3" fallback={navigationLabels?.story || 'Our Craft'}/>
           </button>
+          {navBoxes(true)}
 
           <div className="flex items-center gap-3 border-t border-stone-100 pt-4" aria-label="Jame Bouquets social media">
             <a href="https://www.instagram.com/jamebouquets" target="_blank" rel="noopener noreferrer"

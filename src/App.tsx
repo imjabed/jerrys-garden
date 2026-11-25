@@ -46,6 +46,7 @@ import {
 
 // Components
 import Navbar from './components/Navbar';
+import CustomerCopy from './components/CustomerCopy';
 import Hero from './components/Hero';
 import ThemeBanner from './components/ThemeBanner';
 import RichText,{CanvasOffsetContext} from './components/RichText';
@@ -139,6 +140,9 @@ export default function App() {
   // Filter & Search
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [allProducts,setAllProducts]=useState(()=>window.location.pathname.replace(/\/$/,'')==='/all-products');
+  const [sortBy,setSortBy]=useState('featured');
+  const [availability,setAvailability]=useState('all');
 
   // Modals & Drawers
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
@@ -181,6 +185,7 @@ export default function App() {
   useEffect(() => {
     const onPopState = () => {
       const path = window.location.pathname;
+      setAllProducts(path.replace(/\/$/,'')==='/all-products');
       if (path.startsWith('/products/')) {
         try { setProductId(decodeURIComponent(path.slice('/products/'.length))); }
         catch { setProductId(null); }
@@ -206,16 +211,22 @@ export default function App() {
     const path = '/products/' + encodeURIComponent(id);
     if (window.location.pathname !== path) window.history.pushState({}, '', path);
     setIsOwnerView(false);
-    setProductId(id);
+    setProductId(id);setAllProducts(false);
     window.scrollTo(0, 0);
   };
-  const navigateHome = (category?: string) => {
+  const navigateCatalogue=(category='ALL',preserveSearch=false)=>{
     if(studioPreview)return;
-    if (window.location.pathname !== '/') window.history.pushState({}, '', '/');
-    setProductId(null);
-    setIsOwnerView(false);
-    if (category) setSelectedCategory(category);
-    window.setTimeout(() => document.getElementById('shop-section')?.scrollIntoView({ behavior: 'smooth' }), 90);
+    if(window.location.pathname!=='/all-products')window.history.pushState({},'','/all-products');
+    setProductId(null);setAllProducts(true);setIsOwnerView(false);setSelectedCategory(category);
+    if(!preserveSearch)setSearchQuery('');
+    setAvailability('all');window.scrollTo({top:0,behavior:'smooth'});
+  };
+  const navigateHome = (category?: string) => {navigateCatalogue(category||'ALL');};
+  const goHome=()=>{
+    if(studioPreview)return;
+    if(window.location.pathname!=='/')window.history.pushState({},'','/');
+    setProductId(null);setAllProducts(false);setIsOwnerView(false);setSearchQuery('');
+    window.scrollTo({top:0,behavior:'smooth'});
   };
 
   // Sync state with storage updates & remote MongoDB
@@ -284,12 +295,13 @@ export default function App() {
 
   useEffect(() => {
     if (editorRoute) return;
-    document.title = productId
+    if(studioPreview)return;
+    document.title = allProducts?'All Products | Jame Bouquets':productId
       ? (bouquets.find(p => p.id === productId)?.title || 'Product') + ' | Jame Bouquets'
       : siteContent.seo.title;
     const description = document.querySelector('meta[name="description"]');
     if (description) description.setAttribute('content', siteContent.seo.description);
-  }, [siteContent.seo, editorRoute, productId, bouquets]);
+  }, [siteContent.seo, editorRoute, productId, bouquets,allProducts,studioPreview]);
 
   // Keep the order queue current while the admin is viewing the dashboard.
   useEffect(() => {
@@ -554,11 +566,13 @@ export default function App() {
     return matchesCategory && matchesAllTerms;
   });
 
+  const catalogueProducts=filteredBouquets.filter(p=>availability==='all'||(availability==='in'?p.inStock:!p.inStock)).sort((a,b)=>sortBy==='price-low'?a.price-b.price:sortBy==='price-high'?b.price-a.price:sortBy==='name'?a.title.localeCompare(b.title):sortBy==='newest'?(Date.parse(b.createdAt)||0)-(Date.parse(a.createdAt)||0):Number(!!b.featured)-Number(!!a.featured));
+  const featuredProducts=bouquets.filter(p=>p.featured);
   // Navigation scroll helpers
   const scrollToSection = (id: string) => {
-    if (productId) {
+    if (productId || allProducts) {
       if (window.location.pathname !== '/') window.history.pushState({}, '', '/');
-      setProductId(null);
+      setProductId(null);setAllProducts(false);
     }
     if (isOwnerView) {
       setIsOwnerView(false);
@@ -582,6 +596,7 @@ export default function App() {
       if(event.data?.type!=='jb-studio-draft')return;
       setSiteContent(sanitizeSiteContent(event.data.content));setPreviewReady(true);
       const area=event.data.area;
+      setAllProducts(area==='catalog');
       const product=bouquets.find(p=>p.id===event.data.productId)||bouquets[0];
       setProductId(area==='product'&&product?product.id:null);
       setCartDrawerOpen(area==='cart');setCheckoutModalOpen(area==='checkout');
@@ -590,7 +605,7 @@ export default function App() {
       setCartItems(product&&(area==='cart'||area==='checkout')?[{bouquet:product,quantity:1}]:[]);
     };
     const select=(event:Event)=>{
-      if(event.type==='keydown'){const action=historyShortcut(event as KeyboardEvent);if(action){event.preventDefault();event.stopImmediatePropagation();window.parent.postMessage({type:'jb-studio-history',action},window.location.origin);return;}if(!['Enter',' ','Spacebar'].includes((event as KeyboardEvent).key))return;}
+      if(event.type==='keydown'){const keyEvent=event as KeyboardEvent;const k=keyEvent.key.toLowerCase();if((keyEvent.ctrlKey||keyEvent.metaKey)&&!keyEvent.altKey&&['c','v'].includes(k)){event.preventDefault();event.stopImmediatePropagation();window.parent.postMessage({type:'jb-studio-clipboard',action:k==='c'?'copy':'paste'},window.location.origin);return;}const action=historyShortcut(keyEvent);if(action){event.preventDefault();event.stopImmediatePropagation();window.parent.postMessage({type:'jb-studio-history',action},window.location.origin);return;}if(!['Enter',' ','Spacebar'].includes((event as KeyboardEvent).key))return;}
       event.preventDefault();event.stopImmediatePropagation();
       const target=event.target instanceof Element?event.target:null;
       if(!target||target.closest('[data-studio-control]'))return;
@@ -607,6 +622,7 @@ export default function App() {
     window.parent.postMessage({type:'jb-studio-ready'},window.location.origin);
     return()=>{selection.dispose();window.removeEventListener('message',receive);events.forEach(type=>document.removeEventListener(type,select,true));};
   },[studioPreview,ownerChecked,isOwner,bouquets]);
+  useEffect(()=>{if(studioPreview||!window.location.hash)return;const id=window.location.hash.slice(1);const timer=window.setTimeout(()=>document.getElementById(id)?.scrollIntoView({behavior:'smooth'}),250);return()=>window.clearTimeout(timer);},[studioPreview,allProducts,productId,siteContent,catalogStatus]);
   const storefrontStyle = {
     ...storeDesignStyle(siteContent.storeDesign),
     '--font-serif': FONT_STACKS[siteContent.appearance.headingFont],
@@ -644,11 +660,102 @@ export default function App() {
     color: siteContent.appearance.text,
   } as CSSProperties;
 
+  const renderCatalogue=(featuredOnly:boolean)=>{const shown=featuredOnly?featuredProducts:catalogueProducts;return (<main key={featuredOnly?"shop":"catalog"} data-studio-section="shop" id="shop-section" className="jb-shop-section relative isolate py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+            
+            {/* Catalog Section Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-3"><RichText value={siteContent.shop.eyebrow} presentation={siteContent.textPresentations[siteContent.theme]['shop.eyebrow']} editorSlot="shop.eyebrow"/></p>
+                <h2 className="site-editable-heading font-serif font-normal text-stone-900" style={{ fontSize: `clamp(${2.2 * siteContent.appearance.headingScale}rem, ${4 * siteContent.appearance.headingScale}vw, ${3.2 * siteContent.appearance.headingScale}rem)` }}>
+                  {featuredOnly?<RichText value={siteContent.shop.heading} presentation={siteContent.textPresentations[siteContent.theme]['shop.heading']} editorSlot="shop.heading"/>:<CustomerCopy id="catalog.title" fallback="All Products"/>}
+                </h2>
+                <p className="site-body-copy mt-1 max-w-xl">
+                  <RichText value={siteContent.shop.description} presentation={siteContent.textPresentations[siteContent.theme]['shop.description']} editorSlot="shop.description"/>
+                </p>
+              </div>
+
+              {/* Product category filters */}
+              {!featuredOnly&&<div className="flex flex-wrap items-center gap-2">
+                <div className="jb-shop-filter-strip flex flex-wrap items-center gap-1.5 bg-stone-100/80 p-1.5 rounded-2xl border border-stone-200">
+                  {['ALL', ...productCategories].map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`jb-shop-filter px-3 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                        selectedCategory === cat
+                          ? 'jb-filter-selected bg-stone-900 text-white shadow-xs'
+                          : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
+                      }`}
+                    >
+                      {cat === 'ALL' ? 'All Products' : cat}
+                    </button>
+                  ))}
+                </div>
+                <label className="text-xs font-medium"><CustomerCopy id="catalog.sort" fallback="Sort by"/> <select aria-label="Sort by" value={sortBy} onChange={e=>setSortBy(e.target.value)} className="ml-1 rounded border bg-white px-2 py-2"><option value="featured">Featured first</option><option value="newest">Newest</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="name">Name: A–Z</option></select></label><label className="text-xs font-medium">Availability <select aria-label="Availability filter" value={availability} onChange={e=>setAvailability(e.target.value)} className="ml-1 rounded border bg-white px-2 py-2"><option value="all">All</option><option value="in">In stock</option><option value="out">Out of stock</option></select></label>
+              </div>}
+            </div>
+
+            {catalogStatus === 'offline' && bouquets.length > 0 && (
+              <div className="mb-5 border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900" role="status">
+                We couldn't refresh the collection. Availability and prices will be checked when you place an order.
+              </div>
+            )}
+            {/* Bouquets Grid */}
+            {catalogStatus === 'loading' && bouquets.length === 0 ? (
+              <div className="border border-stone-200 bg-[#FAF8F5] px-6 py-16 text-center" role="status">
+                <p className="font-serif text-xl text-stone-800">{siteContent.storeDesign.loadingTitle}</p>
+                <p className="mt-2 text-sm text-stone-500">{siteContent.storeDesign.loadingText}</p>
+              </div>
+            ) : catalogStatus === 'offline' && bouquets.length === 0 ? (
+              <div className="border border-stone-200 bg-[#FAF8F5] px-6 py-14 text-center" role="alert">
+                <h3 className="font-serif text-2xl text-stone-900">Our collection is temporarily unavailable.</h3>
+                <p className="mt-2 text-sm text-stone-600">We're having trouble loading products. Please try again.</p>
+                <button type="button" onClick={async () => {
+                  setCatalogStatus('loading');
+                  const response = await apiGetBouquets();
+                  if (response.connected) { setBouquets(response.bouquets); setCatalogStatus('ready'); }
+                  else setCatalogStatus('offline');
+                }} className="mt-6 bg-stone-900 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-white hover:bg-stone-700">
+                  Retry loading
+                </button>
+              </div>
+            ) : shown.length === 0 ? (
+              <div className="text-center py-20 bg-white rounded-3xl border border-stone-200">
+                <p className="text-stone-700 font-bold text-base">{featuredOnly?'More handcrafted gifts are in our full collection':bouquets.length===0?'Our collection is coming soon':'No pieces found'}</p>
+                <p className="text-stone-500 text-xs mt-1">{featuredOnly?'Browse all products to discover more.':bouquets.length===0?'New handcrafted arrangements will appear here.':'Try another category or search.'}</p>
+                {!featuredOnly&&<button
+                  onClick={() => {
+                    setSelectedCategory('ALL');
+                    setSearchQuery('');setAvailability('all');
+                  }}
+                  className="mt-4 px-5 py-2 rounded-xl bg-stone-900 text-white text-xs font-semibold"
+                >
+                  Reset filters
+                </button>}
+              </div>
+            ) : (
+              <div className="jb-catalog-grid grid grid-cols-2 gap-2.5 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-6">
+                {shown.map((bouquet) => (
+                  <BouquetCard
+                    key={bouquet.id}
+                    bouquet={bouquet}
+                    isOwner={isOwner}
+                    onSelect={navigateToProduct}
+                    onAddToCart={bouquet => handleAddToCart(bouquet)}
+                    onQuickBuy={bouquet => handleQuickBuy(bouquet)}
+                    onUpdatePhoto={handleUpdateBouquetImage}
+                    reviewSummary={reviewSummaries[bouquet.id]}
+                  />
+                ))}
+              </div>
+            )}
+
+          {featuredOnly&&<div className="text-center"><a href="/all-products" onClick={e=>{e.preventDefault();navigateCatalogue();}} className="inline-flex items-center gap-2 rounded border border-stone-400 px-6 py-3 text-sm font-semibold hover:bg-stone-100"><CustomerCopy id="shop.viewMore" fallback="View more"/><ArrowRight size={16}/></a></div>}</main>);};
   if(studioPreview&&(!ownerChecked||!isOwner||!previewReady))return <div className="p-8 text-sm">{ownerChecked&&!isOwner?'Owner session required for preview.':'Preparing secure storefront preview…'}</div>;
   return (
     <div className={`site-shell flex flex-col selection:bg-rose-100 selection:text-rose-900 ${editorRoute ? 'min-h-0 md:fixed md:inset-0 md:h-dvh md:w-screen md:overflow-hidden' : 'min-h-screen'}`} style={storefrontStyle} data-store-design={!editorRoute && siteContent.storeDesign.enabled ? "on" : "off"} data-site-theme={siteContent.theme} data-hover-lift={siteContent.effects.hoverLift ? "on" : "off"} data-festive-decor={siteContent.effects.enabled && siteContent.effects.illustrationEnabled ? "on" : "off"} data-illustration-placement={siteContent.effects.illustrationPlacement} data-festive-motion={siteContent.effects.enabled && siteContent.effects.artworkMotion ? "on" : "off"}>
       
-      <CanvasOffsetContext.Provider value={{theme:siteContent.studioThemes.active||siteContent.theme,offsets:siteContent.canvasOffsets}}><CustomerTextContext.Provider value={{text:siteContent.customerText || {},styles:siteContent.customerTextStyles || {}}}>
+      <CanvasOffsetContext.Provider value={{theme:siteContent.studioThemes.active||siteContent.theme,offsets:siteContent.canvasOffsets,links:siteContent.textLinks}}><CustomerTextContext.Provider value={{text:siteContent.customerText || {},styles:siteContent.customerTextStyles || {},links:siteContent.textLinks}}>
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-stone-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl border border-stone-700 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-3">
@@ -726,7 +833,10 @@ export default function App() {
               }
             }}
             onNavigateToBuilder={() => { setCustomMobileOpen(true); scrollToSection('custom-builder'); }}
-            onNavigateToShop={() => scrollToSection('shop-section')}
+            onNavigateToShop={()=>navigateCatalogue()}
+            onNavigateHome={goHome}
+            navigationBoxes={siteContent.navigationBoxes}
+            textLinks={siteContent.textLinks}
             onNavigateToStory={() => scrollToSection('ribbon-story')}
             activeUser={studioPreview?null:activeUser}
             onLogoutUser={async () => {
@@ -745,7 +855,7 @@ export default function App() {
             products={bouquets}
             cartIconUrl={siteContent.cartIconUrl}
             onSelectProduct={p=>{setSearchQuery('');navigateToProduct(p);}}
-            onSearchSubmit={()=>{setSelectedCategory('ALL');scrollToSection('shop-section');}}
+            onSearchSubmit={()=>navigateCatalogue('ALL',true)}
           />
 
           {productId ? (
@@ -766,7 +876,7 @@ export default function App() {
                 <button onClick={() => navigateHome()} className="bg-stone-900 px-6 py-3 text-xs text-white">View collection</button>
               </main>
             )
-          ) : (<>
+          ) : allProducts?renderCatalogue(false):(<>
           {/* Shared published homepage layout; the editor controls section order. */}
           {siteContent.sections.order.filter(id => siteContent.sections.visible[id]).map(id => {
             if (id === 'hero') return (
@@ -781,106 +891,17 @@ export default function App() {
                 imagePosition={siteContent.heroImagePosition[siteContent.theme]}
                 offer={siteContent.theme === 'default' ? undefined : siteContent.offers[siteContent.theme]}
                 onExploreClick={() => scrollToSection('shop-section')}
-                featuredProduct={bouquets.find(product => product.featured && product.inStock && product.imageUrl) || bouquets.find(product => product.inStock && product.imageUrl) || null}
+                featuredProduct={bouquets.find(product => product.featured && product.inStock && product.imageUrl) || null}
                 onFeaturedClick={navigateToProduct}
                 />
               </div>
             );
             if (id === 'collections') return (
               <CollectionShowcase key={id} editorPreview={studioPreview} content={siteContent.collections} products={bouquets} headingScale={siteContent.appearance.headingScale} textPresentations={siteContent.textPresentations[siteContent.theme]}
-                onCategoryClick={cat => { setSelectedCategory(cat); scrollToSection('shop-section'); }}/>
+                onCategoryClick={cat=>navigateCatalogue(cat)}/>
             );
             if (id === 'shop') return (
-<main key="shop" data-studio-section="shop" id="shop-section" className="jb-shop-section relative isolate py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-            
-            {/* Catalog Section Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-3"><RichText value={siteContent.shop.eyebrow} presentation={siteContent.textPresentations[siteContent.theme]['shop.eyebrow']} editorSlot="shop.eyebrow"/></p>
-                <h2 className="site-editable-heading font-serif font-normal text-stone-900" style={{ fontSize: `clamp(${2.2 * siteContent.appearance.headingScale}rem, ${4 * siteContent.appearance.headingScale}vw, ${3.2 * siteContent.appearance.headingScale}rem)` }}>
-                  <RichText value={siteContent.shop.heading} presentation={siteContent.textPresentations[siteContent.theme]['shop.heading']} editorSlot="shop.heading"/>
-                </h2>
-                <p className="site-body-copy mt-1 max-w-xl">
-                  <RichText value={siteContent.shop.description} presentation={siteContent.textPresentations[siteContent.theme]['shop.description']} editorSlot="shop.description"/>
-                </p>
-              </div>
-
-              {/* Product category filters */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="jb-shop-filter-strip flex flex-wrap items-center gap-1.5 bg-stone-100/80 p-1.5 rounded-2xl border border-stone-200">
-                  {['ALL', ...productCategories].map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`jb-shop-filter px-3 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
-                        selectedCategory === cat
-                          ? 'jb-filter-selected bg-stone-900 text-white shadow-xs'
-                          : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
-                      }`}
-                    >
-                      {cat === 'ALL' ? 'All Products' : cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {catalogStatus === 'offline' && bouquets.length > 0 && (
-              <div className="mb-5 border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900" role="status">
-                We couldn't refresh the collection. Availability and prices will be checked when you place an order.
-              </div>
-            )}
-            {/* Bouquets Grid */}
-            {catalogStatus === 'loading' && bouquets.length === 0 ? (
-              <div className="border border-stone-200 bg-[#FAF8F5] px-6 py-16 text-center" role="status">
-                <p className="font-serif text-xl text-stone-800">{siteContent.storeDesign.loadingTitle}</p>
-                <p className="mt-2 text-sm text-stone-500">{siteContent.storeDesign.loadingText}</p>
-              </div>
-            ) : catalogStatus === 'offline' && bouquets.length === 0 ? (
-              <div className="border border-stone-200 bg-[#FAF8F5] px-6 py-14 text-center" role="alert">
-                <h3 className="font-serif text-2xl text-stone-900">Our collection is temporarily unavailable.</h3>
-                <p className="mt-2 text-sm text-stone-600">We're having trouble loading products. Please try again.</p>
-                <button type="button" onClick={async () => {
-                  setCatalogStatus('loading');
-                  const response = await apiGetBouquets();
-                  if (response.connected) { setBouquets(response.bouquets); setCatalogStatus('ready'); }
-                  else setCatalogStatus('offline');
-                }} className="mt-6 bg-stone-900 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-white hover:bg-stone-700">
-                  Retry loading
-                </button>
-              </div>
-            ) : filteredBouquets.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-3xl border border-stone-200">
-                <p className="text-stone-700 font-bold text-base">{bouquets.length === 0 ? 'Our collection is coming soon' : 'No pieces found'}</p>
-                <p className="text-stone-500 text-xs mt-1">{bouquets.length === 0 ? 'New handcrafted arrangements will appear here.' : 'Try another category or search.'}</p>
-                <button
-                  onClick={() => {
-                    setSelectedCategory('ALL');
-                    setSearchQuery('');
-                  }}
-                  className="mt-4 px-5 py-2 rounded-xl bg-stone-900 text-white text-xs font-semibold"
-                >
-                  View Collection
-                </button>
-              </div>
-            ) : (
-              <div className="jb-catalog-grid grid grid-cols-2 gap-2.5 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-6">
-                {filteredBouquets.map((bouquet) => (
-                  <BouquetCard
-                    key={bouquet.id}
-                    bouquet={bouquet}
-                    isOwner={isOwner}
-                    onSelect={navigateToProduct}
-                    onAddToCart={bouquet => handleAddToCart(bouquet)}
-                    onQuickBuy={bouquet => handleQuickBuy(bouquet)}
-                    onUpdatePhoto={handleUpdateBouquetImage}
-                    reviewSummary={reviewSummaries[bouquet.id]}
-                  />
-                ))}
-              </div>
-            )}
-
-          </main>
+renderCatalogue(true)
             );
             if (id === 'reviews') return (
               <CustomerReviewsSection key={id} reviews={reviewHighlights} onSelect={productId => {
@@ -931,7 +952,7 @@ export default function App() {
               setPreselectedTrackingId(undefined);
               setTrackingModalOpen(true);
             }}
-            onNavigateToShop={() => scrollToSection('shop-section')}
+            onNavigateToShop={()=>navigateCatalogue()}
             onOpenPolicy={setPolicyOpen}
           />
         </>

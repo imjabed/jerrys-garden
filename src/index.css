@@ -1571,3 +1571,6 @@
 .jb-responsive-font{overflow-wrap:anywhere;max-width:100%;}
 @media (max-width: 599.98px){.jb-responsive-font{font-size:var(--jb-font-phone,inherit)!important;}}
 @media (min-width:600px) and (max-width:1023.98px){.jb-responsive-font{font-size:var(--jb-font-tablet,inherit)!important;}}
+
+/* Keep anchor destinations below the sticky navigation. */
+#shop-section,#ribbon-story,#custom-builder,[data-studio-canvas]{scroll-margin-top:95px;}

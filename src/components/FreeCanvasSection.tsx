@@ -1,6 +1,6 @@
 import type {CSSProperties} from 'react';
 import type {PageBlock,CanvasObject} from '../../shared/siteEditor';
-import {safeEditorLink} from '../../shared/siteEditor';
+import {safeEditorLink,safeTextLink} from '../../shared/siteEditor';
 import RichText from './RichText';
 function Box({object:o}:{key?:string;object:CanvasObject}){
   const style={opacity:o.opacity,borderRadius:o.radius,background:o.kind==='text'?'transparent':o.fill,
@@ -8,7 +8,7 @@ function Box({object:o}:{key?:string;object:CanvasObject}){
   return <div className="jb-free-box" style={style} data-studio-object={o.id} data-studio-object-kind={o.kind}>
     {o.kind==='image'?(o.imageUrl?<img className="h-full w-full object-cover" src={o.imageUrl} alt={o.alt} loading="lazy"/>:<div className="flex h-full items-center justify-center border border-dashed border-stone-300 bg-stone-100 text-xs text-stone-500">Image</div>):
       o.kind==='shape'?null:o.kind==='button'?<a href={safeEditorLink(o.link)} className="flex h-full w-full items-center justify-center px-2"><RichText value={o.text} presentation={o.presentation}/></a>:
-      <div className="flex h-full w-full items-center px-1"><div className="w-full"><RichText value={o.text} presentation={o.presentation}/></div></div>}
+      safeTextLink(o.link)?<a href={safeTextLink(o.link)} className="flex h-full w-full items-center px-1"><div className="w-full"><RichText value={o.text} presentation={o.presentation}/></div></a>:<div className="flex h-full w-full items-center px-1"><div className="w-full"><RichText value={o.text} presentation={o.presentation}/></div></div>}
   </div>;
 }
 export default function FreeCanvasSection({block}:{block:PageBlock}){

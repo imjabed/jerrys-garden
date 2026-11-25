@@ -1,5 +1,5 @@
 import { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
-import { FONT_STACKS, isMovableTextSlot, responsiveFontSize, type CanvasOffsets, type TextPresentation } from '../../shared/siteEditor';
+import { FONT_STACKS, isMovableTextSlot, safeTextLink, responsiveFontSize, type CanvasOffsets, type TextPresentation } from '../../shared/siteEditor';
 import { parseStyledFragments, type StyledFragment } from '../services/inlineStyles';
 
 /**
@@ -44,7 +44,7 @@ function styledTextFragments(source: string): ReactNode[] {
     });
   return render(parseStyledFragments(source));
 }
-export const CanvasOffsetContext=createContext<{theme:string;offsets:CanvasOffsets}>({theme:'default',offsets:{}});
+export const CanvasOffsetContext=createContext<{theme:string;offsets:CanvasOffsets;links?:Record<string,string>}>({theme:'default',offsets:{}});
 export default function RichText({
   value, presentation, className = '', inline = false, editorSlot,
 }: {
@@ -75,5 +75,7 @@ export default function RichText({
       ? presentation.transform : undefined,
     display: inline ? 'inline' : 'block',
   };
-  return <span className={className+(offsets?' jb-canvas-offset':'')+(presentation?.size||presentation?.responsiveSizes?.tablet||presentation?.responsiveSizes?.phone?' jb-responsive-font':'')} style={{...style,...(offsets?Object.fromEntries(['desktop','tablet','phone'].flatMap(d=>[['--jb-offset-'+d+'-x',((offsets as any)[d]?.x||0)+'px'],['--jb-offset-'+d+'-y',((offsets as any)[d]?.y||0)+'px']])):{})} as CSSProperties} data-editor-slot={editorSlot} data-studio-movable={movable?'true':undefined}>{styledTextFragments(value)}</span>;
+  const link=movable?safeTextLink(layout.links?.[editorSlot!]):'';
+  const content=<span className={className+(offsets?' jb-canvas-offset':'')+(presentation?.size||presentation?.responsiveSizes?.tablet||presentation?.responsiveSizes?.phone?' jb-responsive-font':'')} style={{...style,...(offsets?Object.fromEntries(['desktop','tablet','phone'].flatMap(d=>[['--jb-offset-'+d+'-x',((offsets as any)[d]?.x||0)+'px'],['--jb-offset-'+d+'-y',((offsets as any)[d]?.y||0)+'px']])):{})} as CSSProperties} data-editor-slot={editorSlot} data-studio-movable={movable?'true':undefined}>{styledTextFragments(value)}</span>;
+  return link?<a href={link} className="hover:underline">{content}</a>:content;
 }
