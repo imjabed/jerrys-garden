@@ -79,7 +79,8 @@ export default function OwnerDashboard({
   const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'stock' | 'customers' | 'coupons' | 'reviews' | 'settings'>('orders');
   const [statusFilter, setStatusFilter] = useState<'ALL' | OrderStatus>('ALL');
   const [orderSearch, setOrderSearch] = useState('');
-  const [customerSearch, setCustomerSearch] = useState('');
+  const [orderFrom, setOrderFrom] = useState('');
+  const [orderTo, setOrderTo] = useState('');
 
   // Customers & MongoDB states
   const [customers, setCustomers] = useState<UserAccount[]>([]);
@@ -165,9 +166,11 @@ export default function OwnerDashboard({
       !q ||
       order.orderNumber.toLowerCase().includes(q) ||
       order.customer.fullName.toLowerCase().includes(q) ||
+      String(order.customer.email || '').toLowerCase().includes(q) ||
       order.customer.phone.includes(q) ||
       order.customer.deliveryAddress.toLowerCase().includes(q);
-    return matchesStatus && matchesSearch;
+    const day = new Date(order.createdAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    return matchesStatus && matchesSearch && (!orderFrom || day >= orderFrom) && (!orderTo || day <= orderTo);
   });
 
   const handleSaveSettings = async (e: FormEvent) => {
@@ -413,7 +416,7 @@ export default function OwnerDashboard({
                 <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
                 <input
                   type="text"
-                  placeholder="Search customer, phone, order #..."
+                  placeholder="Search email, phone, order ID..."
                   value={orderSearch}
                   onChange={(e) => setOrderSearch(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-stone-200 bg-stone-50/50 focus:outline-none focus:ring-2 focus:ring-rose-500"
@@ -421,6 +424,7 @@ export default function OwnerDashboard({
               </div>
             </div>
 
+            <div className="flex flex-wrap gap-3 mb-4 text-xs"><label>From <input type="date" value={orderFrom} onChange={e=>setOrderFrom(e.target.value)} /></label><label>To <input type="date" min={orderFrom || undefined} value={orderTo} onChange={e=>setOrderTo(e.target.value)} /></label><button onClick={()=>{setOrderFrom('');setOrderTo('');}}>Clear dates</button></div>
             {/* Orders Table / Cards */}
             <div className="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
               {filteredOrders.length === 0 ? (
