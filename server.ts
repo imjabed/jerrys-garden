@@ -373,6 +373,10 @@ async function startServer() {
   });
 
   // Body parsing for base64 uploads (up to 30mb)
+  app.use('/api', (req, res, next) => {
+    if (!allowLoginAttempt(`api:${String(req.ip || 'unknown')}`, 240)) return res.status(429).json({ success: false, error: 'Too many requests. Please try again later.' });
+    next();
+  });
   app.use(express.json({ limit: '10mb' }));
 
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -758,7 +762,7 @@ async function startServer() {
 
   app.get('/api/mongodb/status', requireOwner, async (req, res) => {
     try { return res.json(await getMongoStatus()); }
-    catch (err: any) { return res.status(500).json({ configured: false, connected: false, error: err.message }); }
+    catch (err: any) { return res.status(500).json({ configured: false, connected: false, error: 'Request failed. Please try again.' }); }
   });
 
   // Disabled in production unless explicitly enabled during supervised maintenance.
@@ -773,14 +777,14 @@ async function startServer() {
     try {
       const results = await buildCollections(req.body || {});
       return res.json({ success: true, message: 'Collections verified successfully.', results });
-    } catch (err: any) { return res.status(500).json({ success: false, error: err.message || 'Failed to build collections' }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' || 'Failed to build collections' }); }
   });
 
   app.post('/api/mongodb/build-customers-products', requireOwner, requireClientHeader, requireMaintenance, async (req, res) => {
     try {
       const results = await buildCollectionsForCustomersAndProducts(req.body || {});
       return res.json({ success: true, message: 'Collections verified successfully.', results });
-    } catch (err: any) { return res.status(500).json({ success: false, error: err.message || 'Failed to build collections' }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' || 'Failed to build collections' }); }
   });
 
   app.post('/api/mongodb/config', requireOwner, requireClientHeader, requireMaintenance, async (req, res) => {
@@ -790,14 +794,14 @@ async function startServer() {
       if (!uri || typeof uri !== 'string' || !uri.startsWith('mongodb')) return res.status(400).json({ success: false, error: 'A valid MongoDB URI is required.' });
       setCustomMongoUri(uri, database);
       return res.json({ success: true, message: 'MongoDB configuration updated.', status: await getMongoStatus() });
-    } catch (err: any) { return res.status(500).json({ success: false, error: err.message || 'Failed to update MongoDB configuration' }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' || 'Failed to update MongoDB configuration' }); }
   });
 
   app.post('/api/mongodb/seed', requireOwner, requireClientHeader, requireMaintenance, async (req, res) => {
     try {
       const results = await seedMongoCollections(req.body || {});
       return res.json({ success: true, message: 'Data synchronized with MongoDB.', results });
-    } catch (err: any) { return res.status(500).json({ success: false, error: err.message || 'Failed to sync with MongoDB' }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' || 'Failed to sync with MongoDB' }); }
   });
 
   // Customers: only owner can list customers. Registration/login are public.
@@ -806,7 +810,7 @@ async function startServer() {
       const customers = await mongoGetCustomers();
       if (customers === null) return res.status(503).json({ success: false, connected: false, customers: [] });
       return res.json({ success: true, connected: true, customers });
-    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   app.post('/api/customers/register', requireClientHeader, async (req, res) => {
@@ -816,6 +820,8 @@ async function startServer() {
       const otpAuth = verifyToken(verificationToken);
       const normalizedEmail = String(email).trim().toLowerCase();
       if (!otpAuth || otpAuth.role !== 'otp' || !otpAuth.verified || otpAuth.email !== normalizedEmail) return res.status(401).json({ success: false, error: 'Email verification is required before creating the account.' });
+      if (typeof name !== 'string' || name.trim().length < 2 || name.length > 120 || /[<>\x00-\x1f]/.test(name) || typeof email !== 'string' || email.length > 254 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(normalizedEmail) || typeof phone !== 'string' || !/^\+?[0-9]{10,15}$/.test(phone.trim()) || (address != null && (typeof address !== 'string' || address.length > 500 || /[<>\x00-\x1f]/.test(address))) || typeof password !== 'string' || password.length > 128) return res.status(400).json({ success: false, error: 'Invalid registration details.' });
+      if (await mongoFindCustomerByEmail(normalizedEmail)) return res.status(409).json({ success: false, error: 'Unable to register. Please sign in or contact support.' });
       if (String(password).length < 6) return res.status(400).json({ success: false, error: 'Password must be at least 6 characters.' });
       const saved = await mongoSaveCustomer({ name: String(name).trim(), email: normalizedEmail, phone: String(phone).trim(), address: String(address || '').trim(), password, isVerified: true });
       if (!saved) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable. Please try again.' });
@@ -824,7 +830,7 @@ async function startServer() {
       return res.json({ success: true, connected: true, user: saved });
     } catch (err: any) {
       if (err?.code === 11000) return res.status(409).json({ success: false, error: 'An account with this email already exists.' });
-      return res.status(500).json({ success: false, error: err.message });
+      return res.status(500).json({ success: false, error: 'Request failed. Please try again.' });
     }
   });
 
@@ -843,11 +849,11 @@ async function startServer() {
       }
       const verification = await mongoVerifyCustomerLogin(email, password);
       if (verification === null) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable. Please try again.' });
-      if (!verification.success) return res.status(401).json({ success: false, connected: true, error: verification.reason === 'NOT_FOUND' ? 'No account found with this email.' : 'Incorrect password.' });
+      if (!verification.success) return res.status(401).json({ success: false, connected: true, error: 'Invalid email or password.' });
       const token = signToken({ role: 'customer', email }, 60 * 60 * 24 * 30);
       setAuthCookie(res, CUSTOMER_COOKIE, token, 60 * 60 * 24 * 30);
       return res.json({ success: true, connected: true, user: verification.user });
-    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   app.post('/api/customers/logout', requireClientHeader, (req, res) => { clearAuthCookie(res, CUSTOMER_COOKIE); return res.json({ success: true }); });
@@ -862,7 +868,7 @@ async function startServer() {
       }
       return res.json({ authenticated: true, user: customer });
     } catch (err: any) {
-      return res.status(500).json({ authenticated: false, error: err.message });
+      return res.status(500).json({ authenticated: false, error: 'Request failed. Please try again.' });
     }
   });
 
@@ -874,7 +880,7 @@ async function startServer() {
       if (orders === null) return res.status(503).json({ success: false, connected: false, orders: [] });
       return res.json({ success: true, connected: true, orders });
     } catch (err: any) {
-      return res.status(500).json({ success: false, error: err.message });
+      return res.status(500).json({ success: false, error: 'Request failed. Please try again.' });
     }
   });
 
@@ -1105,7 +1111,7 @@ async function startServer() {
       const bouquets = await mongoGetBouquets();
       if (bouquets === null) return res.status(503).json({ success: false, connected: false, bouquets: [] });
       return res.json({ success: true, connected: true, bouquets });
-    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   app.post('/api/bouquets', requireOwner, requireClientHeader, async (req, res) => {
@@ -1143,7 +1149,7 @@ async function startServer() {
         ? await cleanupUnreferencedCloudinaryImage(previous.imageUrl, 'jerrys_garden_bouquets')
         : { status: 'skipped' as const };
       return res.json({ success: true, connected: true, bouquet: saved, cleanupWarning: cleanup.warning });
-    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   // Inventory adjustments are server-side atomic increments; never trust a client product snapshot.
@@ -1180,7 +1186,7 @@ async function startServer() {
         ? await cleanupUnreferencedCloudinaryImage(previous.imageUrl, 'jerrys_garden_bouquets')
         : { status: 'skipped' as const };
       return res.json({ success: true, connected: true, deleted, cleanupWarning: cleanup.warning });
-    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   // Genuine, product-specific reviews: only verified account holders who have
@@ -1379,13 +1385,13 @@ async function startServer() {
       const orders = await mongoGetOrders();
       if (orders === null) return res.status(503).json({ success: false, connected: false, orders: [] });
       return res.json({ success: true, connected: true, orders });
-    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   // Coupons
   app.get('/api/coupons', requireOwner, async (req, res) => {
     try { const coupons = await mongoGetCoupons(); if (coupons === null) return res.status(503).json({ success: false, connected: false, coupons: [] }); return res.json({ success: true, connected: true, coupons }); }
-    catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+    catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   app.post('/api/coupons', requireOwner, requireClientHeader, async (req, res) => {
@@ -1422,18 +1428,20 @@ async function startServer() {
       const saved = await mongoSaveCoupon(coupon);
       if (!saved) return res.status(503).json({ success: false, error: 'Database is unavailable.' });
       return res.json({ success: true, coupon: saved });
-    } catch (err: any) { if (err?.code === 11000) return res.status(409).json({ success: false, error: 'A coupon with this code already exists.' }); return res.status(500).json({ success: false, error: err.message }); }
+    } catch (err: any) { if (err?.code === 11000) return res.status(409).json({ success: false, error: 'A coupon with this code already exists.' }); return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   app.delete('/api/coupons/:id', requireOwner, requireClientHeader, async (req, res) => {
     try { const ok = await mongoDeleteCoupon(req.params.id); return ok ? res.json({ success: true }) : res.status(404).json({ success: false, error: 'Coupon not found.' }); }
-    catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+    catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   app.post('/api/coupons/validate', requireClientHeader, async (req, res) => {
     try {
       const code = String(req.body?.code || '').trim().toUpperCase();
-      const email = String(req.body?.email || '').trim().toLowerCase();
+      const auth = getCustomerAuth(req);
+      if (auth?.role !== 'customer' || !auth.email || !(await mongoFindCustomerByEmail(auth.email))?.isVerified) return res.status(401).json({ success: false, error: 'Sign in with a verified account to use coupons.' });
+      const email = auth.email;
       const items = Array.isArray(req.body?.items) ? req.body.items : [];
       if (!code || !email) return res.status(400).json({ success: false, error: 'Coupon code and email are required.' });
       const coupon = await mongoFindCoupon(code);
@@ -1449,7 +1457,7 @@ async function startServer() {
       const discountAmount = calculateCouponDiscount(coupon, pricedItems);
       if (discountAmount <= 0) return res.status(400).json({ success: false, error: 'This coupon does not apply to the selected products.' });
       return res.json({ success: true, coupon, discountAmount });
-    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   // Safe customer tracking. Guest users must provide an order number; logged-in customers may access their own orders.
@@ -1459,10 +1467,11 @@ async function startServer() {
       const query = String(req.body?.orderNumber || '').trim();
       if (!query) return res.status(400).json({ success: false, error: 'Order number is required.' });
       const auth = getCustomerAuth(req);
-      const order = await mongoFindOrderForCustomer(query, auth?.role === 'customer' ? auth.email : undefined);
+      if (auth?.role !== 'customer' || !auth.email) return res.status(401).json({ success: false, error: 'Sign in to track your order.' });
+      const order = await mongoFindOrderForCustomer(query, auth.email);
       if (!order) return res.status(404).json({ success: false, error: 'Order not found or access denied.' });
       return res.json({ success: true, order });
-    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   // Event bouquet enquiries are separate from the product catalogue but share
@@ -1630,6 +1639,8 @@ async function startServer() {
       const couponCode = String(body.couponCode || '').trim().toUpperCase();
       let couponDoc: any = null;
       if (couponCode) {
+        const auth = getCustomerAuth(req);
+        if (auth?.role !== 'customer' || !auth.email || !(await mongoFindCustomerByEmail(auth.email))?.isVerified || auth.email !== String(c.email).trim().toLowerCase()) return res.status(401).json({ success: false, error: 'Sign in with a verified account and use its email to apply coupons.' });
         couponDoc = await mongoFindCoupon(couponCode);
         if (!couponDoc || couponDoc.active === false || String(couponDoc.expiresAt) < indiaTodayPlusDays(0)) return res.status(400).json({ success: false, error: 'Coupon is invalid or expired.' });
         if (couponDoc.firstOrderOnly && await mongoHasCustomerOrder(String(c.email))) return res.status(400).json({ success: false, error: 'This coupon is only valid on your first order.' });
@@ -1691,7 +1702,7 @@ async function startServer() {
       const updated = await mongoUpdateOrderStatus(req.params.id, status);
       if (!updated) return res.status(404).json({ success: false, error: 'Order not found.' });
       return res.json({ success: true, connected: true, order: updated });
-    } catch (err: any) { return res.status(500).json({ success: false, error: err.message }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   // 6. Settings Endpoints
@@ -1706,7 +1717,7 @@ async function startServer() {
         : null;
       return res.json({ success: true, connected: settings !== null, settings: displaySettings });
     } catch (err: any) {
-      return res.status(500).json({ success: false, error: err.message });
+      return res.status(500).json({ success: false, error: 'Request failed. Please try again.' });
     }
   });
 
@@ -1749,7 +1760,7 @@ async function startServer() {
         : { status: 'skipped' as const };
       return res.json({ success: true, connected: true, settings: saved, cleanupWarning: cleanup.warning });
     } catch (err: any) {
-      return res.status(500).json({ success: false, error: err.message });
+      return res.status(500).json({ success: false, error: 'Request failed. Please try again.' });
     }
   });
 
