@@ -73,6 +73,7 @@ import StudioErrorBoundary from './components/StudioErrorBoundary';
 import CustomPageBlock from './components/CustomPageBlock';
 import { DEFAULT_SITE_CONTENT, FONT_STACKS, safeEditorLink } from '../shared/siteEditor';
 import type { SiteContent } from '../shared/siteEditor';
+import { storeDesignStyle, PromotionPopup } from './components/StoreDesignControls';
 
 export default function App() {
   // Core App State
@@ -565,6 +566,7 @@ export default function App() {
   };
 
   const storefrontStyle = {
+    ...storeDesignStyle(siteContent.storeDesign),
     '--font-serif': FONT_STACKS[siteContent.appearance.headingFont],
     '--font-sans': FONT_STACKS[siteContent.appearance.bodyFont],
     '--site-accent': siteContent.appearance.accent,
@@ -601,7 +603,7 @@ export default function App() {
   } as CSSProperties;
 
   return (
-    <div className={`site-shell flex flex-col selection:bg-rose-100 selection:text-rose-900 ${editorRoute ? 'min-h-0 md:fixed md:inset-0 md:h-dvh md:w-screen md:overflow-hidden' : 'min-h-screen'}`} style={storefrontStyle} data-site-theme={siteContent.theme} data-hover-lift={siteContent.effects.hoverLift ? "on" : "off"} data-festive-decor={siteContent.effects.enabled && siteContent.effects.illustrationEnabled ? "on" : "off"} data-illustration-placement={siteContent.effects.illustrationPlacement} data-festive-motion={siteContent.effects.enabled && siteContent.effects.artworkMotion ? "on" : "off"}>
+    <div className={`site-shell flex flex-col selection:bg-rose-100 selection:text-rose-900 ${editorRoute ? 'min-h-0 md:fixed md:inset-0 md:h-dvh md:w-screen md:overflow-hidden' : 'min-h-screen'}`} style={storefrontStyle} data-store-design={!editorRoute && siteContent.storeDesign.enabled ? "on" : "off"} data-site-theme={siteContent.theme} data-hover-lift={siteContent.effects.hoverLift ? "on" : "off"} data-festive-decor={siteContent.effects.enabled && siteContent.effects.illustrationEnabled ? "on" : "off"} data-illustration-placement={siteContent.effects.illustrationPlacement} data-festive-motion={siteContent.effects.enabled && siteContent.effects.artworkMotion ? "on" : "off"}>
       
       <CustomerTextContext.Provider value={{text:siteContent.customerText || {},styles:siteContent.customerTextStyles || {}}}>
       {/* Toast Notification */}
@@ -660,6 +662,7 @@ export default function App() {
       ) : (
         /* CUSTOMER SHOP VIEW */
         <>
+          {!cartDrawerOpen && !checkoutModalOpen && !authModalOpen && <PromotionPopup config={siteContent.promotion} product={Boolean(productId)}/>}
           {/* Header & Navigation */}
           <Navbar
             theme={siteContent.theme}
@@ -706,7 +709,7 @@ export default function App() {
                 onSelectProduct={navigateToProduct} onBackToShop={navigateHome}
                 onAddToCart={handleAddToCart} onBuyNow={handleQuickBuy}
                 onSignIn={() => setAuthModalOpen(true)}
-                onReviewSubmitted={refreshReviewDisplays}/>
+                onReviewSubmitted={refreshReviewDisplays} showRecommendations={siteContent.storeDesign.showRecommendations}/>
             ) : (
               <main className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-5 px-6 text-center">
                 <h1 className="font-serif text-3xl text-stone-900">
@@ -783,8 +786,8 @@ export default function App() {
             {/* Bouquets Grid */}
             {catalogStatus === 'loading' && bouquets.length === 0 ? (
               <div className="border border-stone-200 bg-[#FAF8F5] px-6 py-16 text-center" role="status">
-                <p className="font-serif text-xl text-stone-800">Preparing the collection…</p>
-                <p className="mt-2 text-sm text-stone-500">Loading our current pieces.</p>
+                <p className="font-serif text-xl text-stone-800">{siteContent.storeDesign.loadingTitle}</p>
+                <p className="mt-2 text-sm text-stone-500">{siteContent.storeDesign.loadingText}</p>
               </div>
             ) : catalogStatus === 'offline' && bouquets.length === 0 ? (
               <div className="border border-stone-200 bg-[#FAF8F5] px-6 py-14 text-center" role="alert">
@@ -814,7 +817,7 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-6">
+              <div className="jb-catalog-grid grid grid-cols-2 gap-2.5 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-6">
                 {filteredBouquets.map((bouquet) => (
                   <BouquetCard
                     key={bouquet.id}

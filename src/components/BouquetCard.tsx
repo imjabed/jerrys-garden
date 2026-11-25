@@ -58,13 +58,13 @@ export default function BouquetCard({
       </div>
       {/* Image container */}
       <div
-        className="relative aspect-square sm:aspect-[4/5] overflow-hidden bg-stone-100 cursor-pointer"
+        className="jb-card-image relative aspect-square sm:aspect-[4/5] overflow-hidden bg-stone-100 cursor-pointer"
       >
         <img
           src={bouquet.imageUrl}
           alt={bouquet.title}
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="jb-card-photo w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
         />
         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -104,7 +104,7 @@ export default function BouquetCard({
             ))}
           </div>
 
-          <h3 className="font-serif font-normal text-stone-900 text-sm leading-snug sm:text-xl hover:text-stone-600 transition-colors line-clamp-2 min-h-9 sm:min-h-0">
+          <h3 className="jb-card-title font-serif font-normal text-stone-900 text-sm leading-snug sm:text-xl hover:text-stone-600 transition-colors line-clamp-2 min-h-9 sm:min-h-0">
             {bouquet.title}
           </h3>
 
@@ -142,7 +142,7 @@ export default function BouquetCard({
           <div className="flex w-full gap-1.5">
             <button type="button" disabled={bouquet.inStock === false || bouquet.stockLeft === 0}
               onClick={event => { event.preventDefault(); event.stopPropagation(); onQuickBuy(bouquet); }}
-              className="min-w-0 flex-1 rounded bg-stone-900 px-2 py-2 text-[11px] font-semibold text-white disabled:opacity-40 sm:text-xs">Buy Now</button>
+              className="jb-card-buy min-w-0 flex-1 rounded bg-stone-900 px-2 py-2 text-[11px] font-semibold text-white disabled:opacity-40 sm:text-xs">Buy Now</button>
             <button type="button" disabled={bouquet.inStock === false || bouquet.stockLeft === 0}
               aria-label={`Add ${bouquet.title} to cart`}
               onClick={event => { event.preventDefault(); event.stopPropagation(); onAddToCart(bouquet); }}

@@ -20,10 +20,11 @@ interface Props {
   onBuyNow: (product: RibbonBouquet, quantity: number, size?: ProductSizeKey) => void;
   onSignIn: () => void;
   onReviewSubmitted: () => void;
+  showRecommendations?: boolean;
 }
 export default function ProductPage({
   product, products, reviewSummaries, recentlyViewed, activeUserEmail,
-  onSelectProduct, onBackToShop, onAddToCart, onBuyNow, onSignIn, onReviewSubmitted,
+  onSelectProduct, onBackToShop, onAddToCart, onBuyNow, onSignIn, onReviewSubmitted, showRecommendations = true,
 }: Props) {
   const options = useMemo(() => normalizeProductSizes(product), [product]);
   const isBouquet = hasProductSizes(product);
@@ -121,10 +122,10 @@ export default function ProductPage({
         <div className="mt-8 grid items-start gap-8 pb-14 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-12">
           <div className="lg:sticky lg:top-24">
             <button type="button" onClick={() => setShowFullImage(v => !v)}
-              className="relative flex w-full items-center justify-center overflow-hidden border border-stone-200 bg-[#EEEAE5]"
+              className="jb-product-gallery relative flex w-full items-center justify-center overflow-hidden border border-stone-200 bg-[#EEEAE5]"
               aria-label={showFullImage ? 'Fit product photo' : 'Enlarge product photo'}>
               {photo ? <img src={photo} alt={product.title}
-                className={`w-full object-contain transition-all duration-300 ${showFullImage ? 'max-h-[80vh]' : 'aspect-[4/5] max-h-[650px]'}`}/>
+                className={`w-full object-contain transition-all duration-300 ${showFullImage ? 'max-h-[80vh]' : 'jb-product-photo aspect-[4/5] max-h-[650px]'}`}/>
                 : <div className="flex aspect-[4/5] w-full items-center justify-center font-serif text-xl text-stone-400"><CustomerCopy id={"productExtra.0"} fallback={"Photograph unavailable"}/></div>}
               <span className="absolute bottom-4 right-4 border border-stone-200 bg-white/90 px-3 py-2 text-[11px] text-stone-800">
                 {showFullImage ? 'Fit image' : 'View larger'}
@@ -250,7 +251,7 @@ export default function ProductPage({
           </div>
         </div>
 
-        {recommendations.length > 0 && (
+        {showRecommendations && recommendations.length > 0 && (
           <section className="border-t border-stone-200 py-12 sm:py-16" aria-label="Suggested products">
             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-stone-500"><CustomerCopy id={"product.7"} fallback={"Discover more"}/></p>
             <h2 className="mt-2 font-serif text-3xl font-normal sm:text-4xl"><CustomerCopy id={"product.8"} fallback={"You may also like"}/></h2>

@@ -5,6 +5,7 @@ import {
   Smartphone, Tablet, Type, UploadCloud, X, Palette, Sparkles, Layers3, Plus, Copy, Trash2, Link2, SlidersHorizontal, BadgePercent, ShoppingBag, Menu, Heart, BookOpen,
 } from 'lucide-react';
 import Hero from './Hero';
+import { DesignControls, PromotionControls, storeDesignStyle } from './StoreDesignControls';
 import ThemeBanner from './ThemeBanner';
 import CollectionShowcase from './CollectionShowcase';
 import CustomPageBlock from './CustomPageBlock';
@@ -24,7 +25,7 @@ import { apiGetSiteEditor, apiSaveSiteEditorDraft, apiPublishSiteEditor, apiGetP
 import type { SiteEditorPayload } from '../services/api';
 import { uploadImageToCloudinary } from '../services/cloudinary';
 
-type Panel = 'guide' | 'hero' | 'banner' | 'theme-detail' | 'valentines' | 'text' | 'collections' | 'appearance' | 'sections' | 'seo' | 'history' | 'themes' | 'effects' | 'blocks' | 'branding' | 'offers';
+type Panel = 'pages' | 'cards' | 'details' | 'loading' | 'promotion' | 'guide' | 'hero' | 'banner' | 'theme-detail' | 'valentines' | 'text' | 'collections' | 'appearance' | 'sections' | 'seo' | 'history' | 'themes' | 'effects' | 'blocks' | 'branding' | 'offers';
 type Device = 'desktop' | 'tablet' | 'phone';
 const labels: Record<string, string> = {
   hero: 'Hero', collections: 'Collections', shop: 'Shop catalog',
@@ -61,7 +62,7 @@ export default function SiteEditor({
   const deferredCleanup = useRef<string[]>([]);
   const [heroAssetInfo, setHeroAssetInfo] = useState<{ url: string; width: number; height: number } | null>(null);
   const [showPreview, setShowPreview] = useState(true);
-  const [showAdvanced, setShowAdvanced] = useState(true);
+  
   const [undoStack, setUndoStack] = useState<SiteContent[]>([]);
   const [redoStack, setRedoStack] = useState<SiteContent[]>([]);
   const dragSection = useRef<string | null>(null);
@@ -546,7 +547,7 @@ export default function SiteEditor({
       if (section === 'story') setTextSlot('story.heading');
       if (section === 'footer' && draft.theme === 'valentines') setPanel('valentines');
       if (section === 'footer' && draft.theme !== 'valentines') setPanel('theme-detail');
-      if (['blocks','sections'].includes(selectedPanel)) setShowAdvanced(true);
+      if (['blocks','sections'].includes(selectedPanel)) 
     }
     setBannerTheme(draft.theme);
     setPhotoTheme(draft.theme);
@@ -624,6 +625,7 @@ export default function SiteEditor({
   };
 
   const previewStyle = {
+    ...storeDesignStyle(draft.storeDesign),
     '--font-serif': FONT_STACKS[draft.appearance.headingFont],
     '--font-sans': FONT_STACKS[draft.appearance.bodyFont],
     '--site-accent': draft.appearance.accent,
@@ -738,33 +740,31 @@ export default function SiteEditor({
         <nav className="flex w-full min-w-0 shrink-0 flex-nowrap gap-1.5 overflow-x-auto border-b border-stone-200 bg-white p-2 [scrollbar-width:thin] md:col-span-2 xl:col-span-1 xl:row-start-1 xl:flex-col xl:overflow-y-auto xl:border-r" aria-label="Editor panels">
             {([
               ['themes', Palette, 'Theme Manager'],
-              ['guide', BookOpen, 'Editor Guide'],
+              ['pages', BookOpen, 'Page Manager'],
               ['hero', ImageIcon, 'Hero & Media'],
               ['banner', BadgePercent, 'Announcement Banner'],
               ['theme-detail', Settings2, 'Navbar & Footer'],
               ...(draft.theme === 'valentines' ? [['valentines', Heart, 'Valentine Studio'] as const] : []),
-              ['offers', BadgePercent, 'Coupon Offers'],
+              ['offers', BadgePercent, 'Seasonal Offers'],
               ['blocks', Layers3, 'Custom Sections'],
               ['effects', Sparkles, 'Animation & Effects'],
               ['branding', Settings2, 'Brand Identity'],
               ['text', Type, 'Text Content Editor'],
               ['collections', LayoutGrid, 'Collection Cards'],
+              ['cards', ShoppingBag, 'Product Cards & Responsive Grid'],
+              ['details', LayoutGrid, 'Product Details'],
+              ['promotion', BadgePercent, 'Popup Manager'],
+              ['loading', Eye, 'Loading Screen'],
               ['appearance', Settings2, 'Global Design'],
               ['sections', Eye, 'Section Manager'],
               ['seo', Type, 'SEO & Accessibility'],
               ['history', RotateCcw, 'Publishing & Versions'],
-            ] as const).filter(([id]) => showAdvanced || !(['offers', 'blocks', 'sections', 'seo', 'history'] as string[]).includes(id)).map(([id, Icon, label]) => (
+            ] as const).map(([id, Icon, label]) => (
               <button type="button" key={id} onClick={() => setPanel(id)}
                 className={`flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-md border border-stone-200 px-2.5 py-2 text-center text-[11px] font-medium leading-tight ${panel === id ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'}`}>
                 <Icon className="h-4 w-4 shrink-0"/><span className="whitespace-nowrap">{label}</span>
               </button>
             ))}
-            <button type="button" aria-expanded={showAdvanced} onClick={() => {
-              if (showAdvanced && ['offers', 'blocks', 'sections', 'seo', 'history'].includes(panel)) setPanel('themes');
-              setShowAdvanced(current => !current);
-            }} className={`flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-md border border-stone-200 px-2.5 py-2 text-center text-[11px] font-semibold ${showAdvanced ? 'bg-stone-100 text-stone-900' : 'text-stone-600 hover:bg-stone-100'}`}>
-              <Settings2 className="h-4 w-4 shrink-0"/><span>{showAdvanced ? 'Fewer tools' : 'More tools'}</span>
-            </button>
           </nav>
         <aside className="flex min-h-0 min-w-0 flex-col border-r border-stone-200 bg-white max-md:max-h-[56dvh] xl:col-start-3 xl:row-start-1 xl:border-l xl:border-r-0">
           <div ref={inspectorRef} className="min-h-0 min-w-0 flex-1 space-y-5 overflow-x-hidden overflow-y-auto overscroll-contain p-4 pb-12 sm:p-5">
@@ -787,8 +787,7 @@ export default function SiteEditor({
                   ).map(([target,label]) => (
                     <button key={target} type="button" onClick={() => {
                       setPanel(target as Panel);
-                      if (['blocks','sections'].includes(target)) setShowAdvanced(true);
-                      if (target === 'text') setTextSlot(
+                                            if (target === 'text') setTextSlot(
                         focusedPreview === 'custom' ? 'custom.heading' :
                         focusedPreview === 'story' ? 'story.heading' :
                         focusedPreview === 'footer' ? 'footer.description' :
@@ -802,6 +801,11 @@ export default function SiteEditor({
                 </div>
               </div>
             )}
+            {panel === 'pages' && <div className="space-y-3"><h2 className="font-serif text-2xl">Page manager</h2><p className="text-xs text-stone-500">Select a customer-facing area to edit its registered content. Essential routes cannot be deleted.</p>
+              {([['Homepage','sections',''],['Category collections','collections',''],['Product card layout','cards',''],['Product details design','details',''],['Product details text','text','product'],['Cart drawer','text','cart'],['Checkout & confirmation','text','checkout'],['Sign-in & account','text','auth'],['Order tracking','text','tracking'],['Custom order','text','custom'],['Customer reviews','text','reviewSection'],['Our craft / About','text',''],['Navigation','theme-detail',''],['Footer','theme-detail',''],['Policy popups','text','policies'],['Promotional popup','promotion',''],['Loading state','loading','']] as const).map(([label,target,group])=><button key={label} className="flex w-full justify-between rounded border p-3 text-left text-xs" type="button" onClick={()=>{setPanel(target);if(group)setCustomerTextGroup(group);if(label==='Our craft / About')setTextSlot('story.heading');}}>{label}<ChevronRight className="h-4 w-4"/></button>)}
+            </div>}
+            {(panel==='cards'||panel==='details'||panel==='loading')&&<DesignControls mode={panel} value={draft.storeDesign} onChange={patch=>update(prev=>({...prev,storeDesign:{...prev.storeDesign,...patch}}))}/>}
+            {panel==='promotion'&&<PromotionControls value={draft.promotion} onChange={patch=>update(prev=>({...prev,promotion:{...prev.promotion,...patch}}))}/>}
             {panel === 'guide' && (
               <>
                 <h2 className="font-serif text-2xl">Your website editor</h2>
@@ -2361,7 +2365,7 @@ export default function SiteEditor({
           <div className="mx-auto overflow-hidden border border-stone-300 bg-white shadow-xl transition-[max-width] duration-300"
             style={{ maxWidth: previewWidths[device] }}>
             <div className="max-h-[min(72dvh,820px)] min-h-[360px] overflow-y-auto site-shell"
-              style={previewStyle} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'} data-festive-decor={draft.effects.enabled && draft.effects.illustrationEnabled ? 'on' : 'off'} data-illustration-placement={draft.effects.illustrationPlacement} data-editor-device={device} data-selected-preview={focusedPreview || ''} onClickCapture={onPreviewClick} data-festive-motion={draft.effects.enabled && draft.effects.artworkMotion ? "on" : "off"}>
+              style={previewStyle} data-store-design={draft.storeDesign.enabled ? "on" : "off"} data-site-theme={draft.theme} data-hover-lift={draft.effects.hoverLift ? 'on' : 'off'} data-festive-decor={draft.effects.enabled && draft.effects.illustrationEnabled ? 'on' : 'off'} data-illustration-placement={draft.effects.illustrationPlacement} data-editor-device={device} data-selected-preview={focusedPreview || ''} onClickCapture={onPreviewClick} data-festive-motion={draft.effects.enabled && draft.effects.artworkMotion ? "on" : "off"}>
               <div data-editor-section="header" className="jb-nav-surface relative flex items-center justify-between overflow-hidden border-b border-stone-200/30 px-4 py-4"
                 style={{backgroundColor:draft.themeExtras[draft.theme].navBackground, color:draft.themeExtras[draft.theme].navText}}>
                 {draft.themeExtras[draft.theme].navImageUrl && (
@@ -2452,10 +2456,10 @@ export default function SiteEditor({
                   <p className="text-[10px] uppercase tracking-widest text-stone-500"><RichText value={draft.shop.eyebrow} presentation={draft.textPresentations[draft.theme]['shop.eyebrow']} editorSlot="shop.eyebrow"/></p>
                   <h2 className="mt-2 font-serif text-3xl"><RichText value={draft.shop.heading} presentation={draft.textPresentations[draft.theme]['shop.heading']} editorSlot="shop.heading"/></h2>
                   <p className="mt-2 text-sm text-stone-600"><RichText value={draft.shop.description} presentation={draft.textPresentations[draft.theme]['shop.description']} editorSlot="shop.description"/></p>
-                  <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">{products.slice(0, 4).map(p => (
+                  <div className="jb-catalog-grid mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">{products.slice(0, 6).map(p => (
                     <div key={p.id} className="jb-product-card border border-stone-200 bg-white">
-                      {p.imageUrl && <img src={p.imageUrl} alt="" className="aspect-square w-full object-cover"/>}
-                      <p className="p-2 text-xs">{p.title}</p>
+                      {p.imageUrl && <div className="jb-card-image aspect-square overflow-hidden"><img src={p.imageUrl} alt="" className="jb-card-photo h-full w-full object-cover"/></div>}
+                      <p className="jb-card-title p-2 text-xs">{p.title}</p><span className="block px-2 text-xs">₹{p.price}</span><button type="button" className="jb-card-buy m-2 rounded bg-stone-900 px-3 py-2 text-xs text-white" data-preview-menu-control onClick={()=>setPanel("cards")}>Buy Now</button>
                     </div>
                   ))}</div>
                 </section>;

@@ -529,7 +529,34 @@ export const CUSTOMER_TEXT_FIELDS = [
   {"id":"navButton.4","label":"Sign In","section":"navButton"}
 ] as const;
 export type CustomerTextKey = typeof CUSTOMER_TEXT_FIELDS[number]['id'];
-export interface SiteContent {  customerText: Record<string, string>;
+export interface StoreDesign {
+  enabled: boolean;
+  mobileColumns: number; desktopColumns: number; mobileGap: number; desktopGap: number;
+  cardRadius: number; cardImageRatio: string; cardImageFit: 'cover' | 'contain';
+  cardBackground: string; cardText: string; cardButton: string; cardButtonText: string;
+  productBackground: string; productText: string; productImageRatio: string;
+  showRecommendations: boolean;
+  loadingTitle: string; loadingText: string;
+}
+export const DEFAULT_STORE_DESIGN: StoreDesign = {
+  enabled:false,mobileColumns:2,desktopColumns:4,mobileGap:10,desktopGap:24,cardRadius:0,
+  cardImageRatio:'4/5',cardImageFit:'cover',cardBackground:'#FFFFFF',cardText:'#292524',
+  cardButton:'#292524',cardButtonText:'#FFFFFF',productBackground:'#FAF8F5',productText:'#292524',
+  productImageRatio:'4/5',showRecommendations:true,loadingTitle:'Preparing the collection…',loadingText:'Loading our current pieces.',
+};
+export interface PromotionConfig {
+  enabled:boolean; title:string; message:string; buttonText:string; link:string; imageUrl:string;
+  background:string; textColor:string; start:string; end:string; location:'home'|'product'|'all';
+}
+export const DEFAULT_PROMOTION: PromotionConfig = {enabled:false,title:'A little something special',message:'Discover our handmade collection.',buttonText:'Explore collection',link:'#shop-section',imageUrl:'',background:'#FFF6F2',textColor:'#292524',start:'',end:'',location:'home'};
+export function promotionActive(p: PromotionConfig, product: boolean, now = Date.now()): boolean {
+  return p.enabled && (p.location === 'all' || p.location === (product ? 'product' : 'home')) &&
+    (!p.start || Date.parse(p.start) <= now) && (!p.end || Date.parse(p.end) > now);
+}
+export interface SiteContent {
+  storeDesign: StoreDesign;
+  promotion: PromotionConfig;
+  customerText: Record<string, string>;
   customerTextStyles: Record<string, TextPresentation>;
 
   policyCopy: Record<'delivery' | 'returns' | 'privacy' | 'terms', string>;
@@ -672,6 +699,8 @@ const defaultThemeBanners = () => Object.fromEntries(THEME_PRESETS.map(p => [p.i
     : p.id === 'valentines' ? '#4B1024' : '#292524',
 }])) as Record<ThemeId, ThemeBanner>;
 export const DEFAULT_SITE_CONTENT: SiteContent = {
+  storeDesign: DEFAULT_STORE_DESIGN,
+  promotion: DEFAULT_PROMOTION,
   customerText: {},
   customerTextStyles: {},
   policyCopy: { delivery: '', returns: '', privacy: '', terms: '' },
@@ -999,7 +1028,35 @@ export function sanitizeSiteContent(value: unknown): SiteContent {
     }];
   })) as SiteContent['themeExtras'];
   const fx = raw.effects || {};
+  const sd = raw.storeDesign || {};
+  const pd = raw.promotion || {};
+  const ds = DEFAULT_STORE_DESIGN;
+  const dp = DEFAULT_PROMOTION;
+  const ratio = (v: unknown, fallback: string) => typeof v === 'string' && ['1/1','4/5','3/4','4/3','16/9'].includes(v) ? v : fallback;
+  const date = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{3})?)?Z$/.test(v) && Number.isFinite(Date.parse(v)) ? new Date(v).toISOString() : '';
   const content: SiteContent = {
+    storeDesign: {
+      enabled: sd.enabled === true,
+      mobileColumns: Math.round(numberRange(sd.mobileColumns,ds.mobileColumns,1,3)),
+      desktopColumns: Math.round(numberRange(sd.desktopColumns,ds.desktopColumns,2,6)),
+      mobileGap: numberRange(sd.mobileGap,ds.mobileGap,4,32),
+      desktopGap: numberRange(sd.desktopGap,ds.desktopGap,4,48),
+      cardRadius: numberRange(sd.cardRadius,ds.cardRadius,0,32),
+      cardImageRatio: ratio(sd.cardImageRatio,ds.cardImageRatio),
+      cardImageFit: sd.cardImageFit === 'contain' ? 'contain' : 'cover',
+      cardBackground: hex(sd.cardBackground,ds.cardBackground),cardText:hex(sd.cardText,ds.cardText),
+      cardButton:hex(sd.cardButton,ds.cardButton),cardButtonText:hex(sd.cardButtonText,ds.cardButtonText),
+      productBackground:hex(sd.productBackground,ds.productBackground),productText:hex(sd.productText,ds.productText),
+      productImageRatio:ratio(sd.productImageRatio,ds.productImageRatio),
+      showRecommendations:sd.showRecommendations !== false,
+      loadingTitle:fieldText(sd,'loadingTitle',ds.loadingTitle,120),loadingText:fieldText(sd,'loadingText',ds.loadingText,240),
+    },
+    promotion: {
+      enabled:pd.enabled === true,title:fieldText(pd,'title',dp.title,100),message:fieldText(pd,'message',dp.message,350),
+      buttonText:fieldText(pd,'buttonText',dp.buttonText,60),link:safeEditorLink(pd.link),imageUrl:safeEditorImage(pd.imageUrl),
+      background:hex(pd.background,dp.background),textColor:hex(pd.textColor,dp.textColor),
+      start:date(pd.start),end:date(pd.end),location:pd.location === 'all' || pd.location === 'product' ? pd.location : 'home',
+    },
     customerTextStyles: Object.fromEntries(Object.entries(raw.customerTextStyles && typeof raw.customerTextStyles === 'object' ? raw.customerTextStyles : {}).filter(([key,value]) => CUSTOMER_TEXT_FIELDS.some(field => field.id === key) && value && typeof value === 'object').map(([key,value]) => [key, {font: FONT_LABELS[(value as any).font as FontId] ? (value as any).font : 'inherit', size: numberRange((value as any).size,0,0,90), align: ['left','center','right'].includes((value as any).align) ? (value as any).align : 'left',bold:(value as any).bold===true,italic:(value as any).italic===true,color:(value as any).color ? hex((value as any).color,'#292524') : '',lineHeight:numberRange((value as any).lineHeight,0,0,3),letterSpacing:numberRange((value as any).letterSpacing,0,-3,12),transform:['none','uppercase','lowercase','capitalize'].includes((value as any).transform) ? (value as any).transform : 'none'}])),
     customerText: Object.fromEntries(Object.entries(raw.customerText && typeof raw.customerText === 'object' ? raw.customerText : {}).filter(([key,value]) => CUSTOMER_TEXT_FIELDS.some(field => field.id === key) && typeof value === 'string').map(([key,value]) => [key, String(value).slice(0, 500)])),
     policyCopy: Object.fromEntries((['delivery','returns','privacy','terms'] as const).map(key => [key, typeof raw.policyCopy?.[key] === 'string' ? raw.policyCopy[key].slice(0, 6000) : ''])) as SiteContent['policyCopy'],
