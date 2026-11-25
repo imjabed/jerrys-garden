@@ -20,6 +20,7 @@ import {
   getActiveMongoConfig,
   mongoGetCustomers,
   mongoSaveCustomer,
+  mongoUpdateCustomerProfile,
   mongoVerifyCustomerLogin,
   mongoGetBouquets,
   mongoSaveBouquet,
@@ -870,6 +871,19 @@ async function startServer() {
     } catch (err: any) {
       return res.status(500).json({ authenticated: false, error: 'Request failed. Please try again.' });
     }
+  });
+
+  app.patch('/api/customers/profile', requireClientHeader, async (req, res) => {
+    try {
+      const auth = getCustomerAuth(req);
+      if (auth?.role !== 'customer' || !auth.email) return res.status(401).json({ success: false, error: 'Sign in to edit your profile.' });
+      const { name, address, addresses } = req.body || {};
+      const validText = (v: unknown, max: number) => typeof v === 'string' && v.length <= max && !/[<>\x00-\x1f]/.test(v);
+      if (!validText(name, 120) || name.trim().length < 2 || !validText(address, 500) || !Array.isArray(addresses) || addresses.length > 10 || addresses.some(v => !validText(v, 500) || !v.trim())) return res.status(400).json({ success: false, error: 'Invalid profile details.' });
+      const user = await mongoUpdateCustomerProfile(auth.email, { name: name.trim(), address: address.trim(), addresses: [...new Set<string>(addresses.map(v => v.trim()))] });
+      if (!user) return res.status(404).json({ success: false, error: 'Profile unavailable.' });
+      return res.json({ success: true, user });
+    } catch { return res.status(500).json({ success: false, error: 'Unable to update profile.' }); }
   });
 
   app.get('/api/customers/orders', requireClientHeader, async (req, res) => {
