@@ -1004,7 +1004,7 @@ async function startServer() {
   // Public catalogue read; writes require owner auth.
   // Delhivery read-only serviceability. No shipment is created or charged.
   const localShipping = (pin: string) => {
-    const nearby = new Set((process.env.LOCAL_DELIVERY_PINCODES || '').split(',').map(p => p.trim()).filter(p => /^\d{6}$/.test(p)));
+    const nearby = new Set((process.env.LOCAL_DELIVERY_PINCODES || '742407,742102,742103').split(',').map(p => p.trim()).filter(p => /^\d{6}$/.test(p)));
     const free = pin === '742101';
     if (!free && !nearby.has(pin)) return null;
     const minDays = free ? 1 : 2;
