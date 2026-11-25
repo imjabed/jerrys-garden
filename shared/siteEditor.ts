@@ -107,8 +107,11 @@ export const TEXT_SLOTS: { id: TextSlot; label: string }[] = [
   { id: 'shop.eyebrow', label: 'Shop label' }, { id: 'shop.heading', label: 'Shop heading' },
   { id: 'shop.description', label: 'Shop description' },
 ];
+export const MAX_EDITOR_FONT_SIZE = 160;
 export interface TextPresentation {
   font: FontId | 'inherit'; size: number; align: 'left' | 'center' | 'right';
+  // Desktop is the base size; missing or zero overrides use automatic scaling.
+  responsiveSizes?: { tablet?: number; phone?: number };
   bold: boolean; italic: boolean;
   underline?: boolean; strike?: boolean;
   color?: string;
@@ -154,6 +157,22 @@ export type EffectShape = 'petals' | 'snow' | 'confetti' | 'lanterns' | 'sparkle
 export type BlockKind = 'text' | 'image-text' | 'gallery' | 'cta' | 'features' | 'faq' | 'spacer' | 'canvas';
 export type BlockAlign = 'left' | 'center' | 'right';
 export type CanvasDevice = 'desktop' | 'tablet' | 'phone';
+/** Keep body copy readable and scale display typography more aggressively. */
+export function responsiveFontSize(size:number,device:CanvasDevice,overrides?:TextPresentation['responsiveSizes']):number {
+  if(device==='desktop')return size;
+  const explicit=overrides?.[device];
+  if(typeof explicit==='number'&&Number.isFinite(explicit)&&explicit>=8&&explicit<=MAX_EDITOR_FONT_SIZE)return explicit;
+  if(size<=16)return size;
+  return Math.round(16+(size-16)*(device==='tablet'?.65:.35));
+}
+export function sanitizeResponsiveSizes(raw:any):NonNullable<TextPresentation['responsiveSizes']> {
+  const sizes:NonNullable<TextPresentation['responsiveSizes']>={};
+  for(const d of ['tablet','phone'] as const){
+    const v=raw?.[d];
+    if(typeof v==='number'&&Number.isFinite(v)&&v>=8)sizes[d]=Math.round(Math.min(MAX_EDITOR_FONT_SIZE,v));
+  }
+  return sizes;
+}
 export type CanvasKind = 'text' | 'image' | 'button' | 'shape';
 export interface CanvasRect { x:number; y:number; w:number; h:number }
 export interface CanvasObject {
@@ -924,7 +943,8 @@ export function sanitizeSiteContent(value: unknown, includeLibrary = true): Site
       const current = raw.textPresentations?.[id]?.[slot] || {};
       return [slot, {
         font: current.font === undefined || current.font === 'inherit' ? 'inherit' : font(current.font, 'inter'),
-        size: numberRange(current.size, 0, 0, 96),
+        size: numberRange(current.size, 0, 0, MAX_EDITOR_FONT_SIZE),
+        responsiveSizes: sanitizeResponsiveSizes(current.responsiveSizes),
         align: ['left', 'center', 'right'].includes(current.align) ? current.align : 'left',
         bold: current.bold === true,
         italic: typeof current.italic === 'boolean' ? current.italic : d.textPresentations[id][slot].italic,
@@ -1005,7 +1025,8 @@ export function sanitizeSiteContent(value: unknown, includeLibrary = true): Site
           const original = fallback.typography[field];
           return [field, {
             font: style.font == null || style.font === 'inherit' ? 'inherit' : font(style.font, original.font === 'inherit' ? 'inter' : original.font),
-            size: numberRange(style.size, original.size, 0, 96),
+            size: numberRange(style.size, original.size, 0, MAX_EDITOR_FONT_SIZE),
+            responsiveSizes: sanitizeResponsiveSizes(style.responsiveSizes),
             align: ['left','center','right'].includes(style.align) ? style.align : original.align,
             bold: style.bold === true,
             italic: style.italic === true,
@@ -1098,7 +1119,7 @@ export function sanitizeSiteContent(value: unknown, includeLibrary = true): Site
       background:hex(pd.background,dp.background),textColor:hex(pd.textColor,dp.textColor),
       start:date(pd.start),end:date(pd.end),location:pd.location === 'all' || pd.location === 'product' ? pd.location : 'home',
     },
-    customerTextStyles: Object.fromEntries(Object.entries(raw.customerTextStyles && typeof raw.customerTextStyles === 'object' ? raw.customerTextStyles : {}).filter(([key,value]) => CUSTOMER_TEXT_FIELDS.some(field => field.id === key) && value && typeof value === 'object').map(([key,value]) => [key, {font: FONT_LABELS[(value as any).font as FontId] ? (value as any).font : 'inherit', size: numberRange((value as any).size,0,0,90), align: ['left','center','right'].includes((value as any).align) ? (value as any).align : 'left',bold:(value as any).bold===true,italic:(value as any).italic===true,underline:(value as any).underline===true,strike:(value as any).strike===true,color:(value as any).color ? hex((value as any).color,'#292524') : '',lineHeight:numberRange((value as any).lineHeight,0,0,3),letterSpacing:numberRange((value as any).letterSpacing,0,-3,12),transform:['none','uppercase','lowercase','capitalize'].includes((value as any).transform) ? (value as any).transform : 'none'}])),
+    customerTextStyles: Object.fromEntries(Object.entries(raw.customerTextStyles && typeof raw.customerTextStyles === 'object' ? raw.customerTextStyles : {}).filter(([key,value]) => CUSTOMER_TEXT_FIELDS.some(field => field.id === key) && value && typeof value === 'object').map(([key,value]) => [key, {font: FONT_LABELS[(value as any).font as FontId] ? (value as any).font : 'inherit', size: numberRange((value as any).size,0,0,MAX_EDITOR_FONT_SIZE),responsiveSizes:sanitizeResponsiveSizes((value as any).responsiveSizes), align: ['left','center','right'].includes((value as any).align) ? (value as any).align : 'left',bold:(value as any).bold===true,italic:(value as any).italic===true,underline:(value as any).underline===true,strike:(value as any).strike===true,color:(value as any).color ? hex((value as any).color,'#292524') : '',lineHeight:numberRange((value as any).lineHeight,0,0,3),letterSpacing:numberRange((value as any).letterSpacing,0,-3,12),transform:['none','uppercase','lowercase','capitalize'].includes((value as any).transform) ? (value as any).transform : 'none'}])),
     customerText: Object.fromEntries(Object.entries(raw.customerText && typeof raw.customerText === 'object' ? raw.customerText : {}).filter(([key,value]) => CUSTOMER_TEXT_FIELDS.some(field => field.id === key) && typeof value === 'string').map(([key,value]) => [key, String(value).slice(0, 500)])),
     policyCopy: Object.fromEntries((['delivery','returns','privacy','terms'] as const).map(key => [key, typeof raw.policyCopy?.[key] === 'string' ? raw.policyCopy[key].slice(0, 6000) : ''])) as SiteContent['policyCopy'],
     theme, themeMedia, themeMobileMedia, heroCrop, textPresentations, winterAssetsReady: true,
@@ -1338,7 +1359,7 @@ function sanitizeCanvasSection(raw:any):CanvasSection {
     seen.add(o.id);const d=defaultCanvasObject(o.id,o.kind),p=o.presentation||{};
     return [{...d,text:typeof o.text==='string'?o.text.slice(0,1000):d.text,imageUrl:safeEditorImage(o.imageUrl),link:safeEditorLink(o.link),
       alt:typeof o.alt==='string'?o.alt.slice(0,180):'',fill:hex(o.fill,d.fill),radius:numberRange(o.radius,d.radius,0,100),opacity:numberRange(o.opacity,1,0,1),
-      presentation:{font:p.font==='inherit'?'inherit':font(p.font,'inter'),size:numberRange(p.size,d.presentation.size,0,90),
+      presentation:{font:p.font==='inherit'?'inherit':font(p.font,'inter'),size:numberRange(p.size,d.presentation.size,0,MAX_EDITOR_FONT_SIZE),responsiveSizes:sanitizeResponsiveSizes(p.responsiveSizes),
         align:['left','center','right'].includes(p.align)?p.align:d.presentation.align,bold:p.bold===true,italic:p.italic===true,underline:p.underline===true,strike:p.strike===true,color:hex(p.color,d.presentation.color||'#292524'),lineHeight:numberRange(p.lineHeight,1.3,.8,3),letterSpacing:numberRange(p.letterSpacing,0,-3,12),transform:['none','uppercase','lowercase','capitalize'].includes(p.transform)?p.transform:'none'},
       rects:Object.fromEntries(CANVAS_DEVICES.map(device=>[device,sanitizeCanvasRect(o.rects?.[device],d.rects[device])])) as CanvasObject['rects']}];
   });

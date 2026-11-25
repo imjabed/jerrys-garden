@@ -1565,3 +1565,9 @@
 .jb-free-canvas{height:var(--jb-canvas-desktop,520px);}
 .jb-free-box{left:var(--jb-box-desktop-x);top:var(--jb-box-desktop-y);width:var(--jb-box-desktop-w);height:var(--jb-box-desktop-h);}
 }
+
+/* Editor typography follows the viewport, including same-origin device previews.
+   Only explicit text sizes are adapted; inherited theme typography is untouched. */
+.jb-responsive-font{overflow-wrap:anywhere;max-width:100%;}
+@media (max-width: 599.98px){.jb-responsive-font{font-size:var(--jb-font-phone,inherit)!important;}}
+@media (min-width:600px) and (max-width:1023.98px){.jb-responsive-font{font-size:var(--jb-font-tablet,inherit)!important;}}

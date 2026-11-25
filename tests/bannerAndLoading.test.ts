@@ -78,7 +78,7 @@ test('Unsafe or out-of-range banner styling is sanitized with legacy defaults re
   assert.equal(config.verticalPadding, 72);
   assert.equal(config.align, 'center');
   assert.equal(config.buttonVariant, 'link');
-  assert.equal(config.typography.text.size, 96);
+  assert.equal(config.typography.text.size, 160);
   assert.equal(config.typography.text.font, 'inter');
   assert.equal(config.typography.text.bold, false);
   assert.equal(config.textColors.eyebrow, '#F3CF9D');

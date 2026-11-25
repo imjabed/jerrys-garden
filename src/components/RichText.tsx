@@ -1,5 +1,5 @@
 import { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
-import { FONT_STACKS, isMovableTextSlot, type CanvasOffsets, type TextPresentation } from '../../shared/siteEditor';
+import { FONT_STACKS, isMovableTextSlot, responsiveFontSize, type CanvasOffsets, type TextPresentation } from '../../shared/siteEditor';
 import { parseStyledFragments, type StyledFragment } from '../services/inlineStyles';
 
 /**
@@ -18,6 +18,12 @@ export function formatInlineText(source: string): ReactNode[] {
     return part;
   });
 }
+/** Keep desktop typography intact; CSS picks the appropriate device value in both storefront and preview. */
+function responsiveSizeStyle(size=0, overrides?:TextPresentation['responsiveSizes']):CSSProperties {
+  if(!size&&!overrides?.tablet&&!overrides?.phone)return {};
+  const tablet=responsiveFontSize(size,'tablet',overrides),phone=responsiveFontSize(size,'phone',overrides);
+  return {fontSize:size?size+'px':undefined,'--jb-font-tablet':tablet?tablet+'px':'inherit','--jb-font-phone':phone?phone+'px':'inherit'} as CSSProperties;
+}
 /** Render selection-level styles safely; nested spans are supported. */
 function styledTextFragments(source: string): ReactNode[] {
   const render = (fragments: StyledFragment[], parentKey = ''): ReactNode[] =>
@@ -26,14 +32,14 @@ function styledTextFragments(source: string): ReactNode[] {
       if (fragment.text !== undefined) return <span key={key}>{formatInlineText(fragment.text)}</span>;
       const spec = fragment.style || {};
       const style: CSSProperties = {
-        fontSize: spec.size ? spec.size + 'px' : undefined,
+        ...responsiveSizeStyle(spec.size),
         color: spec.color,
         fontFamily: spec.font && spec.font in FONT_STACKS
           ? FONT_STACKS[spec.font as keyof typeof FONT_STACKS] : undefined,
         fontWeight: spec.bold ? 700 : undefined,
         fontStyle: spec.italic ? 'italic' : undefined,
       };
-      return <span key={key} style={style}>{render(fragment.children || [], key + '-')}</span>;
+      return <span key={key} className={spec.size?'jb-responsive-font':undefined} style={style}>{render(fragment.children || [], key + '-')}</span>;
     });
   return render(parseStyledFragments(source));
 }
@@ -55,7 +61,7 @@ export default function RichText({
     textDecoration: [presentation?.underline?'underline':'',presentation?.strike?'line-through':''].filter(Boolean).join(' ')||undefined,
     fontFamily: presentation?.font && presentation.font !== 'inherit'
       ? FONT_STACKS[presentation.font] : undefined,
-    fontSize: presentation?.size ? `${presentation.size}px` : undefined,
+    ...responsiveSizeStyle(presentation?.size,presentation?.responsiveSizes),
     textAlign: presentation?.align || undefined,
     fontWeight: presentation ? (presentation.bold ? 700 : 400) : undefined,
     // Explicit 'normal' overrides old theme wrappers that always forced italic.
@@ -68,5 +74,5 @@ export default function RichText({
       ? presentation.transform : undefined,
     display: inline ? 'inline' : 'block',
   };
-  return <span className={className+(offsets?' jb-canvas-offset':'')} style={{...style,...(offsets?Object.fromEntries(['desktop','tablet','phone'].flatMap(d=>[['--jb-offset-'+d+'-x',((offsets as any)[d]?.x||0)+'px'],['--jb-offset-'+d+'-y',((offsets as any)[d]?.y||0)+'px']])):{})} as CSSProperties} data-editor-slot={editorSlot} data-studio-movable={movable?'true':undefined}>{styledTextFragments(value)}</span>;
+  return <span className={className+(offsets?' jb-canvas-offset':'')+(presentation?.size||presentation?.responsiveSizes?.tablet||presentation?.responsiveSizes?.phone?' jb-responsive-font':'')} style={{...style,...(offsets?Object.fromEntries(['desktop','tablet','phone'].flatMap(d=>[['--jb-offset-'+d+'-x',((offsets as any)[d]?.x||0)+'px'],['--jb-offset-'+d+'-y',((offsets as any)[d]?.y||0)+'px']])):{})} as CSSProperties} data-editor-slot={editorSlot} data-studio-movable={movable?'true':undefined}>{styledTextFragments(value)}</span>;
 }

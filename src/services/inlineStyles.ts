@@ -1,4 +1,4 @@
-import type { FontId } from '../../shared/siteEditor';
+import {MAX_EDITOR_FONT_SIZE,type FontId} from '../../shared/siteEditor';
 /** Compact, strictly allowlisted per-range typography.
  * Example: [[size=32;color=#9B2345|Large words]] then normal words.
  * Text is always rendered with React escaping, never as HTML.
@@ -14,7 +14,7 @@ export function parseInlineStyle(raw: string): InlineStyle {
     if (!safeFields.has(key)) continue;
     if (key === 'size' && /^\d+(?:\.\d+)?$/.test(value || '')) {
       const n = Number(value);
-      if (n >= 8 && n <= 96) style.size = n;
+      if (n >= 8 && n <= MAX_EDITOR_FONT_SIZE) style.size = n;
     }
     if (key === 'color' && /^#[0-9A-Fa-f]{6}$/.test(value || '')) style.color = value;
     if (key === 'font' && /^(playfair|cormorant|lora|inter|plus-jakarta|dm-sans)$/.test(value || '')) style.font = value as FontId;

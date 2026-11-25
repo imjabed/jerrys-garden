@@ -175,3 +175,19 @@ test('Free-layout boxes and floating typography save to the real storefront draf
   expect(box?.presentation.underline).toBe(true);
   expect(errors).toEqual([]);
 });
+
+test('desktop font size automatically adapts in tablet and mobile preview',async({page})=>{
+  const {state}=await openMockedStudio(page);
+  const heading=preview(page).locator('[data-editor-slot="hero.heading"]').first();
+  await heading.click();
+  await page.getByRole('spinbutton',{name:'Font size',exact:true}).fill('100');
+  await page.getByRole('spinbutton',{name:'Font size',exact:true}).press('Enter');
+  await page.getByRole('button',{name:'Close text toolbar'}).click();
+  await expect(heading).toHaveCSS('font-size','100px');
+  await page.getByRole('button',{name:'tablet',exact:true}).click();
+  await expect(heading).toHaveCSS('font-size','71px');
+  await page.getByRole('button',{name:'phone',exact:true}).click();
+  await expect(heading).toHaveCSS('font-size','45px');
+  await page.getByRole('button',{name:'Save',exact:true}).click();
+  await expect.poll(()=>state.draft.textPresentations.default['hero.heading'].size).toBe(100);
+});

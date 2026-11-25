@@ -203,8 +203,8 @@ export default function RichTextEditor({
         </label>
         <label className="text-xs">Font size (px)
           <input className="mt-1 w-full border border-stone-300 bg-white p-2" type="number"
-            min="8" max="96" value={selectedSize}
-            onChange={e=>setSelectedSize(Math.max(8,Math.min(96,Number(e.target.value)||28)))}/>
+            min="8" max="160" value={selectedSize}
+            onChange={e=>setSelectedSize(Math.max(8,Math.min(160,Number(e.target.value)||28)))}/>
         </label>
         <label className="text-xs">Selected font
           <select className="mt-1 w-full border border-stone-300 bg-white p-2"
@@ -233,9 +233,9 @@ export default function RichTextEditor({
       </label>
       <label className="space-y-1 text-xs text-stone-700">
         <span className="block font-semibold">Text size (px)</span>
-        <input type="number" min="0" max="96" step="1" value={presentation.size}
+        <input type="number" min="0" max="160" step="1" value={presentation.size}
           onChange={e => onPresentationChange({
-            ...presentation, size: Math.max(0, Math.min(96, Number(e.target.value) || 0)),
+            ...presentation, size: Math.max(0, Math.min(160, Number(e.target.value) || 0)),
           })} className="min-h-10 w-full border border-stone-300 bg-white p-2"/>
         <span className="text-[10px] text-stone-500">0 = automatic</span>
       </label>
