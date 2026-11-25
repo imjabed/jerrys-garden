@@ -547,7 +547,6 @@ export default function SiteEditor({
       if (section === 'story') setTextSlot('story.heading');
       if (section === 'footer' && draft.theme === 'valentines') setPanel('valentines');
       if (section === 'footer' && draft.theme !== 'valentines') setPanel('theme-detail');
-      if (['blocks','sections'].includes(selectedPanel)) 
     }
     setBannerTheme(draft.theme);
     setPhotoTheme(draft.theme);
