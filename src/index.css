@@ -1574,3 +1574,7 @@
 
 /* Keep anchor destinations below the sticky navigation. */
 #shop-section,#ribbon-story,#custom-builder,[data-studio-canvas]{scroll-margin-top:95px;}
+
+/* Cart stays tappable even with custom icon media and seasonal decorations. */
+#cart-btn{isolation:isolate;touch-action:manipulation;flex-shrink:0;pointer-events:auto;}
+#cart-btn img,#cart-btn svg,#cart-btn span{pointer-events:none;}

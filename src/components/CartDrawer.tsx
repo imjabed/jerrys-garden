@@ -26,10 +26,10 @@ export default function CartDrawer({
   const deliveryFee = productDeliveryTotal(cartItems);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden animate-in fade-in duration-200">
+    <div role="dialog" aria-modal="true" aria-label="Shopping cart" id="jb-cart-drawer" className="fixed inset-0 z-[100] overflow-hidden animate-in fade-in duration-200">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
+        data-cart-close="true" className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
 
@@ -46,7 +46,7 @@ export default function CartDrawer({
                 Your Shopping Bag ({cartItems.reduce((sum, item) => sum + item.quantity, 0)})
               </h2>
             </div>
-            <button
+            <button type="button" aria-label="Close shopping cart" data-cart-close="true"
               onClick={onClose}
               className="p-2 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100 transition-colors"
             >
@@ -67,7 +67,7 @@ export default function CartDrawer({
                     Explore our handmade collection.
                   </p>
                 </div>
-                <button
+                <button type="button" data-cart-close="true"
                   onClick={onClose}
                   className="px-5 py-2.5 rounded-full bg-stone-900 text-white text-xs font-semibold hover:bg-rose-700 transition-colors"
                 >

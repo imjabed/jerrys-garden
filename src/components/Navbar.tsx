@@ -64,6 +64,8 @@ export default function Navbar({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
+  const [failedCartIcon,setFailedCartIcon]=useState('');
+  const useCustomCartIcon=!!cartIconUrl&&failedCartIcon!==cartIconUrl;
   const [activeSuggestion,setActiveSuggestion]=useState(-1);
   const searchRef=useRef<HTMLDivElement>(null),searchToggle=useRef<HTMLButtonElement>(null),searchInput=useRef<HTMLInputElement>(null);
   const suggestions=useMemo(()=>suggestProducts(products,searchQuery),[products,searchQuery]);
@@ -159,13 +161,15 @@ export default function Navbar({
             {/* Cart Button with Count Badge */}
             <button
               id="cart-btn"
-              onClick={onOpenCart}
+              type="button"
+              onClick={()=>{setShowSearchBar(false);setMobileMenuOpen(false);setUserDropdownOpen(false);onOpenCart();}}
+              aria-haspopup="dialog"
               aria-label="View shopping cart"
-              className="relative p-2.5 text-stone-700 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors"
+              className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center p-2 text-stone-700 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors"
             >
-              {cartIconUrl?<img key={cartIconUrl} src={cartIconUrl} alt="" className="w-6 h-6 object-contain" onError={e=>{e.currentTarget.style.display='none';e.currentTarget.nextElementSibling?.classList.remove('hidden');}}/>:null}<ShoppingBag key={'default-'+cartIconUrl} className={'w-5 h-5'+(cartIconUrl?' hidden':'')}/>
+              {useCustomCartIcon?<img key={cartIconUrl} src={cartIconUrl} alt="" data-custom-cart-icon="true" draggable={false} className="pointer-events-none h-7 w-7 shrink-0 object-contain" onError={()=>setFailedCartIcon(cartIconUrl)}/>:<ShoppingBag className="pointer-events-none w-5 h-5" aria-hidden="true"/>}
               {cartCount > 0 && (
-                <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-stone-800 rounded-full px-1 shadow-sm animate-scale">
+                <span className="pointer-events-none absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-stone-800 rounded-full px-1 shadow-sm animate-scale">
                   {cartCount}
                 </span>
               )}

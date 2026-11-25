@@ -240,3 +240,29 @@ test('navbar text box can be added and linked to a catalogue page',async({page})
  await expect.poll(()=>state.draft.navigationBoxes[0]?.text).toBe('Browse gifts');
  expect(state.draft.navigationBoxes[0].link).toBe('/all-products');
 });
+
+test('cart icon opens and closes the shopping drawer in studio preview',async({page})=>{
+ const {errors}=await openMockedStudio(page);
+ await preview(page).getByRole('button',{name:'View shopping cart'}).click();
+ await expect(preview(page).getByRole('dialog',{name:'Shopping cart'})).toBeVisible();
+ await preview(page).getByRole('button',{name:'Close shopping cart'}).click();
+ await expect(preview(page).getByRole('dialog',{name:'Shopping cart'})).toHaveCount(0);
+ expect(errors).toEqual([]);
+});
+test('custom cart icon upload is saved, published and remains clickable',async({page})=>{
+ const {state}=await openMockedStudio(page);
+ await page.getByRole('button',{name:'Navigation bar',exact:true}).click();
+ await page.getByLabel('Upload cart icon',{exact:true}).setInputFiles({name:'cart.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aDmcAAAAASUVORK5CYII=','base64')});
+ await expect(preview(page).locator('#cart-btn img[data-custom-cart-icon]')).toBeVisible();
+ await page.getByRole('button',{name:'Save',exact:true}).click();
+ await expect.poll(()=>state.draft.cartIconUrl).toContain('res.cloudinary.com');
+ page.once('dialog',d=>d.accept());
+ await page.getByRole('button',{name:'Publish',exact:true}).click();
+ await expect(page.getByText('Published and verified.')).toBeVisible();
+ await page.goto('/all-products');
+ await expect(page.locator('#cart-btn img[data-custom-cart-icon]')).toBeVisible();
+ await page.getByRole('button',{name:'View shopping cart'}).click();
+ await expect(page.getByRole('dialog',{name:'Shopping cart'})).toBeVisible();
+ await page.getByRole('button',{name:'Close shopping cart'}).click();
+ await expect(page.getByRole('dialog',{name:'Shopping cart'})).toHaveCount(0);
+});

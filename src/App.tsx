@@ -608,6 +608,11 @@ export default function App() {
       if(event.type==='keydown'){const keyEvent=event as KeyboardEvent;const k=keyEvent.key.toLowerCase();if((keyEvent.ctrlKey||keyEvent.metaKey)&&!keyEvent.altKey&&['c','v'].includes(k)){event.preventDefault();event.stopImmediatePropagation();window.parent.postMessage({type:'jb-studio-clipboard',action:k==='c'?'copy':'paste'},window.location.origin);return;}const action=historyShortcut(keyEvent);if(action){event.preventDefault();event.stopImmediatePropagation();window.parent.postMessage({type:'jb-studio-history',action},window.location.origin);return;}if(!['Enter',' ','Spacebar'].includes((event as KeyboardEvent).key))return;}
       const target=event.target instanceof Element?event.target:null;
       if(event.type==='click'&&target?.closest('#mobile-menu-toggle'))return;
+      if(target?.closest('#cart-btn,[data-cart-close]')&&(event.type==='click'||event.type==='keydown')){
+        // Preview cart actions are read-only: route the action through the studio rather than changing real cart data.
+        event.preventDefault();event.stopImmediatePropagation();
+        window.parent.postMessage({type:'jb-studio-cart',action:target.closest('#cart-btn')?'open':'close'},window.location.origin);return;
+      }
       event.preventDefault();event.stopImmediatePropagation();
       if(!target||target.closest('[data-studio-control]'))return;
       const selected=selection.select(target);
