@@ -1,5 +1,5 @@
 import CustomerCopy from './CustomerCopy';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, ChevronRight, Heart, Minus, Plus, ShoppingBag, Star } from 'lucide-react';
 import type { RibbonBouquet } from '../types';
 import type { ProductSizeKey } from '../../shared/productSizes';
@@ -33,10 +33,12 @@ export default function ProductPage({
   const [notice, setNotice] = useState('');
   const [showFullImage, setShowFullImage] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
+  const touchStart = useRef<{x:number;y:number}|null>(null);
+  const suppressClick = useRef(false);
   const [deliveryPin, setDeliveryPin] = useState(() => { try { return localStorage.getItem('jb_delivery_pin') || ''; } catch { return ''; } });
   const [courierMessage, setCourierMessage] = useState('');
   const [courierBusy, setCourierBusy] = useState(false);
-  const [courierQuote, setCourierQuote] = useState<{ shippingCharge: number; estimatedDeliveryDate: string | null } | null>(null);
+  const [courierQuote, setCourierQuote] = useState<{ shippingCharge: number; estimatedDeliveryDate: string | null; deliveryMinDays?: number; deliveryMaxDays?: number; localDelivery?: boolean } | null>(null);
   useEffect(() => {
     let cancelled = false;
     setCourierMessage('');
@@ -121,7 +123,7 @@ export default function ProductPage({
         </nav>
         <div className="mt-8 grid items-start gap-8 pb-14 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-12">
           <div className="lg:sticky lg:top-24">
-            <button type="button" onClick={() => setShowFullImage(v => !v)}
+            <button type="button" style={{touchAction:"pan-y pinch-zoom"}} onTouchStart={e => { suppressClick.current=false; const t=e.touches[0]; touchStart.current=e.touches.length===1?{x:t.clientX,y:t.clientY}:null; }} onTouchCancel={()=>{touchStart.current=null;}} onTouchEnd={e=>{const start=touchStart.current; touchStart.current=null; if(!start||photos.length<2||!e.changedTouches.length)return; const t=e.changedTouches[0]; const dx=t.clientX-start.x; const dy=t.clientY-start.y; if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.4){suppressClick.current=true;setPhotoIndex(i=>(i+(dx<0?1:photos.length-1))%photos.length);}}} onClick={() => { if(suppressClick.current){suppressClick.current=false;return;} setShowFullImage(v => !v); }}
               className="jb-product-gallery relative flex w-full items-center justify-center overflow-hidden border border-stone-200 bg-[#EEEAE5]"
               aria-label={showFullImage ? 'Fit product photo' : 'Enlarge product photo'}>
               {photo ? <img src={photo} alt={product.title}
@@ -168,9 +170,9 @@ export default function ProductPage({
                 placeholder="Enter six-digit PIN" className="mt-2 w-full border border-stone-300 px-3 py-2 text-sm" />
               <div className="mt-3" role="status">
                 {courierBusy ? <p className="text-xs text-stone-500"><CustomerCopy id={"productExtra.2"} fallback={"Checking Delhivery…"}/></p> : courierQuote ? <>
-                  <p className="text-base font-semibold text-stone-900">{courierQuote.estimatedDeliveryDate ? 'Delivery within ' + new Date(courierQuote.estimatedDeliveryDate + 'T12:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', weekday: 'long', timeZone: 'UTC' }) : 'Delivery date being confirmed'}</p>
-                  <p className="mt-1 text-xs text-stone-600">Delivery Charge: <span className="text-stone-400 line-through">₹{courierQuote.shippingCharge + 15}</span> <span className="font-semibold text-stone-900">₹{courierQuote.shippingCharge}</span></p>
-                  <p className="mt-1 text-[11px] text-stone-500"><CustomerCopy id={"productExtra.4"} fallback={"Estimated · includes 4 days preparation and courier transit"}/></p>
+                  <p className="text-base font-semibold text-stone-900">{courierQuote.localDelivery ? `Delivery in ${courierQuote.deliveryMinDays}–${courierQuote.deliveryMaxDays} days` : courierQuote.estimatedDeliveryDate ? 'Delivery within ' + new Date(courierQuote.estimatedDeliveryDate + 'T12:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', weekday: 'long', timeZone: 'UTC' }) : 'Delivery date being confirmed'}</p>
+                  <p className="mt-1 text-xs text-stone-600">Delivery Charge: <span className="text-stone-400 line-through">₹{courierQuote.shippingCharge + 15}</span> <span className="font-semibold text-stone-900">{courierQuote.shippingCharge === 0 ? "Free Delivery" : `₹${courierQuote.shippingCharge}`}</span></p>
+                  <p className="mt-1 text-[11px] text-stone-500">{courierQuote.localDelivery ? "Local delivery" : <CustomerCopy id={"productExtra.4"} fallback={"Estimated · includes 4 days preparation and courier transit"}/>}</p>
                 </> : <p className="text-xs text-stone-600">{courierMessage || 'Enter PIN to check courier availability and shipping.'}</p>}
               </div>
               <p className="mt-2 text-xs text-stone-500">Packed size: {product.parcelLengthCm || '—'} × {product.parcelWidthCm || '—'} × {product.parcelHeightCm || '—'} cm · {product.parcelWeightGrams || '—'} g</p>
