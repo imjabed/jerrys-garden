@@ -471,23 +471,7 @@ export async function mongoSaveCustomer(customerData: {
     (await database.collection('Customerinfo').findOne({ email: normalizedEmail }));
   const passwordHash = customerData.password ? hashPassword(customerData.password) : undefined;
 
-  if (existing) {
-    const updateDoc: any = {
-      name: customerData.name.trim(),
-      phone: customerData.phone ?? existing.phone ?? '',
-      address: customerData.address ?? existing.address ?? '',
-      isVerified: customerData.isVerified ?? existing.isVerified ?? true,
-      updatedAt: now,
-    };
-    if (passwordHash) updateDoc.passwordHash = passwordHash;
-    // Remove legacy plaintext password whenever possible.
-    await Promise.all([
-      database.collection('customers').updateOne({ email: normalizedEmail }, { $set: updateDoc, $unset: { password: '' } }),
-      database.collection('Customerinfo').updateOne({ email: normalizedEmail }, { $set: updateDoc, $unset: { password: '' } }),
-    ]);
-    const updated = await database.collection('customers').findOne({ email: normalizedEmail });
-    return sanitizeCustomer(updated);
-  }
+  if (existing) throw Object.assign(new Error('Account already exists'), { code: 11000 });
 
   const newCustomer: any = {
     id: customerData.id || `usr-${crypto.randomUUID()}`,
@@ -711,4 +695,18 @@ export async function mongoHasCustomerOrder(email: string) {
   const database = await getMongoDb();
   if (!database) return null;
   return (await database.collection('orders').countDocuments({ customerEmail: String(email).trim().toLowerCase(), status: { $ne: 'Cancelled' } }, { limit: 1 })) > 0;
+}
+
+export async function mongoUpdateCustomerProfile(email: string, changes: { name: string; address: string; addresses: string[] }) {
+  const database = await getMongoDb();
+  if (!database || !client) return null;
+  let updated: any = null;
+  await client.withSession(session => session.withTransaction(async () => {
+    const filter = { email: email.trim().toLowerCase() };
+    const patch = { ...changes, updatedAt: new Date().toISOString() };
+    const primary = await database.collection('customers').findOneAndUpdate(filter, { $set: patch }, { session, returnDocument: 'after' });
+    const legacy = await database.collection('Customerinfo').findOneAndUpdate(filter, { $set: patch }, { session, returnDocument: 'after' });
+    updated = sanitizeCustomer(primary || legacy);
+  }));
+  return updated;
 }
