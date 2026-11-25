@@ -3,10 +3,10 @@ import {MAX_EDITOR_FONT_SIZE,type FontId} from '../../shared/siteEditor';
  * Example: [[size=32;color=#9B2345|Large words]] then normal words.
  * Text is always rendered with React escaping, never as HTML.
  */
-export interface InlineStyle { size?: number; color?: string; font?: FontId; bold?: boolean; italic?: boolean }
+export interface InlineStyle { size?: number; color?: string; font?: FontId; bold?: boolean; italic?: boolean; underline?: boolean; strike?: boolean }
 export interface StyledFragment { text?: string; style?: InlineStyle; children?: StyledFragment[] }
 
-const safeFields = new Set(['size','color','font','bold','italic']);
+const safeFields = new Set(['size','color','font','bold','italic','underline','strike']);
 export function parseInlineStyle(raw: string): InlineStyle {
   const style: InlineStyle = {};
   for (const item of raw.split(';')) {
@@ -18,8 +18,7 @@ export function parseInlineStyle(raw: string): InlineStyle {
     }
     if (key === 'color' && /^#[0-9A-Fa-f]{6}$/.test(value || '')) style.color = value;
     if (key === 'font' && /^(playfair|cormorant|lora|inter|plus-jakarta|dm-sans)$/.test(value || '')) style.font = value as FontId;
-    if (key === 'bold' && value === '1') style.bold = true;
-    if (key === 'italic' && value === '1') style.italic = true;
+    if ((key === 'bold'||key === 'italic'||key === 'underline'||key === 'strike') && (value==='1'||value==='0')) style[key]=value==='1';
   }
   return style;
 }

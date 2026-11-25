@@ -36,8 +36,9 @@ function styledTextFragments(source: string): ReactNode[] {
         color: spec.color,
         fontFamily: spec.font && spec.font in FONT_STACKS
           ? FONT_STACKS[spec.font as keyof typeof FONT_STACKS] : undefined,
-        fontWeight: spec.bold ? 700 : undefined,
-        fontStyle: spec.italic ? 'italic' : undefined,
+        fontWeight: spec.bold === undefined ? undefined : spec.bold ? 700 : 400,
+        fontStyle: spec.italic === undefined ? undefined : spec.italic ? 'italic' : 'normal',
+        textDecoration: [spec.underline?'underline':'',spec.strike?'line-through':''].filter(Boolean).join(' ')||undefined,
       };
       return <span key={key} className={spec.size?'jb-responsive-font':undefined} style={style}>{render(fragment.children || [], key + '-')}</span>;
     });

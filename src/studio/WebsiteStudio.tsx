@@ -1,4 +1,5 @@
 import {useCallback,useEffect,useRef,useState,type ReactNode} from 'react';
+import {historyShortcut} from './historyShortcuts';
 import FloatingTextTools,{type CanvasSelection} from './FloatingTextTools';
 import {ArrowLeft,ArrowDown,ArrowUp,Check,ChevronRight,Copy,Eye,Image as ImageIcon,LayoutGrid,Monitor,Palette,Plus,Redo2,Save,Smartphone,Tablet,Trash2,Type,Undo2,X} from 'lucide-react';
 import {ALL_THEME_IDS,THEME_PRESETS,DEFAULT_SITE_CONTENT,FONT_LABELS,TEXT_SLOTS,CUSTOMER_TEXT_FIELDS,BLOCK_KINDS,defaultPageBlock,defaultCanvasObject,defaultCanvasSection,canvasOffsetKey,sanitizeCanvasRect,sanitizeCanvasOffsets,isMovableTextSlot,sanitizeSiteContent,switchStudioTheme,createStudioTheme,captureStudioTheme,applyStudioTheme,safeEditorImage} from '../../shared/siteEditor';
@@ -75,6 +76,7 @@ export default function WebsiteStudio({products,onPublished,onExit}:{products:Ri
   const edit=(fn:(c:SiteContent)=>SiteContent)=>{if(lock.current)return;const prev=draftRef.current;const next=fn(prev);if(equal(prev,next))return;undoRef.current=[...undoRef.current.slice(-39),prev];redoRef.current=[];assign(next);setError('');setNotice('');};
   const undo=()=>{if(lock.current)return;const prev=undoRef.current.pop();if(prev){redoRef.current.push(draftRef.current);assign(prev);}};
   const redo=()=>{if(lock.current)return;const next=redoRef.current.pop();if(next){undoRef.current.push(draftRef.current);assign(next);}};
+  useEffect(()=>{const handler=(e:KeyboardEvent)=>{const action=historyShortcut(e);if(!action||crop)return;e.preventDefault();e.stopPropagation();if(action==='undo')undo();else redo();};window.addEventListener('keydown',handler,true);return()=>window.removeEventListener('keydown',handler,true);},[crop]);
   const load=useCallback(async()=>{if(lock.current)return;lock.current=true;setBusy(true);setError('');try{const d=await apiGetSiteEditor();revision.current=d.revision;saved.current=d.draft;draftRef.current=d.draft;setDraft(d.draft);setData(d);setDirty(false);undoRef.current=[];redoRef.current=[];}catch(e){setError(e instanceof Error?e.message:'Unable to load studio.');}finally{lock.current=false;setBusy(false);}},[]);
   useEffect(()=>{void load();},[load]);
   const save=async(publish=false,automatic=false)=>{if(lock.current||!data)return;lock.current=true;setBusy(true);setError('');if(!automatic)setNotice('');try{
@@ -90,6 +92,7 @@ export default function WebsiteStudio({products,onPublished,onExit}:{products:Ri
   useEffect(()=>{const receive=(e:MessageEvent)=>{
     if(e.origin!==location.origin||e.source!==frame.current?.contentWindow)return;
     if(e.data?.type==='jb-studio-ready'){setReady(true);send();frame.current?.contentWindow?.postMessage({type:'jb-studio-snap',enabled:snapEnabled},location.origin);return;}
+    if(e.data?.type==='jb-studio-history'){if(!crop){if(e.data.action==='undo')undo();else if(e.data.action==='redo')redo();}return;}
     if(e.data?.type==='jb-studio-anchor'){setSelection(old=>old?.key===e.data.key?{...old,rect:e.data.rect}:old);setAnchorVisible(e.data.visible!==false);return;}
     if(e.data?.type==='jb-studio-box-move'){const {block,key,rect}=e.data;edit(c=>({...c,blocks:c.blocks.map(b=>b.id===block&&b.canvas?{...b,canvas:{...b.canvas,objects:b.canvas.objects.map(o=>o.id===key?{...o,rects:{...o.rects,[device]:sanitizeCanvasRect(rect,o.rects[device])}}:o)}}:b)}));return;}
     if(e.data?.type==='jb-studio-text-move'&&isMovableTextSlot(e.data.key)){const {key,x,y}=e.data;edit(c=>{const k=canvasOffsetKey(c,key);return {...c,canvasOffsets:sanitizeCanvasOffsets({...c.canvasOffsets,[k]:{...c.canvasOffsets[k],[device]:{x,y}}})};});return;}
@@ -105,7 +108,7 @@ export default function WebsiteStudio({products,onPublished,onExit}:{products:Ri
     if(section==='navbar'||section==='footer'){setInspector(section);return;}
     if(section==='hero'){setCopyId('');setSlot('hero.heading');setInspector('text');return;}
     if(section==='shop'){setCopyId('');setSlot('shop.heading');setInspector('text');}
-  };window.addEventListener('message',receive);return()=>window.removeEventListener('message',receive);},[send,device,snapEnabled]);
+  };window.addEventListener('message',receive);return()=>window.removeEventListener('message',receive);},[send,device,snapEnabled,crop]);
   useEffect(()=>{if(!focusObject||!ready)return;const id=window.setTimeout(()=>{frame.current?.contentWindow?.postMessage({type:'jb-studio-focus',key:focusObject},location.origin);setFocusObject('');},350);return()=>window.clearTimeout(id);},[focusObject,ready,draft]);
   useEffect(()=>{const node=canvas.current;if(!node)return;const ro=new ResizeObserver(es=>setFrameWidth(es[0].contentRect.width));ro.observe(node);return()=>ro.disconnect();},[data,full]);
   const setArea=(p:Page)=>{setSelection(null);setPage(p);setCopyId('');setInspector(p==='home'?'layout':p==='product'?'details':'text');};
@@ -165,7 +168,7 @@ export default function WebsiteStudio({products,onPublished,onExit}:{products:Ri
       <button className={btn} onClick={()=>{if(!dirty||window.confirm('Discard unsaved changes?'))onExit();}}><ArrowLeft size={14}/> Admin</button><strong className="mr-2 text-sm">Jame Bouquets Studio</strong>
       <div className="flex rounded-lg bg-slate-100 p-1"><button className={btn+(mode==='pages'?' !bg-violet-700 !text-white':' !border-transparent !bg-transparent')} onClick={()=>{setMode('pages');setInspector('layout');}}>Website Editor</button><button className={btn+(mode==='themes'?' !bg-violet-700 !text-white':' !border-transparent !bg-transparent')} onClick={()=>{setSelection(null);setMode('themes');setInspector('theme');setPage('home');}}><Palette size={14}/> Theme Manager</button></div>
       <span className="mr-auto text-[11px] text-slate-500">{busy?'Saving…':dirty?'Unsaved changes · autosave every 1 min':'Draft saved'}</span>
-      <button className={btn} disabled={busy||!undoRef.current.length} onClick={undo} aria-label="Undo"><Undo2 size={16}/></button><button className={btn} disabled={busy||!redoRef.current.length} onClick={redo} aria-label="Redo"><Redo2 size={16}/></button>
+      <button className={btn} disabled={busy||!undoRef.current.length} onClick={undo} title="Undo (Ctrl+Z / Cmd+Z)" aria-label="Undo"><Undo2 size={16}/></button><button className={btn} disabled={busy||!redoRef.current.length} onClick={redo} title="Redo (Ctrl+Y / Ctrl+Shift+Z / Cmd+Shift+Z)" aria-label="Redo"><Redo2 size={16}/></button>
       <button className={btn} onClick={()=>{setSelection(null);setFull(v=>!v);}}><Eye size={14}/>{full?'Exit preview':'Preview'}</button><button className={btn} disabled={busy||!dirty||!!crop} onClick={()=>void save()}><Save size={14}/> Save</button><button className="rounded-md bg-violet-700 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50" disabled={busy||!ready||!!crop} onClick={()=>{if(window.confirm('Publish this design to the live shop?'))void save(true);}}><Check size={14} className="mr-1 inline"/>Publish</button>
     </header>
     {(error||notice)&&<div className={'shrink-0 border-b px-4 py-2 text-xs '+(error?'bg-red-50 text-red-800':'bg-emerald-50 text-emerald-800')} role={error?'alert':'status'}>{error||notice}{error&&<button className="ml-3 underline" onClick={()=>{if(!dirty||window.confirm('Reload and discard unsaved changes?'))void load();}}>Reload</button>}</div>}

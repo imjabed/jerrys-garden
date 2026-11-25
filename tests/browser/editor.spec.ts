@@ -191,3 +191,26 @@ test('desktop font size automatically adapts in tablet and mobile preview',async
   await page.getByRole('button',{name:'Save',exact:true}).click();
   await expect.poll(()=>state.draft.textPresentations.default['hero.heading'].size).toBe(100);
 });
+
+test('selected words retain multiple formats and Ctrl+Z/redo work in text and canvas',async({page})=>{
+  await openMockedStudio(page);
+  const heading=preview(page).locator('[data-editor-slot="hero.heading"]').first();
+  await heading.click();
+  const input=page.getByRole('textbox',{name:'Edit selected text'});
+  await input.fill('Flowers made with love');
+  await input.evaluate((el:HTMLTextAreaElement)=>{el.focus();el.setSelectionRange(8,12);el.dispatchEvent(new Event('select',{bubbles:true}));});
+  await expect(page.getByText('Selected:',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Bold',exact:true}).click();
+  await page.getByRole('button',{name:'Underline',exact:true}).click();
+  await expect(input).toHaveValue('Flowers made with love');
+  await expect(heading.locator('span').filter({hasText:/^made$/}).first()).toHaveCSS('text-decoration-line','underline');
+  await input.press('Control+z');
+  await expect(heading.locator('span').filter({hasText:/^made$/}).first()).not.toHaveCSS('text-decoration-line','underline');
+  await input.press('Control+Shift+z');
+  await expect(heading.locator('span').filter({hasText:/^made$/}).first()).toHaveCSS('text-decoration-line','underline');
+  await page.getByRole('button',{name:'Close text toolbar'}).click();
+  await heading.click();
+  await page.getByRole('button',{name:'Close text toolbar'}).click();
+  await heading.evaluate(el=>el.dispatchEvent(new KeyboardEvent('keydown',{key:'z',ctrlKey:true,bubbles:true,cancelable:true})));
+  await expect(heading.locator('span').filter({hasText:/^made$/}).first()).not.toHaveCSS('text-decoration-line','underline');
+});

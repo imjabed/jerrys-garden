@@ -67,7 +67,9 @@ export function createCanvasSelectionBridge(){
     block=obj?.closest<HTMLElement>('[data-studio-canvas]')?.dataset.studioCanvas||'';
     lastRect=null;refresh();
     const st=getComputedStyle(node.querySelector<HTMLElement>('[data-editor-slot],span')||node);
-    return {kind,key,block,rect:rect(node),text:node.innerText,fontSize:parseFloat(st.fontSize)||16,color:rgbHex(st.color),movable:kind==='object'||node.dataset.studioMovable==='true'};
+    const browserSelection=window.getSelection();let textRange: {start:number;end:number}|undefined;
+    if(browserSelection?.rangeCount&&!browserSelection.isCollapsed){const picked=browserSelection.getRangeAt(0);if(node.contains(picked.startContainer)&&node.contains(picked.endContainer)){const before=document.createRange();before.selectNodeContents(node);before.setEnd(picked.startContainer,picked.startOffset);const start=before.toString().length;textRange={start,end:start+picked.toString().length};}}
+    return {kind,key,block,rect:rect(node),text:node.innerText,fontSize:parseFloat(st.fontSize)||16,color:rgbHex(st.color),movable:kind==='object'||node.dataset.studioMovable==='true',textRange};
   }
   let cleanupDrag:()=>void=()=>{};
   function start(e:PointerEvent,resizeMode:boolean){

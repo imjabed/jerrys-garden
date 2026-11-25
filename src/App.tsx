@@ -50,6 +50,7 @@ import Hero from './components/Hero';
 import ThemeBanner from './components/ThemeBanner';
 import RichText,{CanvasOffsetContext} from './components/RichText';
 import {createCanvasSelectionBridge} from './studio/canvasPreviewBridge';
+import {historyShortcut} from './studio/historyShortcuts';
 import BouquetCard from './components/BouquetCard';
 import ProductPage from './components/ProductPage';
 import { PRODUCT_SIZE_LABELS, normalizeProductSizes, productSizeFor, hasProductSizes } from '../shared/productSizes';
@@ -589,7 +590,7 @@ export default function App() {
       setCartItems(product&&(area==='cart'||area==='checkout')?[{bouquet:product,quantity:1}]:[]);
     };
     const select=(event:Event)=>{
-      if(event.type==='keydown'&&!['Enter',' ','Spacebar'].includes((event as KeyboardEvent).key))return;
+      if(event.type==='keydown'){const action=historyShortcut(event as KeyboardEvent);if(action){event.preventDefault();event.stopImmediatePropagation();window.parent.postMessage({type:'jb-studio-history',action},window.location.origin);return;}if(!['Enter',' ','Spacebar'].includes((event as KeyboardEvent).key))return;}
       event.preventDefault();event.stopImmediatePropagation();
       const target=event.target instanceof Element?event.target:null;
       if(!target||target.closest('[data-studio-control]'))return;
