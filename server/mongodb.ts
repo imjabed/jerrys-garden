@@ -473,8 +473,13 @@ export async function mongoSaveCustomer(customerData: {
 
   if (existing) throw Object.assign(new Error('Account already exists'), { code: 11000 });
 
+  const serial = await database.collection('identity_counters').findOneAndUpdate({ _id: 'customer' as any }, { $inc: { count: 1 } }, { upsert: true, returnDocument: 'after' });
+  if (!serial?.count) throw new Error('Customer ID allocation failed');
+  const customerSerial = Number(serial.count);
+  const registrationDate = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: '2-digit' }).format(new Date()).replaceAll('/', '');
   const newCustomer: any = {
     id: customerData.id || `usr-${crypto.randomUUID()}`,
+    customerId: `C-${registrationDate}#${customerSerial}`, customerSerial,
     name: customerData.name.trim(), email: normalizedEmail,
     phone: customerData.phone || '', address: customerData.address || '',
     passwordHash: passwordHash || '', isVerified: customerData.isVerified ?? true,
@@ -583,18 +588,22 @@ export async function mongoCreateOrder(
 
   if (!client) return null;
   const unavailable = new Error('Stock changed');
-  const date = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date()).replaceAll('/', '');
-  const prefix = `MJ${date}#`;
+  const date = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: '2-digit' }).format(new Date()).replaceAll('/', '');
   let savedOrder: any = null;
   try {
     await client.withSession(session => session.withTransaction(async () => {
-      // A per-day counter in the same transaction as the order prevents duplicate IDs.
+      const email = String(order.customerEmail || '').trim().toLowerCase();
+      const account = email ? await database.collection('customers').findOne({ email }, { session }) : null;
+      const customerSerial = order.authenticatedCustomer === true && account?.customerSerial ? String(account.customerSerial) : 'G';
+      const prefix = `O-${date}#${customerSerial}-`;
+      const counterKey = customerSerial === 'G' ? prefix : `customer-orders:${customerSerial}`;
+      // Atomic counter within order transaction.
       const counter = await database.collection('order_counters').findOneAndUpdate(
-        { _id: prefix as any }, { $inc: { count: 1 } }, { upsert: true, returnDocument: 'after', session },
+        { _id: counterKey as any }, { $inc: { count: 1 } }, { upsert: true, returnDocument: 'after', session },
       );
       const sequence = Number(counter?.count ?? 0);
       if (!sequence) throw new Error('Could not allocate an order number');
-      const orderNumber = `${prefix}${String(sequence).padStart(2, '0')}`;
+      const orderNumber = `${prefix}${sequence}`;
       for (const [id, { quantity, updatedAt }] of stockReservations) {
         const product = await database.collection('products').findOneAndUpdate(
           { id, inStock: { $ne: false }, stockLeft: { $gte: quantity }, updatedAt: updatedAt ?? { $exists: false } },
@@ -604,7 +613,7 @@ export async function mongoCreateOrder(
         if (!product) throw unavailable;
         await database.collection('bouquets').updateOne({ id }, { $set: { stockLeft: product.stockLeft } }, { session });
       }
-      savedOrder = { ...order, orderNumber, updatedAt: new Date().toISOString() };
+      savedOrder = { ...order, customerId: customerSerial !== 'G' ? account?.customerId : undefined, orderNumber, updatedAt: new Date().toISOString() };
       await database.collection('orders').insertOne(savedOrder, { session });
     }));
   } catch (error) {
