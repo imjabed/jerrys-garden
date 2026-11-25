@@ -21,7 +21,8 @@ test('unsafe canvas media and links are rejected and invalid IDs discarded',()=>
   const c=sanitizeSiteContent({...DEFAULT_SITE_CONTENT,blocks:[b]});
   assert.equal(c.blocks[0].canvas!.objects.length,1);
   assert.equal(c.blocks[0].canvas!.objects[0].imageUrl,'');
-  assert.equal(c.blocks[0].canvas!.objects[0].link,'#shop-section');
+  // Image boxes are not clickable; unsafe URLs are removed rather than replaced with a redirect.
+  assert.equal(c.blocks[0].canvas!.objects[0].link,'');
 });
 
 test('responsive fonts preserve desktop, keep body text readable, and honor validated overrides',()=>{
