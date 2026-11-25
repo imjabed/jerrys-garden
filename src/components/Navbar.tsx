@@ -27,6 +27,7 @@ interface NavbarProps {
   onNavigateToStory: () => void;
   activeUser: UserAccount | null;
   onLogoutUser: () => void;
+  onOpenProfile?: () => void;
   isOwner: boolean;
   onOpenOwnerDashboard: () => void;
   products?: RibbonBouquet[];
@@ -52,6 +53,7 @@ export default function Navbar({
   onNavigateToStory,
   activeUser,
   onLogoutUser,
+  onOpenProfile,
   isOwner,
   onOpenOwnerDashboard,
   searchQuery,
@@ -209,6 +211,7 @@ export default function Navbar({
                       <Package className="w-3.5 h-3.5 text-rose-500" />
                       <CustomerCopy id="nav.myOrders" fallback="My Orders & Status"/>
                     </button>
+                    <button onClick={() => { setUserDropdownOpen(false); onOpenProfile?.(); }} className="w-full text-left px-4 py-2 text-xs text-stone-700 hover:bg-stone-50">My Profile</button>
                     <button
                       onClick={() => {
                         setUserDropdownOpen(false);
