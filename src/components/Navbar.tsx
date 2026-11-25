@@ -114,7 +114,7 @@ export default function Navbar({
         </div>
       )}
       <div className="relative max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="jb-nav-inner flex h-[68px] items-center justify-between gap-2 sm:h-20">
+        <div className="jb-nav-inner flex min-h-[68px] items-center justify-between gap-2 sm:min-h-20">
           {/* Brand Logo */}
           <div onClick={onNavigateHome||onNavigateToShop} className="jb-nav-brand min-w-0 shrink cursor-pointer">
             <Logo editableBrand size="md" logoUrl={storeSettings.logoUrl} brandName={storeSettings.storeName || "Jame Bouquets"} />

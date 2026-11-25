@@ -6,7 +6,7 @@ import type { SiteContent } from '../../shared/siteEditor';
  * Browser contract: use real Vite + React + DOM, but do NOT touch the
  * production API, owner credentials, payments, Cloudinary, or customer data.
  */
-async function openMockedStudio(page: Page, path = '/admin/editor') {
+async function openMockedStudio(page: Page, path = '/admin/editor', products: any[] = []) {
   const errors: string[] = [];
   page.on('pageerror', err => errors.push(err.message));
   const state: { draft: SiteContent; published: SiteContent; revision: number; writes: number; publishes: number } = {
@@ -73,7 +73,7 @@ async function openMockedStudio(page: Page, path = '/admin/editor') {
     if (path === '/api/admin/settings' || path === '/api/settings')
       payload={success:true,connected:true,settings:{storeName:'Jame Bouquets',logoUrl:'',phone:'',whatsapp:''}};
     if (path === '/api/admin/products' || path === '/api/bouquets' || path === '/api/products')
-      payload={success:true,connected:true,bouquets:[],products:[]};
+      payload={success:true,connected:true,bouquets:products,products};
     return route.fulfill({status:200,headers,contentType:'application/json',body:JSON.stringify(payload)});
   });
   await page.goto(path);
@@ -81,7 +81,7 @@ async function openMockedStudio(page: Page, path = '/admin/editor') {
     await expect(page.getByText('Jame Bouquets Studio').first()).toBeVisible();
     await expect(page.getByRole('button',{name:'Theme Manager',exact:true})).toBeVisible();
     await expect(page.getByRole('button',{name:'Publish',exact:true})).toBeEnabled({timeout:20000});
-  } else {
+  } else if(path.includes('owner=dashboard')) {
     await expect(page.getByRole('heading',{name:'Owner dashboard'})).toBeVisible();
   }
   return {errors,state};
@@ -213,4 +213,30 @@ test('selected words retain multiple formats and Ctrl+Z/redo work in text and ca
   await page.getByRole('button',{name:'Close text toolbar'}).click();
   await heading.evaluate(el=>el.dispatchEvent(new KeyboardEvent('keydown',{key:'z',ctrlKey:true,bubbles:true,cancelable:true})));
   await expect(heading.locator('span').filter({hasText:/^made$/}).first()).not.toHaveCSS('text-decoration-line','underline');
+});
+
+test('homepage shows featured items only and all products route shows complete sortable catalogue',async({page})=>{
+ const make=(id:string,title:string,price:number,featured:boolean)=>({id,title,price,featured,category:'Ribbon Bouquets',imageUrl:'',description:'Handmade flower',ribbonColors:['Red'],ribbonMaterial:'Ribbon',flowerCount:3,inStock:true,stockLeft:10,createdAt:'2026-11-01'});
+ await openMockedStudio(page,'/',[make('featured','Featured Rose',300,true),make('ordinary','Regular Tulip',100,false)]);
+ await expect(page.locator('#shop-section')).toContainText('Featured Rose');
+ await expect(page.locator('#shop-section')).not.toContainText('Regular Tulip');
+ await page.locator('#shop-section').getByRole('link',{name:'View more'}).click();
+ await expect(page).toHaveURL(/\/all-products$/);
+ await expect(page.locator('#shop-section')).toContainText('Regular Tulip');
+ await expect(page.locator('#shop-section')).toContainText('Featured Rose');
+ await page.getByLabel('Sort by',{exact:true}).selectOption('price-low');
+ await expect(page.locator('.jb-catalog-grid').locator('> *').first()).toContainText('Regular Tulip');
+});
+test('navbar text box can be added and linked to a catalogue page',async({page})=>{
+ const {state}=await openMockedStudio(page);
+ await page.getByRole('button',{name:'Navigation bar',exact:true}).click();
+ await page.getByRole('button',{name:'Add text box',exact:true}).click();
+ await expect(page.getByRole('dialog',{name:'Floating text editor'})).toBeVisible();
+ await page.getByRole('textbox',{name:'Edit selected text'}).fill('Browse gifts');
+ await page.getByRole('textbox',{name:'Text box redirect'}).fill('/all-products');
+ await page.getByRole('textbox',{name:'Text box redirect'}).press('Enter');
+ await page.getByRole('button',{name:'Close text toolbar'}).click();
+ await page.getByRole('button',{name:'Save',exact:true}).click();
+ await expect.poll(()=>state.draft.navigationBoxes[0]?.text).toBe('Browse gifts');
+ expect(state.draft.navigationBoxes[0].link).toBe('/all-products');
 });

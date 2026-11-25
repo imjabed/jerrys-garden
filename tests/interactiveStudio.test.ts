@@ -60,7 +60,7 @@ test('Banner saved formatting and owner-defined labels survive sanitization', ()
   assert.match(html,/font-size:38px/);
   assert.match(html,/font-size:13px/);
   assert.equal(config.navigationLabels.winter.shop,'Gifts & Roses');
-  assert.equal(config.navigationLabels.default.shop,'Shop Products');
+  assert.equal(config.navigationLabels.default.shop,'All Products');
 });
 test('Navbar supports theme-specific labels and accessible toggling controls', () => {
   const source=readFileSync('src/components/Navbar.tsx','utf8');

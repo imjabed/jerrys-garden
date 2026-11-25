@@ -176,7 +176,7 @@ export function sanitizeResponsiveSizes(raw:any):NonNullable<TextPresentation['r
 export type CanvasKind = 'text' | 'image' | 'button' | 'shape';
 export interface CanvasRect { x:number; y:number; w:number; h:number }
 export interface CanvasObject {
-  id:string; kind:CanvasKind; text:string; imageUrl:string; link:string; alt:string;
+  id:string; kind:CanvasKind; text:string; imageUrl:string; link:string; alt:string; linkEnabled?:boolean;
   fill:string; radius:number; opacity:number; presentation:TextPresentation;
   rects:Record<CanvasDevice,CanvasRect>;
 }
@@ -186,7 +186,7 @@ export type CanvasOffsets = Record<string,Partial<Record<CanvasDevice,CanvasOffs
 export const CANVAS_DEVICES:CanvasDevice[]=['desktop','tablet','phone'];
 export function defaultCanvasObject(id:string,kind:CanvasKind,index=0):CanvasObject {
   const y= Math.min(65,8+index*6);
-  return {id,kind,text:kind==='button'?'Shop now':kind==='text'?'Your text here':'',imageUrl:'',alt:'',link:kind==='button'?'#shop-section':'',
+  return {id,kind,text:kind==='button'?'Shop now':kind==='text'?'Your text here':'',imageUrl:'',alt:'',link:kind==='button'?'#shop-section':'',linkEnabled:kind==='button',
     fill:kind==='shape'?'#E6C7D1':kind==='button'?'#513740':'#FFFFFF',radius:kind==='button'?8:0,opacity:1,
     presentation:{font:'inherit',size:kind==='text'?32:16,align:'center',bold:kind==='button',italic:false,color:kind==='button'?'#FFFFFF':'#292524',lineHeight:1.3,letterSpacing:0},
     rects:{desktop:{x:8,y,w:kind==='image'?35:40,h:kind==='image'?45:18},tablet:{x:8,y,w:55,h:kind==='image'?40:18},phone:{x:8,y,w:84,h:kind==='image'?42:18}}};
@@ -640,7 +640,7 @@ export function safeTextLink(value:unknown):string {
   return '';
 }
 export function isLinkableText(key:string):boolean {
-  return isMovableTextSlot(key)||key.startsWith('story.')||['custom.noPayment','custom.estimateNote','navButton.0','navButton.1','navButton.3'].includes(key);
+  return isMovableTextSlot(key)||(key.startsWith('story.')&&CUSTOMER_TEXT_FIELDS.some(f=>f.id===key))||['custom.noPayment','custom.estimateNote','navButton.0','navButton.1','navButton.3'].includes(key);
 }
 export interface SiteContent {
   navigationBoxes:NavTextBox[];
@@ -1167,7 +1167,7 @@ export function sanitizeSiteContent(value: unknown, includeLibrary = true): Site
       start:date(pd.start),end:date(pd.end),location:pd.location === 'all' || pd.location === 'product' ? pd.location : 'home',
     },
     customerTextStyles: Object.fromEntries(Object.entries(raw.customerTextStyles && typeof raw.customerTextStyles === 'object' ? raw.customerTextStyles : {}).filter(([key,value]) => CUSTOMER_TEXT_FIELDS.some(field => field.id === key) && value && typeof value === 'object').map(([key,value]) => [key, {font: FONT_LABELS[(value as any).font as FontId] ? (value as any).font : 'inherit', size: numberRange((value as any).size,0,0,MAX_EDITOR_FONT_SIZE),responsiveSizes:sanitizeResponsiveSizes((value as any).responsiveSizes), align: ['left','center','right'].includes((value as any).align) ? (value as any).align : 'left',bold:(value as any).bold===true,italic:(value as any).italic===true,underline:(value as any).underline===true,strike:(value as any).strike===true,color:(value as any).color ? hex((value as any).color,'#292524') : '',lineHeight:numberRange((value as any).lineHeight,0,0,3),letterSpacing:numberRange((value as any).letterSpacing,0,-3,12),transform:['none','uppercase','lowercase','capitalize'].includes((value as any).transform) ? (value as any).transform : 'none'}])),
-    customerText: Object.fromEntries(Object.entries(raw.customerText && typeof raw.customerText === 'object' ? raw.customerText : {}).filter(([key,value]) => CUSTOMER_TEXT_FIELDS.some(field => field.id === key) && typeof value === 'string').map(([key,value]) => [key, String(value).slice(0, 500)])),
+    customerText: Object.fromEntries(Object.entries(raw.customerText && typeof raw.customerText === 'object' ? raw.customerText : {}).filter(([key,value]) => CUSTOMER_TEXT_FIELDS.some(field => field.id === key) && typeof value === 'string').map(([key,value]) => [key, key==='navButton.0'&&value==='Shop Products'?'All Products':String(value).slice(0, 500)])),
     policyCopy: Object.fromEntries((['delivery','returns','privacy','terms'] as const).map(key => [key, typeof raw.policyCopy?.[key] === 'string' ? raw.policyCopy[key].slice(0, 6000) : ''])) as SiteContent['policyCopy'],
     theme, themeMedia, themeMobileMedia, heroCrop, textPresentations, winterAssetsReady: true,
     originalImages: Object.fromEntries(
@@ -1185,7 +1185,7 @@ export function sanitizeSiteContent(value: unknown, includeLibrary = true): Site
     navigationLabels: Object.fromEntries(ALL_THEME_IDS.map(id => [
       id, Object.fromEntries(
         (Object.keys(d.navigationLabels[id]) as Array<keyof NavigationLabels>).map(key => [
-          key, fieldText(raw.navigationLabels?.[id], key, d.navigationLabels[id][key], 45),
+          key, key==='shop'&&raw.navigationLabels?.[id]?.[key]==='Shop Products'?'All Products':fieldText(raw.navigationLabels?.[id], key, d.navigationLabels[id][key], 45),
         ]),
       ) as unknown as NavigationLabels,
     ])) as Record<ThemeId, NavigationLabels>,
@@ -1404,7 +1404,7 @@ function sanitizeCanvasSection(raw:any):CanvasSection {
   const objects:CanvasObject[]=(Array.isArray(raw?.objects)?raw.objects:[]).slice(0,30).flatMap((o:any)=>{
     if(typeof o?.id!=='string'||!/^object-[a-zA-Z0-9-]{5,60}$/.test(o.id)||seen.has(o.id)||!['text','image','button','shape'].includes(o.kind))return [];
     seen.add(o.id);const d=defaultCanvasObject(o.id,o.kind),p=o.presentation||{};
-    return [{...d,text:typeof o.text==='string'?o.text.slice(0,1000):d.text,imageUrl:safeEditorImage(o.imageUrl),link:o.kind==='button'?safeEditorLink(o.link):safeTextLink(o.link),
+    return [{...d,text:typeof o.text==='string'?o.text.slice(0,1000):d.text,imageUrl:safeEditorImage(o.imageUrl),link:o.kind==='button'?(safeTextLink(o.link)||'#shop-section'):o.kind==='text'&&(o.linkEnabled===true||o.link!=='#shop-section')?safeTextLink(o.link):'',linkEnabled:o.kind==='button'||o.kind==='text'&&!!safeTextLink(o.link)&&(o.linkEnabled===true||o.link!=='#shop-section'),
       alt:typeof o.alt==='string'?o.alt.slice(0,180):'',fill:hex(o.fill,d.fill),radius:numberRange(o.radius,d.radius,0,100),opacity:numberRange(o.opacity,1,0,1),
       presentation:{font:p.font==='inherit'?'inherit':font(p.font,'inter'),size:numberRange(p.size,d.presentation.size,0,MAX_EDITOR_FONT_SIZE),responsiveSizes:sanitizeResponsiveSizes(p.responsiveSizes),
         align:['left','center','right'].includes(p.align)?p.align:d.presentation.align,bold:p.bold===true,italic:p.italic===true,underline:p.underline===true,strike:p.strike===true,color:hex(p.color,d.presentation.color||'#292524'),lineHeight:numberRange(p.lineHeight,1.3,.8,3),letterSpacing:numberRange(p.letterSpacing,0,-3,12),transform:['none','uppercase','lowercase','capitalize'].includes(p.transform)?p.transform:'none'},

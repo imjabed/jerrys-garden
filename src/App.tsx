@@ -606,8 +606,9 @@ export default function App() {
     };
     const select=(event:Event)=>{
       if(event.type==='keydown'){const keyEvent=event as KeyboardEvent;const k=keyEvent.key.toLowerCase();if((keyEvent.ctrlKey||keyEvent.metaKey)&&!keyEvent.altKey&&['c','v'].includes(k)){event.preventDefault();event.stopImmediatePropagation();window.parent.postMessage({type:'jb-studio-clipboard',action:k==='c'?'copy':'paste'},window.location.origin);return;}const action=historyShortcut(keyEvent);if(action){event.preventDefault();event.stopImmediatePropagation();window.parent.postMessage({type:'jb-studio-history',action},window.location.origin);return;}if(!['Enter',' ','Spacebar'].includes((event as KeyboardEvent).key))return;}
-      event.preventDefault();event.stopImmediatePropagation();
       const target=event.target instanceof Element?event.target:null;
+      if(event.type==='click'&&target?.closest('#mobile-menu-toggle'))return;
+      event.preventDefault();event.stopImmediatePropagation();
       if(!target||target.closest('[data-studio-control]'))return;
       const selected=selection.select(target);
       const slot=target.closest('[data-editor-slot]')?.getAttribute('data-editor-slot');

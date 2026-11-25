@@ -23,10 +23,10 @@ export default function CollectionShowcase({ content, products, onCategoryClick,
       <div className={`jb-atelier-content relative z-10 mx-auto max-w-7xl px-4 sm:px-8 lg:px-12 ${compact ? 'py-8' : 'py-14 sm:py-20'}`}>
         <div className="jb-atelier-heading mb-8 flex items-end justify-between gap-5">
           <div>
-            <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.28em] opacity-70"><RichText value={content.eyebrow} presentation={textPresentations?.['collections.eyebrow']} editorSlot={editorPreview ? 'collections.eyebrow' : undefined}/></p>
-            <h2 className="font-serif font-normal leading-tight" style={{ fontSize: `clamp(${1.9 * headingScale}rem, ${3.5 * headingScale}vw, ${3.1 * headingScale}rem)` }}><RichText value={content.heading} presentation={textPresentations?.['collections.heading']} editorSlot={editorPreview ? 'collections.heading' : undefined}/></h2>
+            <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.28em] opacity-70"><RichText value={content.eyebrow} presentation={textPresentations?.['collections.eyebrow']} editorSlot="collections.eyebrow"/></p>
+            <h2 className="font-serif font-normal leading-tight" style={{ fontSize: `clamp(${1.9 * headingScale}rem, ${3.5 * headingScale}vw, ${3.1 * headingScale}rem)` }}><RichText value={content.heading} presentation={textPresentations?.['collections.heading']} editorSlot="collections.heading"/></h2>
           </div>
-          <p className="hidden pb-2 text-xs opacity-70 sm:block"><RichText value={content.sideLabel} presentation={textPresentations?.['collections.sideLabel']} editorSlot={editorPreview ? 'collections.sideLabel' : undefined}/></p>
+          <p className="hidden pb-2 text-xs opacity-70 sm:block"><RichText value={content.sideLabel} presentation={textPresentations?.['collections.sideLabel']} editorSlot="collections.sideLabel"/></p>
         </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
           {cards.map((card, index) => {
