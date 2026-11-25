@@ -67,8 +67,9 @@ test('Navbar supports theme-specific labels and accessible toggling controls', (
   assert.match(source, /aria-expanded=\{mobileMenuOpen\}/);
   assert.match(source, /jb-customer-dropdown/);
   assert.match(source, /navigationLabels\?\.custom/);
-  const preview=readFileSync('src/components/SiteEditor.tsx','utf8');
-  assert.match(preview, /setPreviewMenuOpen\(v=>!v\)/);
-  assert.match(preview, /data-banner-field/);
-  assert.match(preview, /data-preview-menu-control/);
+  const preview=readFileSync('src/studio/WebsiteStudio.tsx','utf8');
+  const app=readFileSync('src/App.tsx','utf8');
+  assert.match(preview, /jb-studio-select/);
+  assert.match(app, /data-banner-field/);
+  assert.match(app, /event\.stopImmediatePropagation\(\)/);
 });

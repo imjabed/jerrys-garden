@@ -572,7 +572,9 @@ export default function App() {
   useEffect(()=>{
     if(!studioPreview||!ownerChecked||!isOwner)return;
     const receive=(event:MessageEvent)=>{
-      if(event.origin!==window.location.origin||event.source!==window.parent||event.data?.type!=='jb-studio-draft')return;
+      if(event.origin!==window.location.origin||event.source!==window.parent)return;
+      if(event.data?.type==='jb-studio-probe'){window.parent.postMessage({type:'jb-studio-ready'},window.location.origin);return;}
+      if(event.data?.type!=='jb-studio-draft')return;
       setSiteContent(sanitizeSiteContent(event.data.content));setPreviewReady(true);
       const area=event.data.area;
       const product=bouquets.find(p=>p.id===event.data.productId)||bouquets[0];

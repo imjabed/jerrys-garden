@@ -75,13 +75,13 @@ test('Per-element typography sanitizes owner colour, spacing and case', () => {
 });
 
 test('Canvas routes sections and precise text targets to the owner inspector', () => {
-  const source = readFileSync('src/components/SiteEditor.tsx', 'utf8');
-  assert.match(source, /onClickCapture=\{onPreviewClick\}/);
-  assert.match(source, /data-editor-section="hero"/);
-  assert.match(source, /data-editor-section="custom"/);
-  assert.match(source, /data-editor-section="footer"/);
-  assert.match(source, /data-editor-section="banner"/);
-  assert.match(source, /data-editor-slot/);
-  assert.match(source, /setTextSlot\(slot\)/);
-  assert.match(source, /setSelectedBlock\(element\.dataset\.editorBlock\)/);
+  const source = readFileSync('src/studio/WebsiteStudio.tsx', 'utf8');
+  const app=readFileSync('src/App.tsx','utf8');
+  assert.match(source, /jb-studio-select/);
+  assert.match(app, /data-studio-section="hero"/);
+  assert.match(app, /data-studio-section="banner"/);
+  assert.match(app, /data-editor-slot/);
+  assert.match(source, /setSlot\(s as TextSlot\)/);
+  assert.match(source, /setBlockId\(section\)/);
+  assert.match(app, /event\.origin!==window\.location\.origin/);
 });
