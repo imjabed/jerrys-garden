@@ -576,6 +576,7 @@ export default function App() {
     const receive=(event:MessageEvent)=>{
       if(event.origin!==window.location.origin||event.source!==window.parent)return;
       if(event.data?.type==='jb-studio-probe'){window.parent.postMessage({type:'jb-studio-ready'},window.location.origin);return;}
+      if(event.data?.type==='jb-studio-snap'){selection.setSnapping(event.data.enabled!==false);return;}
       if(event.data?.type==='jb-studio-focus'&&typeof event.data.key==='string'){selection.focus(event.data.key);return;}
       if(event.data?.type!=='jb-studio-draft')return;
       setSiteContent(sanitizeSiteContent(event.data.content));setPreviewReady(true);
