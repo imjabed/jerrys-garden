@@ -1695,6 +1695,7 @@ async function startServer() {
         id, orderNumber, createdAt: now, updatedAt: now, status: 'Order Placed', items: normalizedItems, subtotal, deliveryFee, codHandlingCharge, totalAmount,
         couponCode: couponCode || undefined, discountAmount,
         customer: safeCustomer,
+        authenticatedCustomer: customerAuth?.role === 'customer',
         customerEmail: customerAuth?.role === 'customer' ? customerAuth.email : safeCustomer.email,
         payment: {
           method: paymentMethod,
