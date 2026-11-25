@@ -1,9 +1,10 @@
 import CustomerCopy from './CustomerCopy';
-import { useState } from 'react';
-import { ShoppingBag, Search, Compass, ShieldCheck, User as UserIcon, Menu, X, Instagram, Mail, LogOut, Package } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { suggestProducts } from '../services/productSuggestions';
+import { ShoppingBag, Search, ShieldCheck, User as UserIcon, Menu, X, Instagram, Mail, LogOut, Package } from 'lucide-react';
 import Logo from './Logo';
 import WhatsAppIcon from './WhatsAppIcon';
-import { UserAccount, StoreSettings } from '../types';
+import { UserAccount, StoreSettings, RibbonBouquet } from '../types';
 import type { ThemeId, ThemeExtras, NavigationLabels } from '../../shared/siteEditor';
 
 interface NavbarProps {
@@ -23,6 +24,10 @@ interface NavbarProps {
   onLogoutUser: () => void;
   isOwner: boolean;
   onOpenOwnerDashboard: () => void;
+  products?: RibbonBouquet[];
+  cartIconUrl?: string;
+  onSelectProduct?: (product: RibbonBouquet) => void;
+  onSearchSubmit?: () => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
 }
@@ -46,10 +51,18 @@ export default function Navbar({
   onOpenOwnerDashboard,
   searchQuery,
   setSearchQuery,
+  products = [], cartIconUrl = '', onSelectProduct, onSearchSubmit,
 }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
+  const [activeSuggestion,setActiveSuggestion]=useState(-1);
+  const searchRef=useRef<HTMLDivElement>(null),searchToggle=useRef<HTMLButtonElement>(null),searchInput=useRef<HTMLInputElement>(null);
+  const suggestions=useMemo(()=>suggestProducts(products,searchQuery),[products,searchQuery]);
+  const closeSearch=(clear=false)=>{setShowSearchBar(false);setActiveSuggestion(-1);if(clear)setSearchQuery('');};
+  const selectProduct=(product:RibbonBouquet)=>{closeSearch(true);onSelectProduct?.(product);};
+  useEffect(()=>{setActiveSuggestion(-1);},[searchQuery]);
+  useEffect(()=>{if(!showSearchBar)return;searchInput.current?.focus();const outside=(e:PointerEvent)=>{if(e.target instanceof Node&&!searchRef.current?.contains(e.target)&&!searchToggle.current?.contains(e.target)){setShowSearchBar(false);setSearchQuery('');}};document.addEventListener('pointerdown',outside);return()=>document.removeEventListener('pointerdown',outside);},[showSearchBar,setSearchQuery]);
 
   return (
     <header className="jb-nav-surface sticky top-0 z-40 border-b border-stone-200/80 backdrop-blur-md transition-all" data-nav-theme={theme}>
@@ -96,7 +109,7 @@ export default function Navbar({
         <div className="jb-nav-inner flex h-[68px] items-center justify-between gap-2 sm:h-20">
           {/* Brand Logo */}
           <div onClick={onNavigateToShop} className="jb-nav-brand min-w-0 shrink cursor-pointer">
-            <Logo size="md" logoUrl={storeSettings.logoUrl} brandName={storeSettings.storeName || "Jame Bouquets"} />
+            <Logo editableBrand size="md" logoUrl={storeSettings.logoUrl} brandName={storeSettings.storeName || "Jame Bouquets"} />
           </div>
 
           {/* Desktop Navigation Links */}
@@ -106,7 +119,7 @@ export default function Navbar({
               onClick={onNavigateToShop}
               className="hover:text-rose-600 transition-colors py-2"
             >
-              <CustomerCopy id="navButton.0" fallback={navigationLabels?.shop || 'Shop Products'}/>
+              <CustomerCopy id="navButton.0" fallback=<CustomerCopy id="navButton.0" fallback={navigationLabels?.shop || 'Shop Products'}/>/>
             </button>
             <button
               onClick={onNavigateToBuilder}
@@ -127,58 +140,13 @@ export default function Navbar({
               onClick={onNavigateToStory}
               className="hover:text-rose-600 transition-colors py-2"
             >
-              <CustomerCopy id="navButton.3" fallback={navigationLabels?.story || 'Our Craft'}/>
+              <CustomerCopy id="navButton.3" fallback=<CustomerCopy id="navButton.3" fallback={navigationLabels?.story || 'Our Craft'}/>/>
             </button>
           </nav>
 
           {/* Right Action Icons */}
           <div className="jb-nav-actions flex shrink-0 items-center gap-1 sm:gap-4">
-            {/* Search Toggle */}
-            <div className="relative">
-              {showSearchBar ? (
-                <div className="flex items-center bg-[#F5F1EC] rounded-lg px-3 py-1.5 border border-stone-300 w-44 sm:w-64 transition-all">
-                  <Search className="w-4 h-4 text-stone-400 mr-2 shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="Search products..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-transparent border-none outline-none text-xs w-full text-stone-800 placeholder-stone-400"
-                    autoFocus
-                  />
-                  <button
-                    onClick={() => {
-                      setShowSearchBar(false);
-                      setSearchQuery('');
-                    }}
-                    className="text-stone-400 hover:text-stone-600 ml-1"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  id="search-toggle-btn"
-                  onClick={() => setShowSearchBar(true)}
-                  aria-label="Search products"
-                  className="p-2 text-stone-600 hover:text-rose-600 hover:bg-stone-100 rounded-lg transition-colors"
-                >
-                  <Search className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-
-            {/* Quick Track Order (Icon button for mobile/compact) */}
-            <button
-              id="quick-track-btn"
-              onClick={onOpenTracking}
-              title="Track Order"
-              className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-stone-700 hover:text-rose-600 px-3 py-2 rounded-lg hover:bg-stone-100 transition-colors border border-stone-200"
-            >
-              <Compass className="w-4 h-4 text-rose-500" />
-              <span>{navigationLabels?.track || 'Track Order'}</span>
-            </button>
-
+            <button ref={searchToggle} id="search-toggle-btn" type="button" onClick={()=>{if(showSearchBar)closeSearch(true);else{setShowSearchBar(true);setMobileMenuOpen(false);setUserDropdownOpen(false);}}} aria-label="Search products" aria-expanded={showSearchBar} aria-controls="jb-search-panel" className="p-2 text-stone-600 hover:text-rose-600 hover:bg-stone-100 rounded-lg transition-colors"><Search className="w-5 h-5"/></button>
             {/* Cart Button with Count Badge */}
             <button
               id="cart-btn"
@@ -186,7 +154,7 @@ export default function Navbar({
               aria-label="View shopping cart"
               className="relative p-2.5 text-stone-700 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors"
             >
-              <ShoppingBag className="w-5 h-5" />
+              {cartIconUrl?<img key={cartIconUrl} src={cartIconUrl} alt="" className="w-6 h-6 object-contain" onError={e=>{e.currentTarget.style.display='none';e.currentTarget.nextElementSibling?.classList.remove('hidden');}}/>:null}<ShoppingBag key={'default-'+cartIconUrl} className={'w-5 h-5'+(cartIconUrl?' hidden':'')}/>
               {cartCount > 0 && (
                 <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-stone-800 rounded-full px-1 shadow-sm animate-scale">
                   {cartCount}
@@ -226,7 +194,7 @@ export default function Navbar({
                       className="w-full text-left px-4 py-2 text-xs text-stone-700 hover:bg-stone-50 flex items-center gap-2"
                     >
                       <Package className="w-3.5 h-3.5 text-rose-500" />
-                      My Orders & Status
+                      <CustomerCopy id="nav.myOrders" fallback="My Orders & Status"/>
                     </button>
                     <button
                       onClick={() => {
@@ -236,7 +204,7 @@ export default function Navbar({
                       className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-stone-100 mt-1"
                     >
                       <LogOut className="w-3.5 h-3.5" />
-                      Sign Out
+                      <CustomerCopy id="nav.signOut" fallback="Sign Out"/>
                     </button>
                   </div>
                 )}
@@ -280,6 +248,25 @@ export default function Navbar({
         </div>
       </div>
 
+      {showSearchBar&&<div id="jb-search-panel" ref={searchRef} className="absolute left-0 right-0 top-full z-50 mx-auto w-full max-w-xl bg-white text-stone-900 shadow-xl border border-stone-200 rounded-b-xl p-3 sm:p-4">
+        <div className="flex items-center gap-2 rounded-lg border border-stone-300 bg-stone-50 px-3 py-2">
+          <Search className="w-4 h-4 shrink-0 text-stone-500"/>
+          <input ref={searchInput} type="search" role="combobox" aria-label="Search products" aria-autocomplete="list" aria-expanded={!!searchQuery.trim()} aria-controls="jb-search-results" aria-activedescendant={activeSuggestion>=0&&suggestions[activeSuggestion]?'jb-search-option-'+activeSuggestion:undefined} placeholder="Search products..." value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} className="min-w-0 flex-1 bg-transparent text-sm outline-none" onKeyDown={e=>{
+            if(e.key==='Escape'){e.preventDefault();closeSearch(true);searchToggle.current?.focus();}
+            else if(e.key==='ArrowDown'&&suggestions.length){e.preventDefault();setActiveSuggestion(i=>(i+1)%suggestions.length);}
+            else if(e.key==='ArrowUp'&&suggestions.length){e.preventDefault();setActiveSuggestion(i=>i<=0?suggestions.length-1:i-1);}
+            else if(e.key==='Enter'){e.preventDefault();if(activeSuggestion>=0&&suggestions[activeSuggestion])selectProduct(suggestions[activeSuggestion]);else if(searchQuery.trim()){closeSearch();onSearchSubmit?.();}}
+          }}/>
+          <button type="button" aria-label="Close search" onClick={()=>{closeSearch(true);searchToggle.current?.focus();}} className="p-1 text-stone-500"><X size={18}/></button>
+        </div>
+        {searchQuery.trim()&&<><div role="listbox" id="jb-search-results" aria-label="Suggested products" className="mt-2 max-h-[50vh] overflow-y-auto">
+          {suggestions.map((p,i)=><button key={p.id} id={'jb-search-option-'+i} role="option" aria-selected={i===activeSuggestion} type="button" onPointerEnter={()=>setActiveSuggestion(i)} onClick={()=>selectProduct(p)} className={'flex w-full items-center gap-3 rounded-md px-2 py-2 text-left '+(i===activeSuggestion?'bg-rose-50':'hover:bg-stone-50')}>
+            {p.imageUrl&&<img src={p.imageUrl} alt="" className="h-12 w-12 shrink-0 rounded object-cover bg-stone-100"/>}
+            <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{p.title}</span><span className="block truncate text-xs text-stone-500">{p.category}{!p.inStock?' · Out of stock':''}</span></span><span className="text-xs font-semibold">₹{p.price}</span>
+          </button>)}
+          {!suggestions.length&&<p role="status" className="px-2 py-3 text-sm text-stone-500">No matching products.</p>}
+        </div><button type="button" onClick={()=>{closeSearch();onSearchSubmit?.();}} className="mt-2 w-full border-t border-stone-100 pt-3 text-left text-sm font-medium text-rose-700">See all results for “{searchQuery.trim()}”</button></>}
+      </div>}
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div id="jb-mobile-menu" className="jb-mobile-menu lg:hidden border-b border-stone-200 px-4 pt-2 pb-6 space-y-3 shadow-lg">
@@ -299,7 +286,7 @@ export default function Navbar({
             }}
             className="block w-full text-left py-2 text-sm font-medium text-stone-800 hover:text-rose-600 border-b border-stone-100"
           >
-            {navigationLabels?.custom || 'Custom Event Bouquets'}
+            <CustomerCopy id="navButton.1" fallback={navigationLabels?.custom || 'Custom Event Bouquets'}/>
           </button>
           <button
             onClick={() => {
@@ -308,7 +295,7 @@ export default function Navbar({
             }}
             className="block w-full text-left py-2 text-sm font-medium text-stone-800 hover:text-rose-600 border-b border-stone-100"
           >
-            {navigationLabels?.track || 'Track My Order'}
+            <CustomerCopy id="navButton.2" fallback={navigationLabels?.track || 'Track My Order'}/>
           </button>
           <button
             onClick={() => {
@@ -343,7 +330,7 @@ export default function Navbar({
               }}
               className="block w-full text-center py-2.5 text-xs font-medium bg-rose-50 text-rose-800 rounded-lg"
             >
-              {navigationLabels?.signIn || 'Sign In'} / Join
+              <CustomerCopy id="navButton.4" fallback={navigationLabels?.signIn || 'Sign In'}/> / Join
             </button>
           )}
 

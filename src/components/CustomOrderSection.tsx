@@ -210,10 +210,10 @@ export default function CustomOrderSection({ onSubmit, mobileOpen, onMobileToggl
                 <span>{wrappers} wrappers</span>
               </div>
               <p className="mt-5 text-xs leading-5 text-stone-500">
-                Live estimate only, not a payment request. Final design, delivery and price will be confirmed by our team.
+                <CustomerCopy id="custom.estimateNote" fallback="Live estimate only, not a payment request. Final design, delivery and price will be confirmed by our team."/>
               </p>
             </div>
-            <p className="mt-5 flex items-center gap-2 text-xs text-stone-500"><Gift className="h-4 w-4"/> No online payment required</p>
+            <p className="mt-5 flex items-center gap-2 text-xs text-stone-500"><Gift className="h-4 w-4"/> <CustomerCopy id="custom.noPayment" fallback="No online payment required"/></p>
           </div>
 
           <div className="jb-order-form-shell border border-stone-200/80 bg-[#FCFAF7] p-6 shadow-sm sm:p-10">

@@ -1,11 +1,13 @@
+import CustomerCopy from './CustomerCopy';
 interface LogoProps {
+  editableBrand?: boolean;
   size?: 'sm' | 'md' | 'lg';
   showSubtitle?: boolean;
   logoUrl?: string;
   brandName?: string;
 }
 
-export default function Logo({ size = 'md', showSubtitle = true, logoUrl, brandName = 'Jame Bouquets' }: LogoProps) {
+export default function Logo({ size = 'md', showSubtitle = true, logoUrl, brandName = 'Jame Bouquets', editableBrand = false }: LogoProps) {
   const iconSizes = {
     sm: 'w-7 h-7',
     md: 'w-9 h-9',
@@ -69,13 +71,13 @@ export default function Logo({ size = 'md', showSubtitle = true, logoUrl, brandN
       <div>
         <div className="flex items-center gap-1.5">
           <span className={`font-serif font-medium tracking-tight text-stone-900 leading-none ${titleSizes[size]}`}>
-            {brandName}
+            {editableBrand?<CustomerCopy id="nav.brandName" fallback={brandName}/>:brandName}
           </span>
           <span className="hidden sm:inline-block w-1.5 h-1.5 rounded-full bg-rose-400" />
         </div>
         {showSubtitle && (
           <p className="text-[10px] tracking-wider uppercase font-medium text-stone-500 mt-0.5">
-            Handmade Gifts
+            {editableBrand?<CustomerCopy id="nav.slogan" fallback="Handmade Gifts"/>:'Handmade Gifts'}
           </p>
         )}
       </div>

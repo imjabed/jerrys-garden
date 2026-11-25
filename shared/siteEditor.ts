@@ -363,6 +363,30 @@ export interface NavigationLabels {
   shop: string; custom: string; track: string; story: string; signIn: string;
 }
 export const CUSTOMER_TEXT_FIELDS = [
+  {"id":"nav.brandName","label":"Jame Bouquets","section":"nav"},
+  {"id":"nav.slogan","label":"Handmade Gifts","section":"nav"},
+  {"id":"nav.myOrders","label":"My Orders & Status","section":"nav"},
+  {"id":"nav.signOut","label":"Sign Out","section":"nav"},
+  {"id":"story.location","label":"Made in Berhampore","section":"story"},
+  {"id":"story.handmade.title","label":"Handmade","section":"story"},
+  {"id":"story.handmade.detail","label":"Thoughtful details in every piece.","section":"story"},
+  {"id":"story.giftReady.title","label":"Gift-ready","section":"story"},
+  {"id":"story.giftReady.detail","label":"Personal touches for your moments.","section":"story"},
+  {"id":"story.keep.title","label":"Made to keep","section":"story"},
+  {"id":"story.keep.detail","label":"Little reminders that last.","section":"story"},
+  {"id":"custom.noPayment","label":"No online payment required","section":"custom"},
+  {"id":"custom.estimateNote","label":"Live estimate only, not a payment request. Final design, delivery and price will be confirmed by our team.","section":"custom"},
+  {"id":"footer.tagline","label":"Seasonal footer tagline","section":"footer"},
+  {"id":"footer.boutique","label":"Boutique","section":"footer"},
+  {"id":"footer.browse","label":"Browse Products","section":"footer"},
+  {"id":"footer.track","label":"Track Your Order","section":"footer"},
+  {"id":"footer.deliveryPolicy","label":"Delivery & ordering","section":"footer"},
+  {"id":"footer.returnsPolicy","label":"Cancellations & concerns","section":"footer"},
+  {"id":"footer.privacyPolicy","label":"Privacy notice","section":"footer"},
+  {"id":"footer.termsPolicy","label":"Ordering terms","section":"footer"},
+  {"id":"footer.careHeading","label":"Ribbon Flower Care","section":"footer"},
+  {"id":"footer.studioHeading","label":"Local Studio","section":"footer"},
+  {"id":"footer.phoneLabel","label":"Studio phone","section":"footer"},
   {
     "id": "product.0",
     "label": "Home",
@@ -607,6 +631,7 @@ export interface StudioThemeLibrary { active:string; custom:StudioTheme[]; archi
 export interface SiteContent {
   studioThemes: StudioThemeLibrary;
   canvasOffsets: CanvasOffsets;
+  cartIconUrl: string;
   storeDesign: StoreDesign;
   promotion: PromotionConfig;
   customerText: Record<string, string>;
@@ -754,6 +779,7 @@ const defaultThemeBanners = () => Object.fromEntries(THEME_PRESETS.map(p => [p.i
 export const DEFAULT_SITE_CONTENT: SiteContent = {
   studioThemes: {active:'',custom:[],archived:[],originals:{}},
   canvasOffsets: {},
+  cartIconUrl: '',
   storeDesign: DEFAULT_STORE_DESIGN,
   promotion: DEFAULT_PROMOTION,
   customerText: {},
@@ -1097,6 +1123,7 @@ export function sanitizeSiteContent(value: unknown, includeLibrary = true): Site
   const content: SiteContent = {
     studioThemes: {active:'',custom:[],archived:[],originals:{}},
     canvasOffsets: sanitizeCanvasOffsets(raw.canvasOffsets),
+    cartIconUrl: safeEditorImage(raw.cartIconUrl),
     storeDesign: {
       enabled: sd.enabled === true,
       mobileColumns: Math.round(numberRange(sd.mobileColumns,ds.mobileColumns,1,3)),

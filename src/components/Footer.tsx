@@ -84,7 +84,7 @@ export default function Footer({
       )}
       {footerTagline && (
         <p className="jb-festival-footer-tagline mx-auto max-w-3xl px-6 pt-8 text-center font-serif text-lg italic tracking-wide sm:text-2xl">
-          {footerTagline}
+          <CustomerCopy id="footer.tagline" fallback={footerTagline}/>
         </p>
       )}
       <div className={`relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${sceneEnabled ? 'pt-10 sm:pt-14' : ''}`}>
@@ -94,7 +94,7 @@ export default function Footer({
           {/* Brand Col (4 cols) */}
           <div className="lg:col-span-4 space-y-4">
             <div className="[&_.font-serif]:!text-[#FAF8F5] [&_p]:!text-stone-400 [&_.text-stone-900]:!text-[#FAF8F5]">
-              <Logo size="md" showSubtitle={true} logoUrl={storeSettings.logoUrl} brandName={storeSettings.storeName || "Jame Bouquets"} />
+              <Logo editableBrand size="md" showSubtitle={true} logoUrl={storeSettings.logoUrl} brandName={storeSettings.storeName || "Jame Bouquets"} />
             </div>
             
             <p className="text-xs text-stone-400 leading-relaxed">
@@ -123,7 +123,7 @@ export default function Footer({
           {/* Quick Nav (2 cols) */}
           <div className="lg:col-span-2 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-              Boutique
+              <CustomerCopy id="footer.boutique" fallback="Boutique"/>
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
@@ -131,7 +131,7 @@ export default function Footer({
                   onClick={onNavigateToShop}
                   className="hover:text-rose-400 transition-colors cursor-pointer"
                 >
-                  Browse Products
+                  <CustomerCopy id="footer.browse" fallback="Browse Products"/>
                 </button>
               </li>
               <li>
@@ -139,7 +139,7 @@ export default function Footer({
                   onClick={onOpenTracking}
                   className="hover:text-rose-400 transition-colors cursor-pointer"
                 >
-                  Track Your Order
+                  <CustomerCopy id="footer.track" fallback="Track Your Order"/>
                 </button>
               </li>
               <li>
@@ -156,7 +156,7 @@ export default function Footer({
                   ['terms', 'Ordering terms'],
                 ] as const).map(([policy, label]) => (
                   <button key={policy} type="button" onClick={() => onOpenPolicy(policy)}
-                    className="text-left underline-offset-4 hover:text-white hover:underline">{label}</button>
+                    className="text-left underline-offset-4 hover:text-white hover:underline"><CustomerCopy id={'footer.'+({delivery:'deliveryPolicy',returns:'returnsPolicy',privacy:'privacyPolicy',terms:'termsPolicy'}[policy])} fallback={label}/></button>
                 ))}
               </div>
             </div>
@@ -165,7 +165,7 @@ export default function Footer({
           {/* Care & Assurance (3 cols) */}
           <div className="lg:col-span-3 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-              Ribbon Flower Care
+              <CustomerCopy id="footer.careHeading" fallback="Ribbon Flower Care"/>
             </h4>
             <ul className="space-y-2 text-xs text-stone-400">
               <li><CustomerCopy id={"footer.2"} fallback={"• Keep in room temperature away from direct rain"}/></li>
@@ -178,7 +178,7 @@ export default function Footer({
           {/* Studio Contact (3 cols) */}
           <div className="lg:col-span-3 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-              Local Studio
+              <CustomerCopy id="footer.studioHeading" fallback="Local Studio"/>
             </h4>
             <div className="space-y-2.5 text-xs text-stone-400">
               <div className="flex items-start gap-2">
@@ -188,7 +188,7 @@ export default function Footer({
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-rose-400 shrink-0" />
                 {/^\+?[0-9\s()-]{10,20}$/.test(storeSettings.phone || '') ?
-                  <a href={`tel:${storeSettings.phone.replace(/[^+0-9]/g, '')}`} className="hover:text-white">{storeSettings.phone}</a> :
+                  <a href={`tel:${storeSettings.phone.replace(/[^+0-9]/g, '')}`} className="hover:text-white"><CustomerCopy id="footer.phoneLabel" fallback={storeSettings.phone}/></a> :
                   <span><CustomerCopy id={"footer.7"} fallback={"Support available after order confirmation"}/></span>}
               </div>
               <div className="flex items-center gap-2">

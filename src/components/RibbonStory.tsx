@@ -1,3 +1,4 @@
+import CustomerCopy from './CustomerCopy';
 import { ArrowUpRight, Gift, Heart, Flower2 } from 'lucide-react';
 import { DEFAULT_SITE_CONTENT } from '../../shared/siteEditor';
 import type { SiteContent, ThemeId, PageEffects } from '../../shared/siteEditor';
@@ -6,9 +7,9 @@ import RichText from './RichText';
 import type { TextSlot, TextPresentation } from '../../shared/siteEditor';
 
 const qualities = [
-  { icon: Heart, title: 'Handmade', detail: 'Thoughtful details in every piece.' },
-  { icon: Gift, title: 'Gift-ready', detail: 'Personal touches for your moments.' },
-  { icon: Flower2, title: 'Made to keep', detail: 'Little reminders that last.' },
+  { id:'handmade', icon: Heart, title: 'Handmade', detail: 'Thoughtful details in every piece.' },
+  { id:'giftReady', icon: Gift, title: 'Gift-ready', detail: 'Personal touches for your moments.' },
+  { id:'keep', icon: Flower2, title: 'Made to keep', detail: 'Little reminders that last.' },
 ];
 
 export default function RibbonStory({ content = DEFAULT_SITE_CONTENT.story, headingScale = 1, theme = 'default', effects = DEFAULT_SITE_CONTENT.effects, textPresentations }: {
@@ -26,14 +27,14 @@ export default function RibbonStory({ content = DEFAULT_SITE_CONTENT.story, head
           </div>
           <div>
             <p className="site-body-copy leading-7 text-stone-600 max-w-md"><RichText value={content.description} presentation={textPresentations?.['story.description']} editorSlot="story.description"/></p>
-            <p className="mt-6 inline-flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-stone-700">Made in Berhampore <ArrowUpRight size={15}/></p>
+            <p className="mt-6 inline-flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-stone-700"><CustomerCopy id="story.location" fallback="Made in Berhampore"/> <ArrowUpRight size={15}/></p>
           </div>
         </div>
         <div className="grid sm:grid-cols-3 gap-6 mt-16 border-t border-stone-300 pt-10">
-          {qualities.map(({ icon: Icon, title, detail }) => (
+          {qualities.map(({ id, icon: Icon, title, detail }) => (
             <div key={title} className="flex items-start gap-4">
               <Icon className="h-5 w-5 text-stone-500 mt-1" strokeWidth={1.4}/>
-              <div><h3 className="font-serif text-xl text-stone-900">{title}</h3><p className="text-xs text-stone-600 mt-2 leading-relaxed">{detail}</p></div>
+              <div><h3 className="font-serif text-xl text-stone-900"><CustomerCopy id={'story.'+id+'.title'} fallback={title}/></h3><p className="text-xs text-stone-600 mt-2 leading-relaxed"><CustomerCopy id={'story.'+id+'.detail'} fallback={detail}/></p></div>
             </div>
           ))}
         </div>

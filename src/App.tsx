@@ -742,6 +742,10 @@ export default function App() {
             storeSettings={storeSettings}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
+            products={bouquets}
+            cartIconUrl={siteContent.cartIconUrl}
+            onSelectProduct={p=>{setSearchQuery('');navigateToProduct(p);}}
+            onSearchSubmit={()=>{setSelectedCategory('ALL');scrollToSection('shop-section');}}
           />
 
           {productId ? (
