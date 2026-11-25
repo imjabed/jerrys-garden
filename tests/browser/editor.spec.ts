@@ -142,8 +142,8 @@ test('Click real hero accent and edit registered text without navigation',async(
   const {errors,state}=await openMockedStudio(page);
   await page.getByRole('button',{name:'phone',exact:true}).click();
   await preview(page).locator('[data-editor-slot="hero.accentLine"]').first().click();
-  await expect(page.getByRole('combobox',{name:'Homepage text element'})).toHaveValue('hero.accentLine');
-  await page.getByRole('textbox',{name:'Hero accent line'}).fill('Flowers forever');
+  await expect(page.getByRole('dialog',{name:'Floating text editor'})).toBeVisible();
+  await page.getByRole('textbox',{name:'Edit selected text'}).fill('Flowers forever');
   await page.getByRole('button',{name:'Save',exact:true}).click();
   await expect.poll(()=>state.draft.hero.accentLine).toBe('Flowers forever');
   expect(errors).toEqual([]);
@@ -154,5 +154,24 @@ test('Dashboard provides two distinct studio entry points',async({page})=>{
   await page.getByRole('button',{name:'Theme Manager',exact:true}).click();
   await expect(page.getByText('Theme library',{exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Default',exact:true})).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('Free-layout boxes and floating typography save to the real storefront draft',async({page})=>{
+  const {errors,state}=await openMockedStudio(page);
+  await page.getByRole('button',{name:'phone',exact:true}).click();
+  await page.getByRole('button',{name:'Text',exact:true}).click();
+  await expect(page.getByRole('dialog',{name:'Floating text editor'})).toBeVisible();
+  await page.getByRole('textbox',{name:'Edit selected text'}).fill('Made with care');
+  await page.getByRole('spinbutton',{name:'Font size'}).fill('26');
+  await page.getByRole('spinbutton',{name:'Font size'}).press('Enter');
+  await page.getByRole('button',{name:'Underline',exact:true}).click();
+  await page.getByRole('button',{name:'Close text toolbar'}).click();
+  await expect(preview(page).locator('[data-studio-object-kind="text"]')).toContainText('Made with care');
+  await page.getByRole('button',{name:'Save',exact:true}).click();
+  await expect.poll(()=>state.draft.blocks.find(b=>b.kind==='canvas')?.canvas?.objects[0].text).toBe('Made with care');
+  const box=state.draft.blocks.find(b=>b.kind==='canvas')?.canvas?.objects[0];
+  expect(box?.presentation.size).toBe(26);
+  expect(box?.presentation.underline).toBe(true);
   expect(errors).toEqual([]);
 });

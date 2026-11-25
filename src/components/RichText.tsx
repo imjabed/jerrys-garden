@@ -1,5 +1,5 @@
-import { type CSSProperties, type ReactNode } from 'react';
-import { FONT_STACKS, type TextPresentation } from '../../shared/siteEditor';
+import { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
+import { FONT_STACKS, isMovableTextSlot, type CanvasOffsets, type TextPresentation } from '../../shared/siteEditor';
 import { parseStyledFragments, type StyledFragment } from '../services/inlineStyles';
 
 /**
@@ -37,6 +37,7 @@ function styledTextFragments(source: string): ReactNode[] {
     });
   return render(parseStyledFragments(source));
 }
+export const CanvasOffsetContext=createContext<{theme:string;offsets:CanvasOffsets}>({theme:'default',offsets:{}});
 export default function RichText({
   value, presentation, className = '', inline = false, editorSlot,
 }: {
@@ -46,8 +47,12 @@ export default function RichText({
   inline?: boolean;
   editorSlot?: string;
 }) {
+  const layout=useContext(CanvasOffsetContext);
+  const movable=!!editorSlot&&isMovableTextSlot(editorSlot);
+  const offsets=movable?layout.offsets[layout.theme+':'+editorSlot]:undefined;
   const style: CSSProperties = {
     whiteSpace: 'pre-wrap',
+    textDecoration: [presentation?.underline?'underline':'',presentation?.strike?'line-through':''].filter(Boolean).join(' ')||undefined,
     fontFamily: presentation?.font && presentation.font !== 'inherit'
       ? FONT_STACKS[presentation.font] : undefined,
     fontSize: presentation?.size ? `${presentation.size}px` : undefined,
@@ -63,5 +68,5 @@ export default function RichText({
       ? presentation.transform : undefined,
     display: inline ? 'inline' : 'block',
   };
-  return <span className={className} style={style} data-editor-slot={editorSlot}>{styledTextFragments(value)}</span>;
+  return <span className={className+(offsets?' jb-canvas-offset':'')} style={{...style,...(offsets?Object.fromEntries(['desktop','tablet','phone'].flatMap(d=>[['--jb-offset-'+d+'-x',((offsets as any)[d]?.x||0)+'px'],['--jb-offset-'+d+'-y',((offsets as any)[d]?.y||0)+'px']])):{})} as CSSProperties} data-editor-slot={editorSlot} data-studio-movable={movable?'true':undefined}>{styledTextFragments(value)}</span>;
 }

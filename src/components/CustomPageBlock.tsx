@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { ArrowUpRight, Check } from 'lucide-react';
 import type { PageBlock } from '../../shared/siteEditor';
 import { safeEditorLink } from '../../shared/siteEditor';
+import FreeCanvasSection from './FreeCanvasSection';
 
 interface Props {
   key?: string;
@@ -32,6 +33,7 @@ export default function CustomPageBlock({ block, preview = false }: Props) {
       {block.description && <p className="mt-5 max-w-2xl whitespace-pre-line text-sm leading-7 opacity-80">{block.description}</p>}
     </div>
   );
+  if (block.kind === 'canvas' && block.canvas) return <FreeCanvasSection block={block}/>;
   if (block.kind === 'spacer') return (
     <div id={block.id} aria-hidden="true" style={{ backgroundColor: block.background, height: Math.min(280, block.padding + 16) }}/>
   );

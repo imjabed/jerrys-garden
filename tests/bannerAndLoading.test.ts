@@ -112,16 +112,17 @@ test('HTML loader has lightweight circle, exact copy, independent CSS timeout an
   assert.match(markup, /src="\/loading-bouquet-girl\.gif"/);
   assert.match(markup, /Loading\.\.\./);
   assert.match(markup, /Please give us a second, we're preparing your bouquets - Jame Bouquets/);
-  assert.match(markup, /jb-boot-auto-dismiss \.2s ease 2\.45s forwards/);
+  assert.match(markup, /jb-boot-auto-dismiss \.2s ease 15s forwards/);
   assert.match(markup, /id="jb-boot-fallback"/);
   assert.doesNotMatch(markup, /jb-boot-title|jb-boot-mark|jb-boot-retry/);
 });
 
-test('App no longer delays loader behind theme or catalogue network promises', () => {
+test('App waits for the catalog when available and has an independent maximum splash timeout', () => {
   const app = readFileSync('src/App.tsx', 'utf8');
-  const entry = readFileSync('src/main.tsx', 'utf8');
-  assert.doesNotMatch(app, /setThemeFetchSettled|maximumSplashElapsed|catalogSettled:/);
-  assert.match(entry, /scheduleSplashDismiss\(\)/);
+  const markup = readFileSync('index.html', 'utf8');
+  assert.match(app, /catalogStatus === 'loading'/);
+  assert.match(app, /getElementById\('jb-boot-splash'\)\?\.remove\(\)/);
+  assert.match(markup, /jb-boot-auto-dismiss \.2s ease 15s forwards/);
 });
 
 test('The loading icon is the original high-resolution transparent animated GIF', () => {

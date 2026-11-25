@@ -48,7 +48,8 @@ import {
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import ThemeBanner from './components/ThemeBanner';
-import RichText from './components/RichText';
+import RichText,{CanvasOffsetContext} from './components/RichText';
+import {createCanvasSelectionBridge} from './studio/canvasPreviewBridge';
 import BouquetCard from './components/BouquetCard';
 import ProductPage from './components/ProductPage';
 import { PRODUCT_SIZE_LABELS, normalizeProductSizes, productSizeFor, hasProductSizes } from '../shared/productSizes';
@@ -571,9 +572,11 @@ export default function App() {
 
   useEffect(()=>{
     if(!studioPreview||!ownerChecked||!isOwner)return;
+    const selection=createCanvasSelectionBridge();
     const receive=(event:MessageEvent)=>{
       if(event.origin!==window.location.origin||event.source!==window.parent)return;
       if(event.data?.type==='jb-studio-probe'){window.parent.postMessage({type:'jb-studio-ready'},window.location.origin);return;}
+      if(event.data?.type==='jb-studio-focus'&&typeof event.data.key==='string'){selection.focus(event.data.key);return;}
       if(event.data?.type!=='jb-studio-draft')return;
       setSiteContent(sanitizeSiteContent(event.data.content));setPreviewReady(true);
       const area=event.data.area;
@@ -588,18 +591,19 @@ export default function App() {
       if(event.type==='keydown'&&!['Enter',' ','Spacebar'].includes((event as KeyboardEvent).key))return;
       event.preventDefault();event.stopImmediatePropagation();
       const target=event.target instanceof Element?event.target:null;
-      if(!target)return;
+      if(!target||target.closest('[data-studio-control]'))return;
+      const selected=selection.select(target);
       const slot=target.closest('[data-editor-slot]')?.getAttribute('data-editor-slot');
       const customer=target.closest('[data-studio-copy]')?.getAttribute('data-studio-copy');
       const section=target.closest('[data-studio-section]')?.getAttribute('data-studio-section')|| (target.closest('.jb-product-card')?'cards':target.closest('footer')?'footer':target.closest('header')?'navbar':target.closest('#product-page')?'product':'');
       const banner=target.closest('[data-banner-field]')?.getAttribute('data-banner-field');
-      window.parent.postMessage({type:'jb-studio-select',slot,customer,section,banner},window.location.origin);
+      window.parent.postMessage({type:'jb-studio-select',slot,customer,section,banner,...selected},window.location.origin);
     };
     window.addEventListener('message',receive);
     const events=['click','submit','keydown','auxclick','contextmenu'];
     events.forEach(type=>document.addEventListener(type,select,true));
     window.parent.postMessage({type:'jb-studio-ready'},window.location.origin);
-    return()=>{window.removeEventListener('message',receive);events.forEach(type=>document.removeEventListener(type,select,true));};
+    return()=>{selection.dispose();window.removeEventListener('message',receive);events.forEach(type=>document.removeEventListener(type,select,true));};
   },[studioPreview,ownerChecked,isOwner,bouquets]);
   const storefrontStyle = {
     ...storeDesignStyle(siteContent.storeDesign),
@@ -642,7 +646,7 @@ export default function App() {
   return (
     <div className={`site-shell flex flex-col selection:bg-rose-100 selection:text-rose-900 ${editorRoute ? 'min-h-0 md:fixed md:inset-0 md:h-dvh md:w-screen md:overflow-hidden' : 'min-h-screen'}`} style={storefrontStyle} data-store-design={!editorRoute && siteContent.storeDesign.enabled ? "on" : "off"} data-site-theme={siteContent.theme} data-hover-lift={siteContent.effects.hoverLift ? "on" : "off"} data-festive-decor={siteContent.effects.enabled && siteContent.effects.illustrationEnabled ? "on" : "off"} data-illustration-placement={siteContent.effects.illustrationPlacement} data-festive-motion={siteContent.effects.enabled && siteContent.effects.artworkMotion ? "on" : "off"}>
       
-      <CustomerTextContext.Provider value={{text:siteContent.customerText || {},styles:siteContent.customerTextStyles || {}}}>
+      <CanvasOffsetContext.Provider value={{theme:siteContent.studioThemes.active||siteContent.theme,offsets:siteContent.canvasOffsets}}><CustomerTextContext.Provider value={{text:siteContent.customerText || {},styles:siteContent.customerTextStyles || {}}}>
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-stone-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl border border-stone-700 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-3">
@@ -1024,7 +1028,7 @@ export default function App() {
         />
       )}
 
-      </CustomerTextContext.Provider>
+      </CustomerTextContext.Provider></CanvasOffsetContext.Provider>
     </div>
   );
 }

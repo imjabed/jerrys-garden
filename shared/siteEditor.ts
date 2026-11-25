@@ -110,6 +110,7 @@ export const TEXT_SLOTS: { id: TextSlot; label: string }[] = [
 export interface TextPresentation {
   font: FontId | 'inherit'; size: number; align: 'left' | 'center' | 'right';
   bold: boolean; italic: boolean;
+  underline?: boolean; strike?: boolean;
   color?: string;
   lineHeight?: number;
   letterSpacing?: number;
@@ -150,8 +151,29 @@ export interface SeasonalOffer {
   detail: string;
 }
 export type EffectShape = 'petals' | 'snow' | 'confetti' | 'lanterns' | 'sparkles' | 'none';
-export type BlockKind = 'text' | 'image-text' | 'gallery' | 'cta' | 'features' | 'faq' | 'spacer';
+export type BlockKind = 'text' | 'image-text' | 'gallery' | 'cta' | 'features' | 'faq' | 'spacer' | 'canvas';
 export type BlockAlign = 'left' | 'center' | 'right';
+export type CanvasDevice = 'desktop' | 'tablet' | 'phone';
+export type CanvasKind = 'text' | 'image' | 'button' | 'shape';
+export interface CanvasRect { x:number; y:number; w:number; h:number }
+export interface CanvasObject {
+  id:string; kind:CanvasKind; text:string; imageUrl:string; link:string; alt:string;
+  fill:string; radius:number; opacity:number; presentation:TextPresentation;
+  rects:Record<CanvasDevice,CanvasRect>;
+}
+export interface CanvasSection { heights:Record<CanvasDevice,number>; objects:CanvasObject[] }
+export type CanvasOffset = {x:number;y:number};
+export type CanvasOffsets = Record<string,Partial<Record<CanvasDevice,CanvasOffset>>>;
+export const CANVAS_DEVICES:CanvasDevice[]=['desktop','tablet','phone'];
+export function defaultCanvasObject(id:string,kind:CanvasKind,index=0):CanvasObject {
+  const y= Math.min(65,8+index*6);
+  return {id,kind,text:kind==='button'?'Shop now':kind==='text'?'Your text here':'',imageUrl:'',alt:'',link:'#shop-section',
+    fill:kind==='shape'?'#E6C7D1':kind==='button'?'#513740':'#FFFFFF',radius:kind==='button'?8:0,opacity:1,
+    presentation:{font:'inherit',size:kind==='text'?32:16,align:'center',bold:kind==='button',italic:false,color:kind==='button'?'#FFFFFF':'#292524',lineHeight:1.3,letterSpacing:0},
+    rects:{desktop:{x:8,y,w:kind==='image'?35:40,h:kind==='image'?45:18},tablet:{x:8,y,w:55,h:kind==='image'?40:18},phone:{x:8,y,w:84,h:kind==='image'?42:18}}};
+}
+export const defaultCanvasSection = ():CanvasSection=>({heights:{desktop:520,tablet:500,phone:460},objects:[]});
+export function isMovableTextSlot(slot:string):boolean {return TEXT_SLOTS.some(s=>s.id===slot)&&!slot.endsWith('.button')&&!slot.startsWith('footer.');}
 export interface PageBlock {
   id: string;
   kind: BlockKind;
@@ -167,6 +189,7 @@ export interface PageBlock {
   align: BlockAlign;
   padding: number;
   items: { title: string; text: string }[];
+  canvas?: CanvasSection;
 }
 export interface PageEffects {
   enabled: boolean;
@@ -284,6 +307,7 @@ export const BLOCK_KINDS: { id: BlockKind; label: string; description: string }[
   { id: 'features', label: 'Highlights', description: 'Up to six reasons customers love your craft' },
   { id: 'faq', label: 'Questions & answers', description: 'Frequently asked questions with editable answers' },
   { id: 'spacer', label: 'Spacer', description: 'Control the breathing room between sections' },
+  { id: 'canvas', label: 'Free-layout canvas', description: 'Position text, images, buttons and shapes independently' },
 ];
 export function defaultPageBlock(id: string, kind: BlockKind = 'text'): PageBlock {
   return {
@@ -292,6 +316,7 @@ export function defaultPageBlock(id: string, kind: BlockKind = 'text'): PageBloc
     imageUrl: '', images: [], buttonText: 'Explore the collection', buttonUrl: '#shop-section',
     background: '#FAF8F5', textColor: '#292524', align: 'left', padding: 64,
     items: [{ title: 'Handmade', text: 'Thoughtful details in every piece.' }, { title: 'Personal', text: 'Made for gifting.' }],
+    ...(kind==='canvas'?{canvas:defaultCanvasSection()}:{}),
   };
 }
 export function safeEditorImage(value: unknown): string {
@@ -562,6 +587,7 @@ export interface StudioTheme { id:string; name:string; snapshot:ThemeSnapshot }
 export interface StudioThemeLibrary { active:string; custom:StudioTheme[]; archived:ThemeId[]; originals:Partial<Record<ThemeId,ThemeSnapshot>> }
 export interface SiteContent {
   studioThemes: StudioThemeLibrary;
+  canvasOffsets: CanvasOffsets;
   storeDesign: StoreDesign;
   promotion: PromotionConfig;
   customerText: Record<string, string>;
@@ -708,6 +734,7 @@ const defaultThemeBanners = () => Object.fromEntries(THEME_PRESETS.map(p => [p.i
 }])) as Record<ThemeId, ThemeBanner>;
 export const DEFAULT_SITE_CONTENT: SiteContent = {
   studioThemes: {active:'',custom:[],archived:[],originals:{}},
+  canvasOffsets: {},
   storeDesign: DEFAULT_STORE_DESIGN,
   promotion: DEFAULT_PROMOTION,
   customerText: {},
@@ -843,6 +870,7 @@ export function sanitizeSiteContent(value: unknown, includeLibrary = true): Site
       textColor: hex(item.textColor, fallback.textColor),
       align: ['left', 'center', 'right'].includes(item.align) ? item.align : 'left',
       padding: numberRange(item.padding, fallback.padding, 0, 200),
+      ...(kind==='canvas'?{canvas:sanitizeCanvasSection(item.canvas)}:{}),
       items: (Array.isArray(item.items) ? item.items : fallback.items).slice(0, 6).map((row: any) => ({
         title: fieldText(row, 'title', 'Detail', 90), text: fieldText(row, 'text', 'Thoughtfully made.', 300),
       })),
@@ -900,6 +928,7 @@ export function sanitizeSiteContent(value: unknown, includeLibrary = true): Site
         align: ['left', 'center', 'right'].includes(current.align) ? current.align : 'left',
         bold: current.bold === true,
         italic: typeof current.italic === 'boolean' ? current.italic : d.textPresentations[id][slot].italic,
+        underline: current.underline===true, strike: current.strike===true,
         color: hex(current.color, '') ,
         lineHeight: numberRange(current.lineHeight, 0, 0, 3),
         letterSpacing: numberRange(current.letterSpacing, 0, -3, 12),
@@ -980,6 +1009,7 @@ export function sanitizeSiteContent(value: unknown, includeLibrary = true): Site
             align: ['left','center','right'].includes(style.align) ? style.align : original.align,
             bold: style.bold === true,
             italic: style.italic === true,
+        underline: style.underline===true, strike: style.strike===true,
             color: hex(style.color, ''),
             lineHeight: numberRange(style.lineHeight, 0, 0, 3),
             letterSpacing: numberRange(style.letterSpacing, 0, -3, 12),
@@ -1045,6 +1075,7 @@ export function sanitizeSiteContent(value: unknown, includeLibrary = true): Site
   const date = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{3})?)?Z$/.test(v) && Number.isFinite(Date.parse(v)) ? new Date(v).toISOString() : '';
   const content: SiteContent = {
     studioThemes: {active:'',custom:[],archived:[],originals:{}},
+    canvasOffsets: sanitizeCanvasOffsets(raw.canvasOffsets),
     storeDesign: {
       enabled: sd.enabled === true,
       mobileColumns: Math.round(numberRange(sd.mobileColumns,ds.mobileColumns,1,3)),
@@ -1067,7 +1098,7 @@ export function sanitizeSiteContent(value: unknown, includeLibrary = true): Site
       background:hex(pd.background,dp.background),textColor:hex(pd.textColor,dp.textColor),
       start:date(pd.start),end:date(pd.end),location:pd.location === 'all' || pd.location === 'product' ? pd.location : 'home',
     },
-    customerTextStyles: Object.fromEntries(Object.entries(raw.customerTextStyles && typeof raw.customerTextStyles === 'object' ? raw.customerTextStyles : {}).filter(([key,value]) => CUSTOMER_TEXT_FIELDS.some(field => field.id === key) && value && typeof value === 'object').map(([key,value]) => [key, {font: FONT_LABELS[(value as any).font as FontId] ? (value as any).font : 'inherit', size: numberRange((value as any).size,0,0,90), align: ['left','center','right'].includes((value as any).align) ? (value as any).align : 'left',bold:(value as any).bold===true,italic:(value as any).italic===true,color:(value as any).color ? hex((value as any).color,'#292524') : '',lineHeight:numberRange((value as any).lineHeight,0,0,3),letterSpacing:numberRange((value as any).letterSpacing,0,-3,12),transform:['none','uppercase','lowercase','capitalize'].includes((value as any).transform) ? (value as any).transform : 'none'}])),
+    customerTextStyles: Object.fromEntries(Object.entries(raw.customerTextStyles && typeof raw.customerTextStyles === 'object' ? raw.customerTextStyles : {}).filter(([key,value]) => CUSTOMER_TEXT_FIELDS.some(field => field.id === key) && value && typeof value === 'object').map(([key,value]) => [key, {font: FONT_LABELS[(value as any).font as FontId] ? (value as any).font : 'inherit', size: numberRange((value as any).size,0,0,90), align: ['left','center','right'].includes((value as any).align) ? (value as any).align : 'left',bold:(value as any).bold===true,italic:(value as any).italic===true,underline:(value as any).underline===true,strike:(value as any).strike===true,color:(value as any).color ? hex((value as any).color,'#292524') : '',lineHeight:numberRange((value as any).lineHeight,0,0,3),letterSpacing:numberRange((value as any).letterSpacing,0,-3,12),transform:['none','uppercase','lowercase','capitalize'].includes((value as any).transform) ? (value as any).transform : 'none'}])),
     customerText: Object.fromEntries(Object.entries(raw.customerText && typeof raw.customerText === 'object' ? raw.customerText : {}).filter(([key,value]) => CUSTOMER_TEXT_FIELDS.some(field => field.id === key) && typeof value === 'string').map(([key,value]) => [key, String(value).slice(0, 500)])),
     policyCopy: Object.fromEntries((['delivery','returns','privacy','terms'] as const).map(key => [key, typeof raw.policyCopy?.[key] === 'string' ? raw.policyCopy[key].slice(0, 6000) : ''])) as SiteContent['policyCopy'],
     theme, themeMedia, themeMobileMedia, heroCrop, textPresentations, winterAssetsReady: true,
@@ -1293,4 +1324,35 @@ export function createStudioTheme(c:SiteContent,id:string,name:string):SiteConte
   if(c.studioThemes.custom.length>=8||!name.trim())return c;
   const snapshot=captureStudioTheme(c);
   return switchStudioTheme({...c,studioThemes:{...c.studioThemes,custom:[...c.studioThemes.custom,{id,name:name.trim().slice(0,60),snapshot}]}},id);
+}
+
+export function sanitizeCanvasRect(value:any,fallback:CanvasRect):CanvasRect {
+  const w=numberRange(value?.w,fallback.w,5,100),h=numberRange(value?.h,fallback.h,5,100);
+  return {x:numberRange(value?.x,fallback.x,0,100-w),y:numberRange(value?.y,fallback.y,0,100-h),w,h};
+}
+function sanitizeCanvasSection(raw:any):CanvasSection {
+  const fallback=defaultCanvasSection(), seen=new Set<string>();
+  const heights=Object.fromEntries(CANVAS_DEVICES.map(d=>[d,numberRange(raw?.heights?.[d],fallback.heights[d],180,1400)])) as CanvasSection['heights'];
+  const objects:CanvasObject[]=(Array.isArray(raw?.objects)?raw.objects:[]).slice(0,30).flatMap((o:any)=>{
+    if(typeof o?.id!=='string'||!/^object-[a-zA-Z0-9-]{5,60}$/.test(o.id)||seen.has(o.id)||!['text','image','button','shape'].includes(o.kind))return [];
+    seen.add(o.id);const d=defaultCanvasObject(o.id,o.kind),p=o.presentation||{};
+    return [{...d,text:typeof o.text==='string'?o.text.slice(0,1000):d.text,imageUrl:safeEditorImage(o.imageUrl),link:safeEditorLink(o.link),
+      alt:typeof o.alt==='string'?o.alt.slice(0,180):'',fill:hex(o.fill,d.fill),radius:numberRange(o.radius,d.radius,0,100),opacity:numberRange(o.opacity,1,0,1),
+      presentation:{font:p.font==='inherit'?'inherit':font(p.font,'inter'),size:numberRange(p.size,d.presentation.size,0,90),
+        align:['left','center','right'].includes(p.align)?p.align:d.presentation.align,bold:p.bold===true,italic:p.italic===true,underline:p.underline===true,strike:p.strike===true,color:hex(p.color,d.presentation.color||'#292524'),lineHeight:numberRange(p.lineHeight,1.3,.8,3),letterSpacing:numberRange(p.letterSpacing,0,-3,12),transform:['none','uppercase','lowercase','capitalize'].includes(p.transform)?p.transform:'none'},
+      rects:Object.fromEntries(CANVAS_DEVICES.map(device=>[device,sanitizeCanvasRect(o.rects?.[device],d.rects[device])])) as CanvasObject['rects']}];
+  });
+  return {heights,objects};
+}
+export function canvasOffsetKey(c:SiteContent,slot:string):string {return (c.studioThemes.active||c.theme)+':'+slot;}
+export function sanitizeCanvasOffsets(raw:any):CanvasOffsets {
+  if(!raw||typeof raw!=='object'||Array.isArray(raw))return {};
+  const result:CanvasOffsets={};
+  for(const [key,v] of Object.entries(raw).slice(0,400)){
+    const parts=key.split(':');if(parts.length!==2||!(ALL_THEME_IDS.includes(parts[0] as ThemeId)||/^theme-[a-zA-Z0-9-]{5,60}$/.test(parts[0]))||!isMovableTextSlot(parts[1])||!v||typeof v!=='object')continue;
+    const devices:Partial<Record<CanvasDevice,CanvasOffset>>={};
+    for(const d of CANVAS_DEVICES){const p=(v as any)[d];if(p&&typeof p==='object'){const limit=d==='phone'?60:d==='tablet'?120:200;devices[d]={x:numberRange(p.x,0,-limit,limit),y:numberRange(p.y,0,-120,120)};}}
+    result[key]=devices;
+  }
+  return result;
 }
