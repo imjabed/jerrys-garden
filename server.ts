@@ -1003,9 +1003,19 @@ async function startServer() {
 
   // Public catalogue read; writes require owner auth.
   // Delhivery read-only serviceability. No shipment is created or charged.
+  const localShipping = (pin: string) => {
+    const nearby = new Set((process.env.LOCAL_DELIVERY_PINCODES || '').split(',').map(p => p.trim()).filter(p => /^\d{6}$/.test(p)));
+    const free = pin === '742101';
+    if (!free && !nearby.has(pin)) return null;
+    const minDays = free ? 1 : 2;
+    const maxDays = free ? 2 : 3;
+    return { shippingCharge: free ? 0 : 10, estimatedDeliveryDate: indiaTodayPlusDays(maxDays), earliestDeliveryDate: indiaTodayPlusDays(minDays), transitDays: maxDays, preparationDays: 0, deliveryMinDays: minDays, deliveryMaxDays: maxDays, estimateStatus: 'estimated', approximate: false, localDelivery: true };
+  };
   app.get('/api/shipping/serviceability', async (req, res) => {
     const pincode = String(req.query.pincode || '').trim();
     if (!/^\d{6}$/.test(pincode)) return res.status(400).json({ success: false, error: 'Enter a valid six-digit Indian PIN code.' });
+    const local = localShipping(pincode);
+    if (local) return res.json({ success: true, pincode, serviceable: true, prepaid: true, cod: true, ...local });
     const token = process.env.DELHIVERY_API_TOKEN?.trim();
     if (!token) return res.status(503).json({ success: false, error: 'Courier service is not configured.' });
     const environment = process.env.DELHIVERY_ENV === 'staging' ? 'staging' : 'production';
@@ -1041,6 +1051,8 @@ async function startServer() {
   const getShippingQuote = async (pin: string, grams: number) => {
     if (!/^\d{6}$/.test(pin) || !Number.isInteger(grams) || grams < 1 || grams > 100000)
       throw new Error('INVALID_SHIPPING_INPUT');
+    const local = localShipping(pin);
+    if (local) return { pincode: pin, originPincode: '742101', chargeableWeightGrams: grams, currency: 'INR', ...local };
     const key = `${pin}:${grams}`;
     const cached = shippingQuoteCache.get(key);
     if (cached && cached.expires > Date.now()) return cached.value;
@@ -1642,8 +1654,8 @@ async function startServer() {
       let deliveryFee: number;
       try {
         const quote = await getShippingQuote(String(c.pincode), Math.ceil(totalPackedWeight));
-        if (c.deliveryDate && (!quote.estimatedDeliveryDate || !isValidOptionalDeliveryDate(c.deliveryDate) || String(c.deliveryDate) < quote.estimatedDeliveryDate))
-          return res.status(400).json({ success: false, error: 'Preferred delivery date must be on or after Delhivery estimated arrival. Leave blank when an estimate is unavailable.' });
+        if (c.deliveryDate && (!quote.estimatedDeliveryDate || !/^\d{4}-\d{2}-\d{2}$/.test(String(c.deliveryDate)) || String(c.deliveryDate) < (quote.earliestDeliveryDate || quote.estimatedDeliveryDate)))
+          return res.status(400).json({ success: false, error: 'Preferred delivery date must be on or after the earliest available delivery date. Leave blank when an estimate is unavailable.' });
         deliveryFee = quote.shippingCharge;
       } catch {
         return res.status(503).json({ success: false, error: 'Courier rate is unavailable. Your order has not been placed. Please try later.' });
