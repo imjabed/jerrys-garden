@@ -1,3 +1,6 @@
 # Jame Bouquets Android (private testing)
 This WebView shell loads https://jamebouquets.vercel.app/ over HTTPS using the existing backend. It does not store a product database or embed MongoDB credentials. WebView HTTP cache is disabled; frontend/API caching and backend checkout validation still apply. External links open outside the app. Internet is required. Browser-only authentication and file upload may need additional integration.
 Build with JDK 17, Android SDK 35 and Gradle 8.9: from android/ run gradle :app:assembleDebug. The output is app/build/outputs/apk/debug/app-debug.apk. A debug APK is for testing only. Repeated builds may have different signing keys on hosted runners; uninstall the old APK before installing an incompatible build, which removes local app data. Use a securely stored persistent signing key for distribution or upgrades.
+
+## v1.1
+The WebView appends JameBouquetsAndroid/1.1 to its user agent, activating a dedicated storefront layout only for the APK. The browser layout and backend are unchanged. Deploy the React frontend to Vercel before testing the new interface. The APK uses the same HTTPS origin and cookie-backed API sessions. Debug signing from v1.0 may differ; Android will reject in-place updates signed by another key. For repeat updates use a privately managed persistent signing key; never commit it to the repository.

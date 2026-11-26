@@ -43,9 +43,9 @@ jobs:
       - name: Verify APK signature
         run: |
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose android/app/build/outputs/apk/debug/app-debug.apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk JameBouquets.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk JameBouquets-v1.1.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: JameBouquets-APK
-          path: JameBouquets.apk
+          name: JameBouquets-v1.1-APK
+          path: JameBouquets-v1.1.apk
           if-no-files-found: error

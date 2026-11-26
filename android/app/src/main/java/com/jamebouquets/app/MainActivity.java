@@ -56,6 +56,7 @@ public class MainActivity extends Activity {
         setContentView(root);
         root.requestApplyInsets();
         WebSettings s = web.getSettings();
+        s.setUserAgentString(s.getUserAgentString() + " JameBouquetsAndroid/1.1");
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setCacheMode(WebSettings.LOAD_NO_CACHE);
@@ -69,7 +70,8 @@ public class MainActivity extends Activity {
             ServiceWorkerController.getInstance().getServiceWorkerWebSettings().setAllowContentAccess(false);
         }
         CookieManager.getInstance().setAcceptCookie(true);
-        CookieManager.getInstance().setAcceptThirdPartyCookies(web, false);
+        // Storefront and its authenticated Render API are on different HTTPS sites.
+        CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
         WebView.setWebContentsDebuggingEnabled(false);
         web.setWebChromeClient(new WebChromeClient() {
             @Override public void onProgressChanged(WebView view, int value) {

@@ -1,6 +1,6 @@
 import { CustomerTextContext } from './services/customerText';
 import { useState, useEffect, type CSSProperties } from 'react';
-import { Filter, Check, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Filter, Check, ShoppingBag, ArrowRight, Flower2, KeyRound, Gift, Sprout, LayoutGrid } from 'lucide-react';
 import {
   RibbonBouquet,
   Order,
@@ -109,6 +109,7 @@ export default function App() {
   const [siteContent, setSiteContent] = useState<SiteContent>(DEFAULT_SITE_CONTENT);
   const [ownerChecked, setOwnerChecked] = useState(false);
   const editorRoute = window.location.pathname.startsWith('/admin/editor');
+  const androidApp = !editorRoute && /\bJameBouquetsAndroid\/1\.1\b/.test(navigator.userAgent);
   const studioPreview = window.parent !== window && new URLSearchParams(window.location.search).get('studio-preview') === '1';
   const [previewReady,setPreviewReady] = useState(false);
   // The Studio is a viewport-sized workspace. A crop dialog is portalled to
@@ -552,9 +553,28 @@ export default function App() {
 
   const productCategories: string[] = Array.from(new Set<string>(storeSettings.productCategories ?? ['Ribbon Bouquets', 'Pipecleaner Bouquets', 'Bouquet Keychains', 'Pipecleaner Keychains', 'Gift Combos', 'Decor Items', ...bouquets.map(b => b.category).filter(Boolean)]));
 
+  const appGroups = [
+    { id: '__app:ribbon', label: 'Ribbon Flowers', Icon: Flower2, test: (s: string) => /ribbon|bouquet/i.test(s) && !/pipe|chenille|keychain|gift/i.test(s) },
+    { id: '__app:keychains', label: 'Keychains', Icon: KeyRound, test: (s: string) => /key\s*chain/i.test(s) },
+    { id: '__app:pipe', label: 'Pipe Cleaners', Icon: Sprout, test: (s: string) => /pipe\s*cleaner|chenille/i.test(s) && !/key\s*chain/i.test(s) },
+    { id: '__app:gifts', label: 'Gift Boxes', Icon: Gift, test: (s: string) => /gift|combo|box/i.test(s) },
+  ];
+  const appCategories = [
+    ...appGroups,
+    ...productCategories.filter(c=>!appGroups.some(g=>g.test(c))).map(c=>({id:c,label:c,Icon:LayoutGrid,test:(s:string)=>s.toLowerCase()===c.toLowerCase()}))
+  ];
+  const renderAppCategories = () => <section aria-label="Shop by category" className="px-3 py-4 bg-white">
+    <div className="flex items-center justify-between mb-3"><h2 className="text-sm font-semibold text-stone-900">Shop by category</h2><button className="text-xs font-semibold text-rose-700" onClick={()=>navigateCatalogue()}>View all</button></div>
+    <div className="flex gap-3 overflow-x-auto pb-1">
+      {appCategories.map(({id,label,Icon,test})=>{const picture=catalogStatus==='ready'?bouquets.find(p=>test(p.category)&&p.imageUrl)?.imageUrl:undefined;return <button key={id} type="button" aria-pressed={allProducts&&selectedCategory===id} onClick={()=>navigateCatalogue(id)} className="flex w-[76px] shrink-0 flex-col items-center gap-1.5 text-center">
+        <span className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border ${allProducts&&selectedCategory===id?'border-rose-600 ring-2 ring-rose-200':'border-stone-200'} bg-rose-50 text-rose-700`}>{picture?<img src={picture} alt="" className="h-full w-full object-cover" loading="lazy" onError={e=>{e.currentTarget.style.display='none';}}/>:<Icon size={23}/>}</span>
+        <span className="text-[11px] font-medium leading-tight text-stone-700">{label}</span>
+      </button>})}
+    </div>
+  </section>;
   const filteredBouquets = bouquets.filter((b) => {
     const matchesCategory =
-      selectedCategory === 'ALL' || b.category.toLowerCase() === selectedCategory.toLowerCase();
+      selectedCategory === 'ALL' || (androidApp && selectedCategory.startsWith('__app:') ? Boolean(appGroups.find(g=>g.id===selectedCategory)?.test(b.category)) : b.category.toLowerCase() === selectedCategory.toLowerCase());
 
     const rawQuery = normalizeSearchText(searchQuery);
     if (!rawQuery) return matchesCategory;
@@ -691,11 +711,11 @@ export default function App() {
     color: siteContent.appearance.text,
   } as CSSProperties;
 
-  const renderCatalogue=(featuredOnly:boolean)=>{const shown=featuredOnly?featuredProducts:catalogueProducts;return (<main key={featuredOnly?"shop":"catalog"} data-studio-section="shop" id="shop-section" className="jb-shop-section relative isolate py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+  const renderCatalogue=(featuredOnly:boolean)=>{const shown=featuredOnly?featuredProducts:catalogueProducts;return (<main key={featuredOnly?"shop":"catalog"} data-studio-section="shop" id="shop-section" className={`jb-shop-section relative isolate max-w-7xl mx-auto ${androidApp?"py-4 px-3 space-y-4":"py-16 px-4 sm:px-6 lg:px-8 space-y-10"}`}>
             
             {/* Catalog Section Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
+              {androidApp?<h2 className="text-lg font-semibold text-stone-900">{featuredOnly?"Featured products":appCategories.find(c=>c.id===selectedCategory)?.label||"All products"}</h2>:<div>
                 <p className="text-[10px] uppercase tracking-[0.28em] text-stone-500 mb-3"><RichText value={siteContent.shop.eyebrow} presentation={siteContent.textPresentations[siteContent.theme]['shop.eyebrow']} editorSlot="shop.eyebrow"/></p>
                 <h2 className="site-editable-heading font-serif font-normal text-stone-900" style={{ fontSize: `clamp(${2.2 * siteContent.appearance.headingScale}rem, ${4 * siteContent.appearance.headingScale}vw, ${3.2 * siteContent.appearance.headingScale}rem)` }}>
                   {featuredOnly?<RichText value={siteContent.shop.heading} presentation={siteContent.textPresentations[siteContent.theme]['shop.heading']} editorSlot="shop.heading"/>:<CustomerCopy id="catalog.title" fallback="All Products"/>}
@@ -703,11 +723,11 @@ export default function App() {
                 <p className="site-body-copy mt-1 max-w-xl">
                   <RichText value={siteContent.shop.description} presentation={siteContent.textPresentations[siteContent.theme]['shop.description']} editorSlot="shop.description"/>
                 </p>
-              </div>
+              </div>}
 
               {/* Product category filters */}
               {!featuredOnly&&<div className="flex flex-wrap items-center gap-2">
-                <div className="jb-shop-filter-strip flex flex-wrap items-center gap-1.5 bg-stone-100/80 p-1.5 rounded-2xl border border-stone-200">
+                {!androidApp&&<div className="jb-shop-filter-strip flex flex-wrap items-center gap-1.5 bg-stone-100/80 p-1.5 rounded-2xl border border-stone-200">
                   {['ALL', ...productCategories].map((cat) => (
                     <button
                       key={cat}
@@ -721,7 +741,7 @@ export default function App() {
                       {cat === 'ALL' ? 'All Products' : cat}
                     </button>
                   ))}
-                </div>
+                </div>}
                 <label className="text-xs font-medium"><CustomerCopy id="catalog.sort" fallback="Sort by"/> <select aria-label="Sort by" value={sortBy} onChange={e=>setSortBy(e.target.value)} className="ml-1 rounded border bg-white px-2 py-2"><option value="featured">Featured first</option><option value="newest">Newest</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="name">Name: A–Z</option></select></label><label className="text-xs font-medium">Availability <select aria-label="Availability filter" value={availability} onChange={e=>setAvailability(e.target.value)} className="ml-1 rounded border bg-white px-2 py-2"><option value="all">All</option><option value="in">In stock</option><option value="out">Out of stock</option></select></label>
               </div>}
             </div>
@@ -737,7 +757,7 @@ export default function App() {
                 <p className="font-serif text-xl text-stone-800">{siteContent.storeDesign.loadingTitle}</p>
                 <p className="mt-2 text-sm text-stone-500">{siteContent.storeDesign.loadingText}</p>
               </div>
-            ) : catalogStatus === 'offline' && bouquets.length === 0 ? (
+            ) : catalogStatus === 'offline' && (bouquets.length === 0 || androidApp) ? (
               <div className="border border-stone-200 bg-[#FAF8F5] px-6 py-14 text-center" role="alert">
                 <h3 className="font-serif text-2xl text-stone-900">Our collection is temporarily unavailable.</h3>
                 <p className="mt-2 text-sm text-stone-600">We're having trouble loading products. Please try again.</p>
@@ -784,12 +804,12 @@ export default function App() {
           {featuredOnly&&<div className="text-center"><a href="/all-products" onClick={e=>{e.preventDefault();navigateCatalogue();}} className="inline-flex items-center gap-2 rounded border border-stone-400 px-6 py-3 text-sm font-semibold hover:bg-stone-100"><CustomerCopy id="shop.viewMore" fallback="View more"/><ArrowRight size={16}/></a></div>}</main>);};
   if(studioPreview&&(!ownerChecked||!isOwner||!previewReady))return <div className="p-8 text-sm">{ownerChecked&&!isOwner?'Owner session required for preview.':'Preparing secure storefront preview…'}</div>;
   return (
-    <div className={`site-shell flex flex-col selection:bg-rose-100 selection:text-rose-900 ${editorRoute ? 'min-h-0 md:fixed md:inset-0 md:h-dvh md:w-screen md:overflow-hidden' : 'min-h-screen'}`} style={storefrontStyle} data-store-design={!editorRoute && siteContent.storeDesign.enabled ? "on" : "off"} data-site-theme={siteContent.theme} data-hover-lift={siteContent.effects.hoverLift ? "on" : "off"} data-festive-decor={siteContent.effects.enabled && siteContent.effects.illustrationEnabled ? "on" : "off"} data-illustration-placement={siteContent.effects.illustrationPlacement} data-festive-motion={siteContent.effects.enabled && siteContent.effects.artworkMotion ? "on" : "off"}>
+    <div className={`site-shell flex flex-col selection:bg-rose-100 selection:text-rose-900 ${editorRoute ? 'min-h-0 md:fixed md:inset-0 md:h-dvh md:w-screen md:overflow-hidden' : 'min-h-screen'} ${androidApp&&!isOwnerView?'pb-24':''}`} style={storefrontStyle} data-store-design={!editorRoute && siteContent.storeDesign.enabled ? "on" : "off"} data-site-theme={siteContent.theme} data-hover-lift={siteContent.effects.hoverLift ? "on" : "off"} data-festive-decor={siteContent.effects.enabled && siteContent.effects.illustrationEnabled ? "on" : "off"} data-illustration-placement={siteContent.effects.illustrationPlacement} data-festive-motion={siteContent.effects.enabled && siteContent.effects.artworkMotion ? "on" : "off"}>
       
       <CanvasOffsetContext.Provider value={{theme:siteContent.studioThemes.active||siteContent.theme,offsets:siteContent.canvasOffsets,links:siteContent.textLinks}}><CustomerTextContext.Provider value={{text:siteContent.customerText || {},styles:siteContent.customerTextStyles || {},links:siteContent.textLinks}}>
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-stone-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl border border-stone-700 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-3">
+        <div className={`fixed ${androidApp?"bottom-24":"bottom-6"} right-6 z-50 bg-stone-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl border border-stone-700 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-3`}>
           <span>{toastMessage}</span>
         </div>
       )}
@@ -846,6 +866,10 @@ export default function App() {
           {!studioPreview && !cartDrawerOpen && !checkoutModalOpen && !authModalOpen && <PromotionPopup config={siteContent.promotion} product={Boolean(productId)}/>}
           {/* Header & Navigation */}
           <Navbar
+            androidApp={androidApp&&!studioPreview}
+            appShop={allProducts||Boolean(productId)}
+            appTracking={trackingModalOpen}
+            appProfile={profileOpen||authModalOpen}
             theme={siteContent.theme}
             themeExtras={siteContent.themeExtras[siteContent.theme]}
             navigationLabels={siteContent.navigationLabels[siteContent.theme]}
@@ -921,9 +945,18 @@ export default function App() {
                 <button onClick={() => navigateHome()} className="bg-stone-900 px-6 py-3 text-xs text-white">View collection</button>
               </main>
             )
-          ) : allProducts?renderCatalogue(false):(<>
+          ) : allProducts?(androidApp?<>{renderAppCategories()}{renderCatalogue(false)}</>:renderCatalogue(false)):(<>
+          {androidApp&&<>
+            <ThemeBanner theme={siteContent.theme} config={siteContent.themeBanners[siteContent.theme]} editorPreview={false}/>
+            <section className="mx-3 mt-3 flex min-h-32 overflow-hidden rounded-2xl border border-rose-100 bg-rose-50 text-stone-900">
+              <div className="flex flex-1 flex-col items-start justify-center gap-2 p-4"><span className="text-[10px] font-semibold uppercase tracking-wider text-rose-700">Handmade gifts</span><h1 className="text-xl font-semibold leading-tight">Flowers that last forever.</h1><button onClick={()=>navigateCatalogue()} className="rounded-full bg-stone-900 px-4 py-2 text-xs font-semibold text-white">Shop now</button></div>
+              {catalogStatus==='ready'&&bouquets.find(p=>p.featured&&p.imageUrl)?.imageUrl&&<img src={bouquets.find(p=>p.featured&&p.imageUrl)?.imageUrl} alt="" className="w-[40%] object-cover"/>}
+            </section>
+            {renderAppCategories()}
+            {renderCatalogue(true)}
+          </>}
           {/* Shared published homepage layout; the editor controls section order. */}
-          {siteContent.sections.order.filter(id => siteContent.sections.visible[id]).map(id => {
+          {siteContent.sections.order.filter(id => siteContent.sections.visible[id] && (!androidApp || !['hero','collections','shop'].includes(id))).map(id => {
             if (id === 'hero') return (
               <div key={id} data-studio-section="hero">
                 <div data-studio-section="banner"><ThemeBanner theme={siteContent.theme} config={siteContent.themeBanners[siteContent.theme]} editorPreview={studioPreview}/></div>

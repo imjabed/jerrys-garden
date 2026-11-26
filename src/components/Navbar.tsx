@@ -1,7 +1,7 @@
 import CustomerCopy from './CustomerCopy';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { suggestProducts } from '../services/productSuggestions';
-import { ShoppingBag, Search, ShieldCheck, User as UserIcon, Menu, X, Instagram, Mail, LogOut, Package } from 'lucide-react';
+import { ShoppingBag, Search, ShieldCheck, User as UserIcon, Menu, X, Instagram, Mail, LogOut, Package, House, Store } from 'lucide-react';
 import Logo from './Logo';
 import WhatsAppIcon from './WhatsAppIcon';
 import { UserAccount, StoreSettings, RibbonBouquet } from '../types';
@@ -10,6 +10,10 @@ import {safeTextLink,type NavTextBox} from '../../shared/siteEditor';
 import type { ThemeId, ThemeExtras, NavigationLabels } from '../../shared/siteEditor';
 
 interface NavbarProps {
+  androidApp?: boolean;
+  appShop?: boolean;
+  appTracking?: boolean;
+  appProfile?: boolean;
   theme?: ThemeId;
   themeExtras?: ThemeExtras;
   navigationLabels?: NavigationLabels;
@@ -39,6 +43,7 @@ interface NavbarProps {
 }
 
 export default function Navbar({
+  androidApp = false, appShop = false, appTracking = false, appProfile = false,
   theme = 'default',
   themeExtras,
   navigationLabels,
@@ -75,6 +80,45 @@ export default function Navbar({
   const selectProduct=(product:RibbonBouquet)=>{closeSearch(true);onSelectProduct?.(product);};
   useEffect(()=>{setActiveSuggestion(-1);},[searchQuery]);
   useEffect(()=>{if(!showSearchBar)return;searchInput.current?.focus();const outside=(e:PointerEvent)=>{if(e.target instanceof Node&&!searchRef.current?.contains(e.target)&&!searchToggle.current?.contains(e.target)){setShowSearchBar(false);setSearchQuery('');}};document.addEventListener('pointerdown',outside);return()=>document.removeEventListener('pointerdown',outside);},[showSearchBar,setSearchQuery]);
+
+  const [appSearchFocused,setAppSearchFocused] = useState(false);
+  if(androidApp) return <>
+    <header className="sticky top-0 z-40 border-b border-stone-200 bg-white text-stone-900 shadow-sm">
+      <div className="flex items-center justify-between px-3 py-2">
+        <button type="button" onClick={()=>{setAppSearchFocused(false);(onNavigateHome||onNavigateToShop)();}} aria-label="Jame Bouquets home"><Logo size="sm" showSubtitle={false} logoUrl={storeSettings.logoUrl} brandName={storeSettings.storeName||'Jame Bouquets'}/></button>
+        <button type="button" id="cart-btn" onClick={()=>{setAppSearchFocused(false);onOpenCart();}} aria-label={`Shopping cart, ${cartCount} items`} className="relative flex h-10 w-10 items-center justify-center rounded-full bg-stone-100">
+          {useCustomCartIcon?<img src={cartIconUrl} alt="" className="h-6 w-6 object-contain" onError={()=>setFailedCartIcon(cartIconUrl)}/>:<ShoppingBag size={20}/>}
+          {cartCount>0&&<span className="absolute -right-1 -top-1 rounded-full bg-rose-700 px-1.5 py-0.5 text-[10px] font-bold text-white">{cartCount}</span>}
+        </button>
+      </div>
+      <div className="relative px-3 pb-3" onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))setAppSearchFocused(false);}}>
+        <form className="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3" onSubmit={e=>{e.preventDefault();setAppSearchFocused(false);(onSearchSubmit||onNavigateToShop)();}}>
+          <Search size={18} className="shrink-0 text-stone-500"/>
+          <input type="search" aria-label="Search products" value={searchQuery} onFocus={()=>setAppSearchFocused(true)} onChange={e=>{setSearchQuery(e.target.value);setAppSearchFocused(true);}} placeholder="Search flowers, gifts and more" className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"/>
+          <button type="submit" className="text-xs font-semibold text-rose-700">Search</button>
+        </form>
+        {appSearchFocused&&searchQuery.trim()&&<div className="absolute left-3 right-3 top-full max-h-[50vh] overflow-auto rounded-xl border bg-white shadow-lg">
+          {suggestions.length?suggestions.map(p=><button type="button" key={p.id} onMouseDown={e=>e.preventDefault()} onClick={()=>{setAppSearchFocused(false);selectProduct(p);}} className="flex w-full items-center gap-3 border-b border-stone-100 p-2 text-left text-sm"><img src={p.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover"/><span>{p.title}</span></button>):<p className="p-3 text-sm text-stone-500">No matching products. Try another search.</p>}
+        </div>}
+      </div>
+    </header>
+    <nav aria-label="Android bottom navigation" className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-stone-200 bg-white px-2 pb-[max(6px,env(safe-area-inset-bottom))] pt-2 text-stone-600 shadow-[0_-4px_18px_rgba(0,0,0,0.06)]">
+      {[
+        {label:'Home',Icon:House,active:!appShop&&!appTracking&&!appProfile,action:()=>{setUserDropdownOpen(false);(onNavigateHome||onNavigateToShop)();}},
+        {label:'Shop',Icon:Store,active:appShop&&!appTracking&&!appProfile,action:()=>{setUserDropdownOpen(false);onNavigateToShop();}},
+        {label:'Track',Icon:Package,active:appTracking,action:()=>{setUserDropdownOpen(false);onOpenTracking();}},
+        {label:'Profile',Icon:UserIcon,active:appProfile||userDropdownOpen,action:()=>{if(activeUser)setUserDropdownOpen(v=>!v);else onOpenAuth();}}
+      ].map(({label,Icon,active,action})=><button key={label} type="button" aria-current={active?'page':undefined} onClick={()=>{setAppSearchFocused(false);action();}} className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[11px] font-medium ${active?'text-rose-700':'text-stone-500'}`}><span className={`rounded-full px-4 py-1 ${active?'bg-rose-100':''}`}><Icon size={21}/></span>{label}</button>)}
+    </nav>
+    {userDropdownOpen&&activeUser&&<div className="fixed inset-0 z-50 flex items-end bg-black/30" onClick={()=>setUserDropdownOpen(false)}>
+      <div role="dialog" aria-modal="true" aria-label="Profile menu" onClick={e=>e.stopPropagation()} className="w-full rounded-t-2xl bg-white p-5 pb-8 text-stone-900 shadow-xl">
+        <div className="mb-4 flex items-center justify-between"><div><p className="font-semibold">{activeUser.name}</p><p className="text-xs text-stone-500">{activeUser.email}</p></div><button aria-label="Close profile menu" onClick={()=>setUserDropdownOpen(false)}><X size={22}/></button></div>
+        <button className="block w-full border-t py-3 text-left text-sm" onClick={()=>{setUserDropdownOpen(false);onOpenProfile?.();}}>My profile & saved addresses</button>
+        <button className="block w-full border-t py-3 text-left text-sm" onClick={()=>{setUserDropdownOpen(false);onOpenTracking();}}>My orders & tracking</button>
+        <button className="block w-full border-t py-3 text-left text-sm text-red-700" onClick={()=>{setUserDropdownOpen(false);onLogoutUser();}}>Sign out</button>
+      </div>
+    </div>}
+  </>;
 
   return (
     <header className="jb-nav-surface sticky top-0 z-40 border-b border-stone-200/80 backdrop-blur-md transition-all" data-nav-theme={theme}>
