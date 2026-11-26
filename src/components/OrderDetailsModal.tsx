@@ -6,6 +6,7 @@ import { X, Phone, Mail, MapPin, Calendar, Clock, QrCode, CheckCircle2, XCircle,
 import { Order, OrderStatus } from '../types';
 
 interface OrderDetailsModalProps {
+  key?: string;
   order: Order | null;
   onClose: () => void;
   onUpdateStatus: (orderId: string, status: OrderStatus) => void;

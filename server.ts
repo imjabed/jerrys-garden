@@ -1171,7 +1171,7 @@ async function startServer() {
 
   app.post('/api/bouquets', requireOwner, requireClientHeader, async (req, res) => {
     try {
-      const bouquet = req.body;
+      const bouquet = req.body as Record<string, any>;
       if (!bouquet || !bouquet.id || !bouquet.title || typeof bouquet.price !== 'number' || bouquet.price < 0) return res.status(400).json({ success: false, error: 'Valid bouquet data is required.' });
       const database = await getMongoDb();
       if (!database) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable.' });
