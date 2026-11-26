@@ -425,6 +425,7 @@ export default function OwnerDashboard({
             </div>
 
             <div className="flex flex-wrap gap-3 mb-4 text-xs"><label>From <input type="date" value={orderFrom} onChange={e=>setOrderFrom(e.target.value)} /></label><label>To <input type="date" min={orderFrom || undefined} value={orderTo} onChange={e=>setOrderTo(e.target.value)} /></label><button onClick={()=>{setOrderFrom('');setOrderTo('');}}>Clear dates</button></div>
+            <details className="mb-4 rounded-xl border border-stone-200 bg-white p-3 text-xs text-stone-600"><summary className="cursor-pointer font-semibold">ID format guide</summary><p className="mt-2">Customer: C-DDMMYY#Serial — C-010126#73 means customer 73, registered 1 January 2026.</p><p className="mt-1">Order: O-DDMMYY#CustomerSerial-OrderSequence — O-010126#73-7 means customer 73's seventh order, placed 1 January 2026.</p><p className="mt-1">Guest: O-DDMMYY#G-DailySequence. Dates use Indian Standard Time. Older order IDs retain their original format.</p></details>
             {/* Orders Table / Cards */}
             <div className="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
               {filteredOrders.length === 0 ? (
@@ -631,7 +632,7 @@ export default function OwnerDashboard({
 
         {/* TAB 3: REGISTERED CUSTOMERS (MONGODB ATLAS & LOCAL) */}
         {activeTab === 'customers' && (
-          <CustomerInsights customers={customers} orders={orders} onViewOrder={onOpenOrderDetails}/>
+          <div><details className="mb-4 rounded-xl border border-stone-200 bg-white p-3 text-xs text-stone-600"><summary className="cursor-pointer font-semibold">ID format guide</summary><p className="mt-2">Customer: C-DDMMYY#Serial — C-010126#73 means customer 73, registered 1 January 2026. The serial is global, not reset daily.</p><p className="mt-1">Order: O-DDMMYY#CustomerSerial-OrderSequence — O-010126#73-7 means customer 73's seventh order, placed 1 January 2026. G denotes guest orders. Legacy accounts may not yet have a customer ID.</p></details><CustomerInsights customers={customers} orders={orders} onViewOrder={onOpenOrderDetails}/></div>
         )}
 
         {/* TAB 4: UPI & STORE SETTINGS */}
