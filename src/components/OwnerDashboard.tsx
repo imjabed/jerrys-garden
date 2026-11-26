@@ -378,7 +378,7 @@ export default function OwnerDashboard({
                   <p className="text-sm">Category: {stockDetail.category}</p>
                   <p className="text-sm">Stock: {stockDetail.stockLeft ?? 'Not set'}</p>
                   <p className="text-sm">Price: ₹{stockDetail.price}</p>
-                  <p className="text-sm">Delivery: ₹{stockDetail.deliveryCost ?? 0}</p>
+                  <p className="text-sm">Delivery: calculated from destination PIN and packed parcel.</p>
                   <p className="mt-2 text-sm">{stockDetail.description}</p>
                   <p className="mt-2 text-sm">Variants: {stockDetail.ribbonColors?.join(', ')}</p>
                   <div className="mt-3 space-y-1">{stockDetail.sizeOptions?.map(size => <p key={size.size} className="text-sm">{size.name || size.size}: ₹{size.price}, {size.flowerCount} flowers</p>)}</div>
