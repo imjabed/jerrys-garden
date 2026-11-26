@@ -780,14 +780,14 @@ async function startServer() {
     try {
       const results = await buildCollections(req.body || {});
       return res.json({ success: true, message: 'Collections verified successfully.', results });
-    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' || 'Failed to build collections' }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   app.post('/api/mongodb/build-customers-products', requireOwner, requireClientHeader, requireMaintenance, async (req, res) => {
     try {
       const results = await buildCollectionsForCustomersAndProducts(req.body || {});
       return res.json({ success: true, message: 'Collections verified successfully.', results });
-    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' || 'Failed to build collections' }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   app.post('/api/mongodb/config', requireOwner, requireClientHeader, requireMaintenance, async (req, res) => {
@@ -797,14 +797,14 @@ async function startServer() {
       if (!uri || typeof uri !== 'string' || !uri.startsWith('mongodb')) return res.status(400).json({ success: false, error: 'A valid MongoDB URI is required.' });
       setCustomMongoUri(uri, database);
       return res.json({ success: true, message: 'MongoDB configuration updated.', status: await getMongoStatus() });
-    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' || 'Failed to update MongoDB configuration' }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   app.post('/api/mongodb/seed', requireOwner, requireClientHeader, requireMaintenance, async (req, res) => {
     try {
       const results = await seedMongoCollections(req.body || {});
       return res.json({ success: true, message: 'Data synchronized with MongoDB.', results });
-    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' || 'Failed to sync with MongoDB' }); }
+    } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
   // Customers: only owner can list customers. Registration/login are public.
@@ -1156,7 +1156,7 @@ async function startServer() {
         const q=Number(item.quantity);if(!Number.isInteger(q)||q<1||q>20||typeof item.productId!=='string')return res.status(400).json({success:false,error:'Invalid cart item.'});
         const p=await db.collection('products').findOne({id:item.productId});
         if(!p||p.inStock===false)return res.status(409).json({success:false,error:'Product unavailable. Refresh your bag.'});
-        const sized=hasProductSizes(p),v=sized?productSizeFor(p as any,item.selectedSize||'M'):null;
+        const sized=hasProductSizes({category:p.category,sizeOptions:p.sizeOptions}),v=sized?productSizeFor(p as any,item.selectedSize||'M'):null;
         if(sized&&!v)return res.status(409).json({success:false,error:'Selected size unavailable.'});
         subtotal+=Number(v?.price??p.price)*q;items.push({bouquet:p,quantity:q});
       }
@@ -1784,7 +1784,7 @@ async function startServer() {
     const at=new Date().toISOString();
     const initial={state:'manifesting',environment,warehouse,parcel,estimatedCourierFee:quote.shippingCharge,customerDeliveryFee:order.deliveryFee,startedAt:at,pickupDate:date,pickupTime:time};
     // Atomic durable lock. Timeouts/uncertain provider outcomes require manual reconciliation, not automatic retries.
-    const lock=await collection.updateOne({id:order.id,status:{$in:['Order Placed','Pending']},courierShipment:{$exists:false}},{$set:{courierShipment:initial,updatedAt:at}});
+    const lock=await collection.updateOne({id:order.id,status:{$in:['Order Placed','Pending']},courierShipment:{$exists:false}},{$set:{courierShipment:initial,updatedAt:at,'payment.paymentStatus':'Verified','payment.paidAt':at}});
     if(lock.modifiedCount!==1)return res.status(409).json({success:false,error:'Dispatch already started; refresh the order.'});
     let waybill='',stage='manifesting';
     const persist=async(state:string,extra:any={})=>{await collection.updateOne({id:order.id},{$set:{courierShipment:{...initial,state,...(waybill?{waybill}:{}),...extra},updatedAt:new Date().toISOString()}});};
