@@ -42,12 +42,19 @@ export default function OrderTrackingModal({
   useEffect(() => {
     if (!isOpen || !preselectedOrderId) return;
     const local = orders.find((o) => o.orderNumber === preselectedOrderId || o.id === preselectedOrderId);
-    if (local) { setSelectedOrder(local); return; }
+    if (local) setSelectedOrder(local);
     apiLookupOrder(preselectedOrderId).then((result) => {
       if (result.success && result.order) setSelectedOrder(result.order);
     });
   }, [isOpen, preselectedOrderId, orders]);
 
+  useEffect(()=>{
+    if(!isOpen||!activeUser||!selectedOrder?.orderNumber)return;
+    let cancelled=false;const ref=selectedOrder.orderNumber;
+    const refresh=async()=>{const result=await apiLookupOrder(ref);if(!cancelled&&result.success&&result.order)setSelectedOrder(result.order);};
+    void refresh();const timer=window.setInterval(refresh,30000);
+    return ()=>{cancelled=true;window.clearInterval(timer);};
+  },[isOpen,activeUser?.email,selectedOrder?.orderNumber]);
   if (!isOpen) return null;
 
   const handleSearch = async (e: FormEvent) => {
@@ -56,7 +63,7 @@ export default function OrderTrackingModal({
     if (!query) return;
 
     const localMatch = orders.find((o) => o.orderNumber.toLowerCase() === query.toLowerCase() || o.id.toLowerCase() === query.toLowerCase());
-    if (localMatch) { setSelectedOrder(localMatch); return; }
+    if (localMatch) setSelectedOrder(localMatch);
 
     const result = await apiLookupOrder(query);
     setSelectedOrder(result.success && result.order ? result.order : null);
@@ -193,7 +200,7 @@ export default function OrderTrackingModal({
                     {selectedOrder.orderType === 'Custom' ? `₹${selectedOrder.customDetails?.estimatedMin?.toLocaleString('en-IN')} – ₹${selectedOrder.customDetails?.estimatedMax?.toLocaleString('en-IN')}` : `₹${selectedOrder.totalAmount.toLocaleString('en-IN')}`}
                   </p>
                   <span className="inline-block text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md mt-0.5">
-                    {selectedOrder.payment.method === 'CONTACT_LATER' ? 'Our team will call to confirm' : 'Legacy order'}
+                    {selectedOrder.orderType==='Custom'?'Quote pending':`${selectedOrder.payment.method==='COD'?'Cash on Delivery':'Prepaid'} · ${selectedOrder.payment.paymentStatus==='Verified'?'Paid':selectedOrder.payment.paymentStatus==='Refunded'?'Refunded':'Unpaid'}`}
                   </span>
                 </div>
               </div>
@@ -317,7 +324,7 @@ export default function OrderTrackingModal({
               {/* Contact-first ordering: no payment is taken on the website. */}
               <div className="p-4 border border-stone-200 bg-[#FAF8F5] text-sm text-stone-700">
                 <p className="font-medium text-stone-900">{selectedOrder.orderType === 'Custom' ? 'Final price confirmed by our team' : `Products subtotal · ₹${selectedOrder.subtotal.toLocaleString('en-IN')}`}</p>
-                <p className="mt-1 text-xs text-stone-500"><CustomerCopy id={"trackingExtra.0"} fallback={"Our team will contact you for order confirmation and payment arrangements."}/></p>
+                <p className="mt-1 text-xs text-stone-500">{selectedOrder.orderType==='Custom'?'Our team will contact you to confirm the quote.':selectedOrder.payment.paymentStatus==='Verified'?'Payment received.':selectedOrder.payment.paymentStatus==='Refunded'?'Payment refunded.':selectedOrder.payment.method==='COD'?'Pay the order amount on delivery.':'Our team will contact you to arrange prepaid payment before dispatch.'}</p>
               </div>
 
               {/* Delivery Details Card */}
