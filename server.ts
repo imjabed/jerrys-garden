@@ -1218,11 +1218,11 @@ async function startServer() {
       if (!bouquet || !bouquet.id || !bouquet.title || typeof bouquet.price !== 'number' || bouquet.price < 0) return res.status(400).json({ success: false, error: 'Valid bouquet data is required.' });
       const database = await getMongoDb();
       if (!database) return res.status(503).json({ success: false, connected: false, error: 'Database is unavailable.' });
-      if ((!Number.isSafeInteger(bouquet.stockLeft) || bouquet.stockLeft < 0)
-        || (bouquet.deliveryCost !== undefined && (!Number.isFinite(bouquet.deliveryCost) || bouquet.deliveryCost < 0
-          || Math.abs(bouquet.deliveryCost * 100 - Math.round(bouquet.deliveryCost * 100)) > 0.000001))) {
-        return res.status(400).json({ success: false, error: 'Enter a valid stock quantity and delivery cost.' });
+      if (!Number.isSafeInteger(bouquet.stockLeft) || bouquet.stockLeft < 0) {
+        return res.status(400).json({ success: false, error: 'Enter a valid stock quantity.' });
       }
+      // Shipping fees are calculated server-side from the destination and parcel.
+      delete bouquet.deliveryCost;
       if (!validParcel({parcelLengthCm:bouquet.parcelLengthCm,parcelWidthCm:bouquet.parcelWidthCm,parcelHeightCm:bouquet.parcelHeightCm,parcelWeightGrams:bouquet.parcelWeightGrams})) return res.status(400).json({ success: false, error: 'Invalid packed parcel measurements.' });
       if (hasProductSizes(bouquet)) {
         if (!Array.isArray(bouquet.sizeOptions) || bouquet.sizeOptions.length < 1
