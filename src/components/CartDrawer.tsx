@@ -1,7 +1,9 @@
 import CustomerCopy from './CustomerCopy';
+import { useEffect, useState } from 'react';
+import { apiCartShippingQuote } from '../services/api';
 import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck } from 'lucide-react';
 import { CartItem } from '../types';
-import { PRODUCT_SIZE_LABELS, productSizeFor, productDeliveryTotal } from '../../shared/productSizes';
+import { PRODUCT_SIZE_LABELS, productSizeFor } from '../../shared/productSizes';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -20,10 +22,34 @@ export default function CartDrawer({
   onRemoveItem,
   onCheckout,
 }: CartDrawerProps) {
+  const [pin,setPin]=useState(()=>{try{return (localStorage.getItem('jb_delivery_pin')||'').replace(/\D/g,'').slice(0,6);}catch{return '';}});
+  const [quote,setQuote]=useState<{key:string;fee:number;subtotal:number}|null>(null);
+  const [quoteError,setQuoteError]=useState<{key:string;message:string}|null>(null);
+  const [revision,setRevision]=useState(0);
+  const cartKey=JSON.stringify(cartItems.map(item=>({productId:item.bouquet.id,quantity:item.quantity,selectedSize:item.selectedSize})));
+  const validPin=/^[0-9]{6}$/.test(pin);
+  const requestKey=pin+':'+cartKey+':'+revision;
+  useEffect(()=>{
+    let cancelled=false;
+    setQuote(null);setQuoteError(null);
+    if(!isOpen||!validPin||!cartItems.length)return;
+    const timer=window.setTimeout(async()=>{
+      try{
+        const result=await apiCartShippingQuote(pin,JSON.parse(cartKey));
+        const options=Array.isArray(result.options)?result.options:[];
+        const selected=options.find(o=>o.deliveryMode==='standard')||options[0];
+        if(!selected||!Number.isFinite(selected.customerDeliveryFee)||selected.customerDeliveryFee<0||!Number.isFinite(result.subtotal)||result.subtotal<0)throw Error('Delivery estimate unavailable.');
+        if(!cancelled)setQuote({key:requestKey,fee:selected.customerDeliveryFee,subtotal:result.subtotal});
+      }catch(err){if(!cancelled)setQuoteError({key:requestKey,message:err instanceof Error?err.message:'Delivery estimate unavailable.'});}
+    },300);
+    return ()=>{cancelled=true;window.clearTimeout(timer);};
+  },[isOpen,validPin,pin,cartKey,requestKey,cartItems.length]);
+  const changePin=(value:string)=>{const next=value.replace(/\D/g,'').slice(0,6);setPin(next);try{if(/^[0-9]{6}$/.test(next))localStorage.setItem('jb_delivery_pin',next);else localStorage.removeItem('jb_delivery_pin');}catch{}};
   if (!isOpen) return null;
-
-  const subtotal = cartItems.reduce((acc, item) => acc + item.bouquet.price * item.quantity, 0);
-  const deliveryFee = productDeliveryTotal(cartItems);
+  const current=quote?.key===requestKey?quote:null;
+  const currentError=quoteError?.key===requestKey?quoteError.message:'';
+  const subtotal=current?.subtotal??cartItems.reduce((acc,item)=>acc+item.bouquet.price*item.quantity,0);
+  const deliveryFee=current?.fee??null;
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Shopping cart" id="jb-cart-drawer" className="fixed inset-0 z-[100] overflow-hidden animate-in fade-in duration-200">
@@ -148,9 +174,16 @@ export default function CartDrawer({
               <div className="flex justify-between text-sm text-stone-800">
                 <span><CustomerCopy id={"cart.1"} fallback={"Products subtotal"}/></span><strong>₹{subtotal}</strong>
               </div>
-              <div className="flex justify-between text-sm text-stone-800">
-                <span><CustomerCopy id={"cart.2"} fallback={"Delivery"}/></span><strong>{deliveryFee === 0 ? 'Free Delivery' : `₹${deliveryFee}`}</strong>
+              <div className="space-y-1">
+                <label htmlFor="cart-delivery-pin" className="text-xs font-medium">Delivery PIN code</label>
+                <input id="cart-delivery-pin" type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="postal-code" value={pin} onChange={e=>changePin(e.target.value)} placeholder="Enter six-digit PIN" className="w-full rounded-lg border border-stone-300 bg-transparent px-3 py-2 text-sm"/>
               </div>
+              <div className="flex justify-between gap-3 text-sm text-stone-800" role="status">
+                <span><CustomerCopy id={"cart.2"} fallback={"Delivery"}/></span><strong className="text-right">{deliveryFee===null?(!validPin?'Enter PIN to calculate':currentError?'Unavailable':'Calculating…'):deliveryFee===0?'Free Delivery':`₹${deliveryFee.toLocaleString('en-IN')}`}</strong>
+              </div>
+              {currentError&&<div className="text-xs text-stone-600" role="alert">{currentError} <button type="button" className="underline" onClick={()=>setRevision(n=>n+1)}>Retry</button></div>}
+              {deliveryFee!==null&&<div className="flex justify-between text-sm font-semibold text-stone-900"><span>Estimated total</span><span>₹{(subtotal+deliveryFee).toLocaleString('en-IN')}</span></div>}
+              <p className="text-xs text-stone-500">Delivery charges are verified again at checkout.</p>
               <p className="text-xs text-stone-500"><CustomerCopy id={"cart.3"} fallback={"No payment now. We'll call to confirm your order."}/></p>
               <button
                 id="cart-checkout-btn"
