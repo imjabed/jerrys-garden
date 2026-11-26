@@ -1017,7 +1017,7 @@ async function startServer() {
   const useShadowfax=()=>process.env.SHIPPING_PROVIDER==='shadowfax';
   const activeCourierModes=(settings:any):CourierMode[]=>useShadowfax()?enabledCourierModes(settings).filter(mode=>mode==='standard'):enabledCourierModes(settings);
   const shadowfaxEnv=()=>process.env.SHADOWFAX_ENV==='staging'?'staging':'production';
-  const shadowfaxOrigin=()=>{const pin=process.env.SHADOWFAX_PICKUP_PINCODE?.trim()||'742101';if(!/^[1-9][0-9]{5}$/.test(pin))throw Error('INVALID_PICKUP_PIN');return pin;};
+  const shadowfaxOrigin=()=>{const pin=process.env.SHADOWFAX_PICKUP_PIN?.trim()||process.env.SHADOWFAX_PICKUP_PINCODE?.trim()||'742101';if(!/^[1-9][0-9]{5}$/.test(pin))throw Error('INVALID_PICKUP_PIN');return pin;};
   const shadowfaxRequest=async(path:string,body?:any)=>{
     const token=process.env.SHADOWFAX_API_TOKEN?.trim();if(!token)throw Error('SHADOWFAX_NOT_CONFIGURED');
     const host=shadowfaxEnv()==='staging'?'https://dale.staging.shadowfax.in/api':'https://dale.shadowfax.in/api';
