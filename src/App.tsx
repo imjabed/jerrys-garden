@@ -1,3 +1,4 @@
+import type { DeliveryMode } from '../shared/deliveryModes';
 import { CustomerTextContext } from './services/customerText';
 import { useState, useEffect, type CSSProperties } from 'react';
 import { Filter, Check, ShoppingBag, ArrowRight, Flower2, KeyRound, Gift, Sprout, LayoutGrid } from 'lucide-react';
@@ -175,6 +176,7 @@ export default function App() {
   const [customMobileOpen, setCustomMobileOpen] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [directBuyItems, setDirectBuyItems] = useState<CartItem[] | null>(null);
+  const [preferredDeliveryMode,setPreferredDeliveryMode]=useState<DeliveryMode>('standard');
   const [trackingModalOpen, setTrackingModalOpen] = useState(false);
   const [preselectedTrackingId, setPreselectedTrackingId] = useState<string | undefined>(undefined);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -416,13 +418,14 @@ export default function App() {
   };
 
   // Quick Buy (add & open checkout immediately)
-  const handleQuickBuy = (bouquet: RibbonBouquet, quantity = 1, selectedSize?: ProductSizeKey) => {
+  const handleQuickBuy = (bouquet: RibbonBouquet, quantity = 1, selectedSize?: ProductSizeKey, deliveryMode:DeliveryMode='standard') => {
     if (bouquet.inStock === false || bouquet.stockLeft === 0) { showToast('This piece is currently unavailable.'); return; }
     const needsSize = hasProductSizes(bouquet);
     const size = needsSize ? selectedSize || normalizeProductSizes(bouquet).find(v => v.available)?.size : undefined;
     const variant = needsSize ? productSizeFor(bouquet, size) : null;
     if (needsSize && !variant) { showToast('Select an available size first.'); return; }
     const selectedProduct = variant ? { ...bouquet, price: variant.price, flowerCount: variant.flowerCount, imageUrl: variant.images?.[0] || bouquet.imageUrl } : bouquet;
+    setPreferredDeliveryMode(deliveryMode);
     setDirectBuyItems([{ bouquet: selectedProduct, quantity, selectedSize: size }]);
     setCheckoutModalOpen(true);
   };
@@ -1047,6 +1050,7 @@ renderCatalogue(true)
           onCheckout={() => {
             setCartDrawerOpen(false);
             setDirectBuyItems(null);
+            setPreferredDeliveryMode('standard');
             setCheckoutModalOpen(true);
           }}
         />
@@ -1057,6 +1061,7 @@ renderCatalogue(true)
         <CheckoutModal
           isOpen={checkoutModalOpen}
           onClose={() => { setCheckoutModalOpen(false); setDirectBuyItems(null); }}
+          initialDeliveryMode={directBuyItems?preferredDeliveryMode:'standard'}
           cartItems={directBuyItems ?? cart}
           storeSettings={storeSettings}
           activeUser={activeUser}

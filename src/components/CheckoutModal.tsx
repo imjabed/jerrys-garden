@@ -8,6 +8,7 @@ import { isValidOptionalDeliveryDate, earliestDeliveryDate } from '../../shared/
 
 interface CheckoutModalProps {
   isOpen: boolean;
+  initialDeliveryMode?: DeliveryMode;
   onClose: () => void;
   cartItems: CartItem[];
   storeSettings: StoreSettings;
@@ -15,7 +16,7 @@ interface CheckoutModalProps {
   onOrderSuccess: (order: Order) => Promise<Order>;
 }
 
-export default function CheckoutModal({ isOpen, onClose, cartItems, storeSettings, activeUser, onOrderSuccess }: CheckoutModalProps) {
+export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', onClose, cartItems, storeSettings, activeUser, onOrderSuccess }: CheckoutModalProps) {
   const [step, setStep] = useState<'details' | 'confirmed'>('details');
   const [submittedOrder, setSubmittedOrder] = useState<Order | null>(null);
   const [busy, setBusy] = useState(false);
@@ -38,7 +39,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
     giftNote: '',
   });
   const [shipping,setShipping]=useState<{options:(CourierQuote & {customerDeliveryFee:number;freeDeliveryEligible:boolean})[];subtotal:number;pin:string;key:string}|null>(null);
-  const [deliveryMode,setDeliveryMode]=useState<DeliveryMode>('standard');
+  const [deliveryMode,setDeliveryMode]=useState<DeliveryMode>(initialDeliveryMode);
   const [shippingError, setShippingError] = useState('');
   const [shippingBusy, setShippingBusy] = useState(false);
   const shippingCartKey = cartItems.map(item => item.bouquet.id + ':' + item.quantity + ':' + (item.selectedSize || 'ONE')).join('|');
@@ -53,7 +54,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
     (async () => {
       try {
         const quote = await apiCartShippingQuote(customer.pincode,cartItems.map(item=>({productId:item.bouquet.id,quantity:item.quantity,selectedSize:item.selectedSize})));
-        if (!cancelled) {const options=quote.options||[{...quote,deliveryMode:quote.deliveryMode||'standard'}];setShipping({options,subtotal:quote.subtotal,pin:customer.pincode,key:shippingCartKey});setDeliveryMode(current=>options.some(o=>o.deliveryMode===current)?current:options[0].deliveryMode);}
+        if (!cancelled) {const options=quote.options;if(!Array.isArray(options)||!options.length)throw new Error('Delivery options unavailable. Please try again.');setShipping({options,subtotal:quote.subtotal,pin:customer.pincode,key:shippingCartKey});setDeliveryMode(current=>options.some(o=>o.deliveryMode===current)?current:options[0].deliveryMode);}
       } catch (err: any) {
         if (!cancelled) setShippingError(err?.message || 'Could not calculate courier charges.');
       } finally { if (!cancelled) setShippingBusy(false); }
@@ -105,7 +106,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
       setError('Enter your delivery city and confirm your address.');
       return;
     }
-    if (customer.deliveryDate && (!minimumDeliveryDate || customer.deliveryDate < minimumDeliveryDate || !isValidOptionalDeliveryDate(customer.deliveryDate))) {
+    if (customer.deliveryDate && (!minimumDeliveryDate || customer.deliveryDate < minimumDeliveryDate || !/^\d{4}-\d{2}-\d{2}$/.test(customer.deliveryDate))) {
       setError('Choose a date on or after the courier estimate, or leave the preferred date blank.');
       return;
     }

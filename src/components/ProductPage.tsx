@@ -1,4 +1,4 @@
-import { validParcel, chargeableGrams, estimateParcel } from '../../shared/parcelShipping';
+import type { DeliveryMode } from '../../shared/deliveryModes';
 import CustomerCopy from './CustomerCopy';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, ChevronRight, Heart, Minus, Plus, ShoppingBag, Star } from 'lucide-react';
@@ -6,7 +6,7 @@ import type { RibbonBouquet } from '../types';
 import type { ProductSizeKey } from '../../shared/productSizes';
 import { PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS, hasProductSizes, discountPercent, normalizeProductSizes, productSizeFor } from '../../shared/productSizes';
 import ProductReviews from './ProductReviews';
-import { apiShippingQuote, apiShippingServiceability } from '../services/api';
+import { apiCartShippingQuote, type CourierQuote } from '../services/api';
 import type { ReviewSummary } from '../services/api';
 
 interface Props {
@@ -18,7 +18,7 @@ interface Props {
   onSelectProduct: (productId: string) => void;
   onBackToShop: (category?: string) => void;
   onAddToCart: (product: RibbonBouquet, quantity: number, size?: ProductSizeKey) => void;
-  onBuyNow: (product: RibbonBouquet, quantity: number, size?: ProductSizeKey) => void;
+  onBuyNow: (product: RibbonBouquet, quantity: number, size?: ProductSizeKey, deliveryMode?: DeliveryMode) => void;
   onSignIn: () => void;
   onReviewSubmitted: () => void;
   showRecommendations?: boolean;
@@ -39,31 +39,26 @@ export default function ProductPage({
   const [deliveryPin, setDeliveryPin] = useState(() => { try { return localStorage.getItem('jb_delivery_pin') || ''; } catch { return ''; } });
   const [courierMessage, setCourierMessage] = useState('');
   const [courierBusy, setCourierBusy] = useState(false);
-  const [courierQuote, setCourierQuote] = useState<{ shippingCharge: number; estimatedDeliveryDate: string | null; deliveryMinDays?: number; deliveryMaxDays?: number; localDelivery?: boolean } | null>(null);
+  const [deliveryOptions,setDeliveryOptions]=useState<(CourierQuote & {customerDeliveryFee:number;freeDeliveryEligible:boolean})[]>([]);
+  const [deliveryMode,setDeliveryMode]=useState<DeliveryMode>('standard');
   useEffect(() => {
     let cancelled = false;
     setCourierMessage('');
-    setCourierQuote(null);
+    setDeliveryOptions([]);
+    setCourierBusy(false);
+    try { if (/^[0-9]{6}$/.test(deliveryPin)) localStorage.setItem('jb_delivery_pin',deliveryPin); else localStorage.removeItem('jb_delivery_pin'); } catch {}
     if (!/^[0-9]{6}$/.test(deliveryPin)) return;
-    try { localStorage.setItem('jb_delivery_pin', deliveryPin); } catch {}
-    const parcel=estimateParcel([{bouquet:product,quantity}]);
-    if (!parcel) {
-      setCourierMessage('Courier estimate pending: packed dimensions are not configured or package is too large.');
-      return;
-    }
     setCourierBusy(true);
-    (async () => {
+    const timer=window.setTimeout(async () => {
       try {
-        const available = await apiShippingServiceability(deliveryPin);
-        if (!available.serviceable || !available.prepaid) throw new Error('Delivery is not available for this PIN.');
-        const quote = await apiShippingQuote(deliveryPin, chargeableGrams(parcel));
-        if (!cancelled) setCourierQuote(quote);
-      } catch (error: any) {
-        if (!cancelled) setCourierMessage(error?.message || 'Courier estimate unavailable.');
-      } finally { if (!cancelled) setCourierBusy(false); }
-    })();
-    return () => { cancelled = true; };
-  }, [deliveryPin, product.id, product.parcelWeightGrams,product.parcelLengthCm,product.parcelWidthCm,product.parcelHeightCm,quantity]);
+        const quote=await apiCartShippingQuote(deliveryPin,[{productId:product.id,quantity,selectedSize:isBouquet?selectedSize:undefined}]);
+        if (!Array.isArray(quote.options)||!quote.options.length) throw new Error('Delivery methods are temporarily unavailable. Please try again.');
+        if(!cancelled){setDeliveryOptions(quote.options);setDeliveryMode(current=>quote.options.some(o=>o.deliveryMode===current)?current:quote.options[0].deliveryMode);}
+      } catch(error:any){if(!cancelled)setCourierMessage(error?.message||'Courier estimate unavailable.');}
+      finally{if(!cancelled)setCourierBusy(false);}
+    },300);
+    return ()=>{cancelled=true;window.clearTimeout(timer);};
+  },[deliveryPin,product.id,product.parcelWeightGrams,product.parcelLengthCm,product.parcelWidthCm,product.parcelHeightCm,quantity,isBouquet,selectedSize]);
 
 
   useEffect(() => {
@@ -106,7 +101,7 @@ export default function ProductPage({
     if (!canBuy) return;
     const size = isBouquet ? selectedSize : undefined;
     const requestedQuantity = Math.min(quantity, maxQuantity);
-    if (immediate) onBuyNow(product, requestedQuantity, size);
+    if (immediate) onBuyNow(product, requestedQuantity, size, deliveryOptions.some(o=>o.deliveryMode===deliveryMode)?deliveryMode:undefined);
     else {
       onAddToCart(product, requestedQuantity, size);
       setNotice(`${requestedQuantity} ${requestedQuantity === 1 ? 'piece' : 'pieces'} added to your bag.`);
@@ -170,12 +165,19 @@ export default function ProductPage({
               <input id="product-delivery-pin" inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={deliveryPin}
                 onChange={event => setDeliveryPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
                 placeholder="Enter six-digit PIN" className="mt-2 w-full border border-stone-300 px-3 py-2 text-sm" />
-              <div className="mt-3" role="status">
-                {courierBusy ? <p className="text-xs text-stone-500"><CustomerCopy id={"productExtra.2"} fallback={"Checking Delhivery…"}/></p> : courierQuote ? <>
-                  <p className="text-base font-semibold text-stone-900">{courierQuote.localDelivery ? `Delivery in ${courierQuote.deliveryMinDays}–${courierQuote.deliveryMaxDays} days` : courierQuote.estimatedDeliveryDate ? 'Delivery within ' + new Date(courierQuote.estimatedDeliveryDate + 'T12:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', weekday: 'long', timeZone: 'UTC' }) : 'Delivery date being confirmed'}</p>
-                  <p className="mt-1 text-xs text-stone-600">Delivery Charge: <span className="text-stone-400 line-through">₹{courierQuote.shippingCharge + 15}</span> <span className="font-semibold text-stone-900">{courierQuote.shippingCharge === 0 ? "Free Delivery" : `₹${courierQuote.shippingCharge}`}</span></p>
-                  <p className="mt-1 text-[11px] text-stone-500">{courierQuote.localDelivery ? "Local delivery" : <CustomerCopy id={"productExtra.4"} fallback={"Estimated · includes 4 days preparation and courier transit"}/>}</p>
-                </> : <p className="text-xs text-stone-600">{courierMessage || 'Enter PIN to check courier availability and shipping.'}</p>}
+              <div className="mt-3">
+                {courierBusy ? <p role="status" className="text-xs text-stone-500">Checking delivery options…</p> : deliveryOptions.length ? <fieldset className="space-y-2">
+                  <legend className="mb-2 text-xs font-semibold">Choose delivery method</legend>
+                  {deliveryOptions.map(o=><label key={o.deliveryMode} className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer ${deliveryMode===o.deliveryMode?'border-current':'border-stone-300'}`}>
+                    <input type="radio" name="product-delivery-mode" className="mt-1" checked={deliveryMode===o.deliveryMode} onChange={()=>setDeliveryMode(o.deliveryMode)}/>
+                    <span className="flex-1 min-w-0"><strong className="block text-sm">{o.deliveryMode==='local'?'Local Delivery':o.deliveryMode==='express'?'Express Delivery':'Standard Delivery'}</strong>
+                      <span className="mt-1 block text-xs">{o.estimatedDeliveryDate?'Estimated by '+new Date(o.estimatedDeliveryDate+'T12:00:00Z').toLocaleDateString('en-IN',{day:'numeric',month:'short',weekday:'long',year:'numeric',timeZone:'UTC'}):'Delivery date pending courier confirmation'}</span>
+                      <span className="mt-1 block text-[11px] opacity-80">{o.deliveryMode==='local'?'Local delivery':`${o.preparationDays} days preparation${o.transitDays==null?' + courier transit':` + ${o.transitDays} days courier transit`}`}</span>
+                    </span>
+                    <strong className="text-sm whitespace-nowrap">{o.customerDeliveryFee===0?'Free':`₹${o.customerDeliveryFee}`}</strong>
+                  </label>)}
+                  <p className="text-[11px] opacity-80">Estimated delivery for this selection. Final cart charges are verified at checkout.</p>
+                </fieldset>:<p role="status" className="text-xs">{courierMessage||'Enter PIN to check delivery methods and charges.'}</p>}
               </div>
               <p className="mt-2 text-xs text-stone-500">Packed size: {product.parcelLengthCm || '—'} × {product.parcelWidthCm || '—'} × {product.parcelHeightCm || '—'} cm · {product.parcelWeightGrams || '—'} g</p>
             </section>
