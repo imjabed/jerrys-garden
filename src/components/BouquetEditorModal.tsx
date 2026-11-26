@@ -33,7 +33,6 @@ export default function BouquetEditorModal({
   const [parcelWidth, setParcelWidth] = useState(String(bouquetToEdit?.parcelWidthCm ?? ''));
   const [parcelLength, setParcelLength] = useState(String(bouquetToEdit?.parcelLengthCm ?? ''));
   const [parcelWeight, setParcelWeight] = useState(String(bouquetToEdit?.parcelWeightGrams ?? ''));
-  const [deliveryCost, setDeliveryCost] = useState(String(bouquetToEdit?.deliveryCost ?? 0));
   const [description, setDescription] = useState(bouquetToEdit?.description || '');
   const [ribbonColorsText, setRibbonColorsText] = useState(
     bouquetToEdit?.ribbonColors.join(', ') || ''
@@ -97,9 +96,8 @@ export default function BouquetEditorModal({
     if (isSaving || isUploading) return;
     setSaveError('');
     if (!title.trim()) { setSaveError('Enter a product name.'); return; }
-    if ((stockLeft === '' || !Number.isSafeInteger(Number(stockLeft)) || Number(stockLeft) < 0)
-      || deliveryCost === '' || !Number.isFinite(Number(deliveryCost)) || Number(deliveryCost) < 0) {
-      setSaveError('Enter a valid stock quantity and delivery cost.');
+    if (stockLeft === '' || !Number.isSafeInteger(Number(stockLeft)) || Number(stockLeft) < 0) {
+      setSaveError('Enter a valid stock quantity.');
       return;
     }
     if (!validParcel({parcelHeightCm:Number(parcelHeight),parcelWidthCm:Number(parcelWidth),parcelLengthCm:Number(parcelLength),parcelWeightGrams:Number(parcelWeight)})) {
@@ -134,7 +132,6 @@ export default function BouquetEditorModal({
       price: defaultOption.price,
       originalPrice: defaultOption.originalPrice,
       imageUrl: defaultOption.images![0],
-      deliveryCost: Number(deliveryCost),
       stockLeft: Number(stockLeft),
       parcelHeightCm: parcelHeight ? Number(parcelHeight) : undefined,
       parcelWidthCm: parcelWidth ? Number(parcelWidth) : undefined,
@@ -214,11 +211,7 @@ export default function BouquetEditorModal({
               <input className={fieldClass} type="number" min="0" step="1" required={!isEditing}
                 placeholder="Quantity" value={stockLeft} onChange={event => setStockLeft(event.target.value)} />
             </label>
-            <label>Delivery Cost (₹)
-              <input className={fieldClass} type="number" min="0" step="0.01" required
-                value={deliveryCost} onChange={event => setDeliveryCost(event.target.value)} />
-              {deliveryCost !== '' && Number(deliveryCost) === 0 && <span className="mt-1 block text-emerald-700">Free Delivery</span>}
-            </label>
+            <p className="self-center text-xs text-stone-500">Delivery charges are calculated automatically using the destination PIN and packed parcel measurements.</p>
           </div>
           <section className="space-y-3 rounded-xl border border-stone-200 bg-stone-50 p-4" aria-label="Packed parcel specifications">
             <h3 className="font-semibold text-stone-900">Packed parcel measurements (required)</h3><p className="text-xs text-stone-600">Measure the exterior shipping box and weigh it including packaging. If sizes differ, enter the largest packed dimensions and heaviest packed weight as a conservative shared estimate.</p>
