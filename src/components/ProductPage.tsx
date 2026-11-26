@@ -6,7 +6,7 @@ import type { RibbonBouquet } from '../types';
 import type { ProductSizeKey } from '../../shared/productSizes';
 import { PRODUCT_SIZE_KEYS, PRODUCT_SIZE_LABELS, hasProductSizes, discountPercent, normalizeProductSizes, productSizeFor } from '../../shared/productSizes';
 import ProductReviews from './ProductReviews';
-import { apiCartShippingQuote, type CourierQuote } from '../services/api';
+import { apiCartShippingQuote, apiShippingLocation, type CourierQuote } from '../services/api';
 import type { ReviewSummary } from '../services/api';
 
 interface Props {
@@ -37,6 +37,16 @@ export default function ProductPage({
   const touchStart = useRef<{x:number;y:number}|null>(null);
   const suppressClick = useRef(false);
   const [deliveryPin, setDeliveryPin] = useState(() => { try { return localStorage.getItem('jb_delivery_pin') || ''; } catch { return ''; } });
+  const [destination,setDestination]=useState<{pin:string;name:string}|null>(null);
+  useEffect(()=>{
+    let cancelled=false;
+    setDestination(null);
+    if(!/^[1-9][0-9]{5}$/.test(deliveryPin))return;
+    const timer=window.setTimeout(async()=>{
+      try{const r=await apiShippingLocation(deliveryPin);if(!cancelled&&r.pincode===deliveryPin&&r.location)setDestination({pin:deliveryPin,name:r.location});}catch{}
+    },300);
+    return()=>{cancelled=true;window.clearTimeout(timer);};
+  },[deliveryPin]);
   const [courierMessage, setCourierMessage] = useState('');
   const [courierBusy, setCourierBusy] = useState(false);
   const [deliveryOptions,setDeliveryOptions]=useState<(CourierQuote & {customerDeliveryFee:number;freeDeliveryEligible:boolean})[]>([]);
@@ -171,12 +181,13 @@ export default function ProductPage({
                   {deliveryOptions.map(o=><label key={o.deliveryMode} className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer ${deliveryMode===o.deliveryMode?'border-current':'border-stone-300'}`}>
                     <input type="radio" name="product-delivery-mode" className="mt-1" checked={deliveryMode===o.deliveryMode} onChange={()=>setDeliveryMode(o.deliveryMode)}/>
                     <span className="flex-1 min-w-0"><strong className="block text-sm">{o.deliveryMode==='local'?'Local Delivery':o.deliveryMode==='express'?'Express Delivery':'Standard Delivery'}</strong>
-                      <span className="mt-1 block text-xs">{o.estimatedDeliveryDate?'Estimated by '+new Date(o.estimatedDeliveryDate+'T12:00:00Z').toLocaleDateString('en-IN',{day:'numeric',month:'short',weekday:'long',year:'numeric',timeZone:'UTC'}):'Delivery date pending courier confirmation'}</span>
-                      <span className="mt-1 block text-[11px] opacity-80">{o.deliveryMode==='local'?'Local delivery':`${o.preparationDays} days preparation${o.transitDays==null?' + courier transit':` + ${o.transitDays} days courier transit`}`}</span>
+                      <span className="mt-1 block text-sm font-semibold">{o.estimatedDeliveryDate?'Delivery within '+new Date(o.estimatedDeliveryDate+'T12:00:00Z').toLocaleDateString('en-IN',{weekday:'long',timeZone:'UTC'})+', '+new Date(o.estimatedDeliveryDate+'T12:00:00Z').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}):'Delivery date pending courier confirmation'}</span>
+                      <span className="mt-0.5 block text-[11px] opacity-80">{destination?.pin===deliveryPin?destination.name+' – ':''}{deliveryPin}</span>
+                      <span className="mt-1 block text-[10px] opacity-80">{o.estimateStatus==='store_estimate'?`Store estimate · ${o.preparationDays} days preparation + ${o.transitDays} estimated transit days · not courier-confirmed`:o.deliveryMode==='local'?'Local delivery estimate':`Estimated delivery · ${o.preparationDays} preparation days`}</span>
                     </span>
                     <strong className="text-sm whitespace-nowrap">{o.customerDeliveryFee===0?'Free':`₹${o.customerDeliveryFee}`}</strong>
                   </label>)}
-                  <p className="text-[11px] opacity-80">Estimated delivery for this selection. Final cart charges are verified at checkout.</p>
+                  <p className="text-[11px] opacity-80">Estimated arrival, not guaranteed. Prepaid orders may take longer if payment is delayed. Final cart charges are verified at checkout.</p>
                 </fieldset>:<p role="status" className="text-xs">{courierMessage||'Enter PIN to check delivery methods and charges.'}</p>}
               </div>
               <p className="mt-2 text-xs text-stone-500">Packed size: {product.parcelLengthCm || '—'} × {product.parcelWidthCm || '—'} × {product.parcelHeightCm || '—'} cm · {product.parcelWeightGrams || '—'} g</p>
