@@ -442,11 +442,15 @@ export interface CourierQuote {
   estimatedDispatchDate?:string;
   earliestDeliveryDate?:string;
   approximate: boolean;
+  estimateStatus?: string;
   codAvailable?: boolean;
 }
 export async function apiShippingQuote(pincode: string, weightGrams: number): Promise<CourierQuote> {
   const params = new URLSearchParams({ pincode, weightGrams: String(weightGrams) });
   return parseResponse<CourierQuote>(await fetch(`${API_URL}/api/shipping/quote?${params}`, { cache: 'no-store' }));
+}
+export async function apiShippingLocation(pincode:string):Promise<{success:boolean;pincode:string;location:string|null}>{
+  return parseResponse(await fetch(API_URL+'/api/shipping/location?pincode='+encodeURIComponent(pincode),{cache:'no-store'}));
 }
 export async function apiShippingServiceability(pincode: string): Promise<{ success: boolean; serviceable: boolean; city: string | null; prepaid: boolean }> {
   return parseResponse(await fetch(`${API_URL}/api/shipping/serviceability?pincode=${encodeURIComponent(pincode)}`, { cache: 'no-store' }));
