@@ -1,3 +1,4 @@
+import type { SavedDeliveryAddress } from '../../shared/deliveryAddress';
 import { RibbonBouquet, Order, StoreSettings, UserAccount, OrderStatus, Coupon } from '../types';
 
 const API_URL = (
@@ -14,6 +15,14 @@ async function parseResponse<T>(res: Response): Promise<T> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
   return data as T;
+}
+
+export async function apiSaveDeliveryAddress(address: SavedDeliveryAddress): Promise<UserAccount> {
+  const res = await fetch(`${API_URL}/api/customers/addresses`, {
+    method: 'POST', headers: jsonHeaders, credentials: 'include', body: JSON.stringify(address),
+  });
+  const data = await parseResponse<{ success: boolean; user: UserAccount }>(res);
+  return data.user;
 }
 
 import { DEFAULT_SITE_CONTENT, sanitizeSiteContent } from '../../shared/siteEditor';

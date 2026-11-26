@@ -1,9 +1,10 @@
+import { DELIVERY_ADDRESS_FIELDS, DELIVERY_ADDRESS_LIMIT, normalizeDeliveryAddress, normalizeDeliveryAddressBook, type SavedDeliveryAddress } from '../../shared/deliveryAddress';
 import type { DeliveryMode } from '../../shared/deliveryModes';
 import CustomerCopy from './CustomerCopy';
 import { useEffect, useState, type FormEvent } from 'react';
 import { ArrowRight, CheckCircle2, X } from 'lucide-react';
 import { CartItem, CustomerDetails, Order, StoreSettings, UserAccount } from '../types';
-import { apiValidateCoupon, apiCartShippingQuote, type CourierQuote } from '../services/api';
+import { apiSaveDeliveryAddress, apiValidateCoupon, apiCartShippingQuote, type CourierQuote } from '../services/api';
 import { isValidOptionalDeliveryDate, earliestDeliveryDate } from '../../shared/orderRules';
 
 interface CheckoutModalProps {
@@ -13,10 +14,11 @@ interface CheckoutModalProps {
   cartItems: CartItem[];
   storeSettings: StoreSettings;
   activeUser: UserAccount | null;
+  onAddressSaved?: (user: UserAccount) => void;
   onOrderSuccess: (order: Order) => Promise<Order>;
 }
 
-export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', onClose, cartItems, storeSettings, activeUser, onOrderSuccess }: CheckoutModalProps) {
+export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', onClose, cartItems, storeSettings, activeUser, onAddressSaved, onOrderSuccess }:  CheckoutModalProps) {
   const [step, setStep] = useState<'details' | 'confirmed'>('details');
   const [submittedOrder, setSubmittedOrder] = useState<Order | null>(null);
   const [busy, setBusy] = useState(false);
@@ -26,6 +28,11 @@ export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', 
   const [couponBusy, setCouponBusy] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; email: string; items: string } | null>(null);
   const [areaConfirmed, setAreaConfirmed] = useState(false);
+  const [saveAddress, setSaveAddress] = useState(false);
+  const [addressNotice, setAddressNotice] = useState('');
+  const [addressSelection, setAddressSelection] = useState('');
+  const savedAddresses = normalizeDeliveryAddressBook(activeUser?.savedDeliveryAddresses || []) || [];
+  const legacyAddresses = [...new Set([activeUser?.address, ...(activeUser?.addresses || [])].filter((a): a is string => typeof a === 'string' && !!a.trim()))];
   const [customer, setCustomer] = useState<CustomerDetails>({
     fullName: activeUser?.name || '',
     email: activeUser?.email || '',
@@ -75,8 +82,22 @@ export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', 
   const discount = validCoupon?.discount || 0;
   const update = (key: keyof CustomerDetails, value: string) => {
     if(key==='pincode'){value=value.replace(/\D/g,'').slice(0,6);try{if(/^[0-9]{6}$/.test(value))localStorage.setItem('jb_delivery_pin',value);else localStorage.removeItem('jb_delivery_pin');}catch{}}
-    setCustomer(prev => ({ ...prev, [key]: value }));
+    if (DELIVERY_ADDRESS_FIELDS.some(field=>field.key===key)) { setAddressSelection(''); setAreaConfirmed(false); }
+    setCustomer(prev => ({ ...prev, [key]: value, ...(key==='pincode'?{deliveryDate:''}:{}) }));
     if (key === 'email') setCouponError('');
+  };
+  const chooseAddress = (value: string) => {
+    setAddressSelection(value);
+    setAreaConfirmed(false);
+    setSaveAddress(false);
+    setAppliedCoupon(null);
+    setCouponError('');
+    setError('');
+    const selected = value.startsWith('saved:') ? savedAddresses[Number(value.slice(6))] : null;
+    const legacy = value.startsWith('legacy:') ? legacyAddresses[Number(value.slice(7))] : '';
+    const fields: SavedDeliveryAddress = selected || { fullName: activeUser?.name || '', email: activeUser?.email || '', phone: activeUser?.phone || '', city: '', deliveryAddress: legacy || '', pincode: '' };
+    setCustomer(prev=>({...prev,...fields,deliveryDate:''}));
+    try { if (fields.pincode) localStorage.setItem('jb_delivery_pin',fields.pincode); else localStorage.removeItem('jb_delivery_pin'); } catch {}
   };
   const applyCoupon = async () => {
     const code = couponText.trim().toUpperCase();
@@ -118,6 +139,8 @@ export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', 
     }
     if (deliveryFee === null || shippingBusy) { setError(shippingError || 'Please wait for a valid courier shipping estimate.'); return; }
     if(paymentMethod==='COD'&&(!validShipping?.codAvailable||Math.max(0,subtotal-discount)+deliveryFee<=0)){setError('Cash on delivery is unavailable for this order. Select prepaid.');return;}
+    const addressToSave = saveAddress && activeUser ? normalizeDeliveryAddress(customer) : null;
+    if (saveAddress && activeUser && !addressToSave) { setError('Enter complete, valid delivery details to save your address.'); return; }
     setBusy(true); setError('');
     try {
       const now = new Date().toISOString();
@@ -130,6 +153,10 @@ export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', 
       });
       setSubmittedOrder(saved);
       setStep('confirmed');
+      if (addressToSave) {
+        try { const user = await apiSaveDeliveryAddress(addressToSave); onAddressSaved?.(user); setAddressNotice('Delivery address saved to your profile.'); }
+        catch { setAddressNotice('Your order was placed, but the address could not be saved. You can add it in My Profile.'); }
+      }
     } catch (err: any) {
       setError(err?.message || 'Unable to place your order. Please try again.');
       setQuoteRevision(v=>v+1);
@@ -139,7 +166,7 @@ export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', 
     <label className="block text-[11px] tracking-wide text-stone-600">
       {label}{required && ' *'}
       <input
-        type={type} required={required} min={key === 'deliveryDate' ? (minimumDeliveryDate || earliestDeliveryDate()) : undefined}
+        type={type} required={required} maxLength={DELIVERY_ADDRESS_FIELDS.find(f=>f.key===key)?.max} min={key === 'deliveryDate' ? (minimumDeliveryDate || earliestDeliveryDate()) : undefined}
         readOnly={false} disabled={key === 'deliveryDate' && !minimumDeliveryDate} pattern={key === 'pincode' ? '[0-9]{6}' : undefined}
         value={String(customer[key] || '')}
         onChange={e => update(key, e.target.value)} placeholder={placeholder}
@@ -162,12 +189,20 @@ export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', 
             <CheckCircle2 className="mx-auto h-12 w-12 text-stone-700" strokeWidth={1.2}/>
             <h3 className="mt-6 font-serif text-3xl text-stone-900"><CustomerCopy id={"checkout.0"} fallback={"Thank you for your order."}/></h3>
             <p className="mt-4 text-sm leading-6 text-stone-600">{submittedOrder?.payment.method==='COD'?'Cash on Delivery selected. Pay the final order amount on delivery.':'Prepaid selected — payment is Unpaid. Our team will contact you to arrange payment before shipping.'}</p>
+            {addressNotice && <p role="status" className="mt-3 text-xs text-stone-600">{addressNotice}</p>}
             <p className="mt-5 text-sm text-stone-600">Order reference: <strong className="text-stone-900">{submittedOrder?.orderNumber}</strong></p>
             <button type="button" onClick={onClose} className="mt-9 bg-stone-900 px-9 py-3 text-xs uppercase tracking-widest text-white hover:bg-stone-700"><CustomerCopy id={"checkout.1"} fallback={"Continue shopping"}/></button>
           </div>
         ) : (
           <form onSubmit={submit} className="overflow-y-auto px-7 py-7 sm:px-9">
             <p className="mb-7 text-sm leading-relaxed text-stone-600"><CustomerCopy id={"checkoutExtra.0"} fallback={"Share your details. Our team will call to confirm your order and discuss payment."}/></p>
+            {activeUser && (savedAddresses.length>0 || legacyAddresses.length>0) && <label className="mb-5 block text-sm font-medium">Use a saved address
+              <select className="mt-2 w-full rounded border border-stone-300 bg-white p-3 text-sm" value={addressSelection} onChange={e=>chooseAddress(e.target.value)}>
+                <option value="">Enter a new address / edit details</option>
+                {savedAddresses.map((a,i)=><option key={'saved'+i} value={'saved:'+i}>{a.fullName} · {a.deliveryAddress}, {a.city} – {a.pincode}</option>)}
+                {legacyAddresses.map((a,i)=><option key={'legacy'+i} value={'legacy:'+i}>{a} (complete remaining details)</option>)}
+              </select>
+            </label>}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               {field('Full name','fullName','text',true,'Your name')}
               {field('Phone number','phone','tel',true,'Contact number')}
@@ -187,6 +222,8 @@ export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', 
               <input type="checkbox" required checked={areaConfirmed} onChange={event => setAreaConfirmed(event.target.checked)} className="mt-1 h-4 w-4 accent-stone-900"/>
               I confirm that my delivery address and PIN code are correct.
             </label>
+            {activeUser && savedAddresses.length < DELIVERY_ADDRESS_LIMIT && <label className="mt-3 flex items-center gap-3 text-xs text-stone-700"><input type="checkbox" checked={saveAddress} onChange={e=>setSaveAddress(e.target.checked)} className="h-4 w-4 accent-stone-900"/> Save this delivery address for future orders</label>}
+            {activeUser && savedAddresses.length>=DELIVERY_ADDRESS_LIMIT && <p className="mt-3 text-xs text-stone-500">Address book full. Remove an address in My Profile to save another.</p>}
             <fieldset className="mt-6 space-y-2 border-t border-stone-200 pt-5">
               <legend className="text-sm font-semibold">Payment method</legend>
               <label className="flex gap-3 rounded-xl border p-3"><input type="radio" name="payment-method" checked={paymentMethod==='PREPAID'} onChange={()=>setPaymentMethod('PREPAID')}/><span><strong className="text-sm">Prepaid</strong><span className="block text-xs text-stone-600">Place your order now. Our team will contact you to arrange payment before shipping. No online payment at checkout.</span></span></label>

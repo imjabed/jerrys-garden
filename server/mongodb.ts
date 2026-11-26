@@ -1,3 +1,4 @@
+import { DELIVERY_ADDRESS_LIMIT, normalizeDeliveryAddressBook } from '../shared/deliveryAddress.js';
 import 'dotenv/config';
 import { MongoClient, Db } from 'mongodb';
 import crypto from 'crypto';
@@ -707,13 +708,23 @@ export async function mongoHasCustomerOrder(email: string) {
   return (await database.collection('orders').countDocuments({ customerEmail: String(email).trim().toLowerCase(), status: { $ne: 'Cancelled' } }, { limit: 1 })) > 0;
 }
 
-export async function mongoUpdateCustomerProfile(email: string, changes: { name: string; address: string; addresses: string[] }) {
+export async function mongoUpdateCustomerProfile(email: string, changes: { name?: string; address?: string; addresses?: string[]; savedDeliveryAddresses?: import('../shared/deliveryAddress.js').SavedDeliveryAddress[] }, append?: import('../shared/deliveryAddress.js').SavedDeliveryAddress) {
   const database = await getMongoDb();
   if (!database || !client) return null;
   let updated: any = null;
   await client.withSession(session => session.withTransaction(async () => {
     const filter = { email: email.trim().toLowerCase() };
     const patch = { ...changes, updatedAt: new Date().toISOString() };
+    if (append) {
+      const current = await database.collection('customers').findOne(filter, { session }) || await database.collection('Customerinfo').findOne(filter, { session });
+      if (!current) return;
+      const existing = normalizeDeliveryAddressBook(current.savedDeliveryAddresses || []) || [];
+      if (!existing.some(a => JSON.stringify(a) === JSON.stringify(append))) {
+        if (existing.length >= DELIVERY_ADDRESS_LIMIT) throw new Error('ADDRESS_BOOK_FULL');
+        existing.push(append);
+      }
+      patch.savedDeliveryAddresses = existing;
+    }
     const primary = await database.collection('customers').findOneAndUpdate(filter, { $set: patch }, { session, returnDocument: 'after' });
     const legacy = await database.collection('Customerinfo').findOneAndUpdate(filter, { $set: patch }, { session, returnDocument: 'after' });
     updated = sanitizeCustomer(primary || legacy);

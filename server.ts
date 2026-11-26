@@ -1,3 +1,4 @@
+import { normalizeDeliveryAddress, normalizeDeliveryAddressBook } from './shared/deliveryAddress.js';
 import { preparationDaysFor, enabledCourierModes, carrierModeCode, carrierShippingName, customerShippingFee, type CourierMode, type DeliveryMode } from './shared/deliveryModes';
 import { validParcel, estimateParcel, chargeableGrams } from './shared/parcelShipping';
 import type { Parcel } from './shared/parcelShipping';
@@ -879,13 +880,30 @@ async function startServer() {
     try {
       const auth = getCustomerAuth(req);
       if (auth?.role !== 'customer' || !auth.email) return res.status(401).json({ success: false, error: 'Sign in to edit your profile.' });
-      const { name, address, addresses } = req.body || {};
+      const { name, address, addresses, savedDeliveryAddresses } = req.body || {};
+      const book = savedDeliveryAddresses === undefined ? undefined : normalizeDeliveryAddressBook(savedDeliveryAddresses);
+      if (book === null) return res.status(400).json({ success: false, error: 'Enter complete, valid delivery details for each saved address (maximum 10).' });
       const validText = (v: unknown, max: number) => typeof v === 'string' && v.length <= max && !/[<>\x00-\x1f]/.test(v);
       if (!validText(name, 120) || name.trim().length < 2 || !validText(address, 500) || !Array.isArray(addresses) || addresses.length > 10 || addresses.some(v => !validText(v, 500) || !v.trim())) return res.status(400).json({ success: false, error: 'Invalid profile details.' });
-      const user = await mongoUpdateCustomerProfile(auth.email, { name: name.trim(), address: address.trim(), addresses: [...new Set<string>(addresses.map(v => v.trim()))] });
+      const user = await mongoUpdateCustomerProfile(auth.email, { name: name.trim(), address: address.trim(), addresses: [...new Set<string>(addresses.map(v => v.trim()))], ...(book === undefined ? {} : { savedDeliveryAddresses: book }) });
       if (!user) return res.status(404).json({ success: false, error: 'Profile unavailable.' });
       return res.json({ success: true, user });
     } catch { return res.status(500).json({ success: false, error: 'Unable to update profile.' }); }
+  });
+
+  app.post('/api/customers/addresses', requireClientHeader, async (req, res) => {
+    try {
+      const auth = getCustomerAuth(req);
+      if (auth?.role !== 'customer' || !auth.email) return res.status(401).json({ success: false, error: 'Sign in to save your delivery address.' });
+      const address = normalizeDeliveryAddress(req.body);
+      if (!address) return res.status(400).json({ success: false, error: 'Enter complete, valid delivery details.' });
+      const user = await mongoUpdateCustomerProfile(auth.email, {}, address);
+      if (!user) return res.status(404).json({ success: false, error: 'Profile unavailable.' });
+      return res.json({ success: true, user });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'ADDRESS_BOOK_FULL') return res.status(409).json({ success: false, error: 'Your address book is full. Remove an address in My Profile.' });
+      return res.status(500).json({ success: false, error: 'Unable to save delivery address.' });
+    }
   });
 
   app.get('/api/customers/orders', requireClientHeader, async (req, res) => {

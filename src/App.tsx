@@ -1,3 +1,4 @@
+import { DELIVERY_ADDRESS_FIELDS, DELIVERY_ADDRESS_LIMIT, normalizeDeliveryAddressBook, type SavedDeliveryAddress } from '../shared/deliveryAddress';
 import type { DeliveryMode } from '../shared/deliveryModes';
 import { CustomerTextContext } from './services/customerText';
 import { useState, useEffect, type CSSProperties } from 'react';
@@ -14,7 +15,6 @@ import {
   getBouquets,
   saveBouquet,
   deleteBouquet,
-  getActiveUser,
   setActiveUser,
   registerUser,
   loginUser,
@@ -134,29 +134,33 @@ export default function App() {
   const [reviewHighlights, setReviewHighlights] = useState<ProductReview[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [cart, setCartItems] = useState<CartItem[]>(() => studioPreview ? [] : getCart());
-  const [activeUser, setUser] = useState<UserAccount | null>(() => studioPreview ? null : getActiveUser());
+  const [activeUser, setUser] = useState<UserAccount | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileName, setProfileName] = useState('');
   const [profileAddress, setProfileAddress] = useState('');
   const [profileAddresses, setProfileAddresses] = useState<string[]>([]);
+  const [deliveryAddresses, setDeliveryAddresses] = useState<SavedDeliveryAddress[]>([]);
   const [profileError, setProfileError] = useState('');
   const [profileBusy, setProfileBusy] = useState(false);
   const openProfile = () => {
     if (!activeUser) return;
     setProfileName(activeUser.name);
     setProfileAddress(activeUser.address || '');
-    setProfileAddresses((activeUser as UserAccount & { addresses?: string[] }).addresses || []);
+    setProfileAddresses(activeUser.addresses || []);
+    setDeliveryAddresses(normalizeDeliveryAddressBook(activeUser.savedDeliveryAddresses || []) || []);
     setProfileError('');
     setProfileOpen(true);
   };
   const saveProfile = async () => {
+    const book = normalizeDeliveryAddressBook(deliveryAddresses);
+    if (!book) { setProfileError('Complete all delivery fields with a valid email and 6-digit PIN code.'); return; }
     setProfileBusy(true); setProfileError('');
     try {
       const base = (import.meta.env.VITE_API_URL || (['localhost','127.0.0.1'].includes(window.location.hostname) ? 'http://localhost:3000' : 'https://jerrys-garden.onrender.com')).replace(/\/$/, '');
-      const res = await fetch(base + '/api/customers/profile', { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json', 'X-JG-Client': '1' }, body: JSON.stringify({ name: profileName, address: profileAddress, addresses: profileAddresses.filter(a => a.trim()) }) });
+      const res = await fetch(base + '/api/customers/profile', { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json', 'X-JG-Client': '1' }, body: JSON.stringify({ name: profileName, address: profileAddress, addresses: profileAddresses.filter(a => a.trim()), savedDeliveryAddresses: book }) });
       const data = await res.json();
       if (!res.ok || !data.user) throw new Error(data.error || 'Unable to save profile.');
-      setUser(data.user); setActiveUser(data.user); setProfileOpen(false);
+      setUser(data.user); setProfileOpen(false);
     } catch (e) { setProfileError(e instanceof Error ? e.message : 'Unable to save profile.'); }
     finally { setProfileBusy(false); }
   };
@@ -263,7 +267,6 @@ export default function App() {
     const handleStorageChange = () => {
       if (studioPreview) return;
       setCartItems(getCart());
-      setUser(getActiveUser());
       setSettings(getStoreSettings());
     };
 
@@ -935,7 +938,16 @@ export default function App() {
               <label className="block text-sm">Phone (locked)<input className="block w-full border rounded p-2 bg-stone-100" readOnly value={activeUser.phone || ''} /></label>
               <label className="block text-sm">Default address<textarea className="block w-full border rounded p-2" maxLength={500} value={profileAddress} onChange={e => setProfileAddress(e.target.value)} /></label>
               {profileAddresses.map((address,i) => <div key={i} className="flex gap-2"><textarea aria-label={'Saved address '+(i+1)} className="flex-1 border rounded p-2" maxLength={500} value={address} onChange={e => setProfileAddresses(prev => prev.map((a,j) => i===j ? e.target.value : a))}/><button type="button" onClick={() => setProfileAddresses(prev => prev.filter((_,j) => i!==j))}>Remove</button></div>)}
-              <button type="button" disabled={profileAddresses.length>=10} className="text-rose-600 text-sm" onClick={() => setProfileAddresses(prev => [...prev,''])}>+ Add address</button>
+              <h3 className="pt-3 font-semibold">Saved delivery addresses</h3>
+              <p className="text-xs text-stone-500">Save the same details required at checkout. Existing text-only addresses above can still be used, but need missing details completed.</p>
+              {deliveryAddresses.map((entry,i) => <fieldset key={i} disabled={profileBusy} className="space-y-2 rounded-xl border p-3">
+                <legend className="text-sm font-medium">Address {i+1}</legend>
+                {DELIVERY_ADDRESS_FIELDS.map(({key,label,max,type}) => <label key={key} className="block text-xs">{label}
+                  <input className="block w-full rounded border p-2" type={type} required maxLength={max} pattern={key==='pincode'?'[0-9]{6}':undefined} inputMode={key==='pincode'?'numeric':undefined} value={entry[key]} onChange={e=>setDeliveryAddresses(prev=>prev.map((a,j)=>i===j?{...a,[key]:key==='pincode'?e.target.value.replace(/\\D/g,'').slice(0,6):e.target.value}:a))}/>
+                </label>)}
+                <button type="button" className="text-sm text-red-700" onClick={()=>setDeliveryAddresses(prev=>prev.filter((_,j)=>i!==j))}>Remove address</button>
+              </fieldset>)}
+              <button type="button" disabled={profileBusy||deliveryAddresses.length>=DELIVERY_ADDRESS_LIMIT} className="text-rose-600 text-sm disabled:opacity-50" onClick={()=>setDeliveryAddresses(prev=>[...prev,{fullName:profileName,email:activeUser.email,phone:activeUser.phone||'',city:'',deliveryAddress:'',pincode:''}])}>+ Add new delivery address</button>
               {profileError && <p role="alert" className="text-red-600 text-sm">{profileError}</p>}
               <div className="flex gap-3"><button type="submit" disabled={profileBusy} className="bg-stone-900 text-white rounded px-4 py-2">{profileBusy?'Saving…':'Save changes'}</button><button type="button" onClick={() => setProfileOpen(false)}>Close</button></div>
             </form>
@@ -1076,6 +1088,7 @@ renderCatalogue(true)
           cartItems={directBuyItems ?? cart}
           storeSettings={storeSettings}
           activeUser={activeUser}
+          onAddressSaved={user=>setUser(current=>current?.email===user.email?user:current)}
           onOrderSuccess={async (order) => {
             if(studioPreview)throw new Error('Preview cannot submit orders.');
             const savedOrder = await handleOrderSuccess(order);

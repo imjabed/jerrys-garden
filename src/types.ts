@@ -89,6 +89,8 @@ export interface Order {
 }
 
 export interface UserAccount {
+  addresses?: string[];
+  savedDeliveryAddresses?: import('../shared/deliveryAddress').SavedDeliveryAddress[];
   id: string;
   name: string;
   email: string;
