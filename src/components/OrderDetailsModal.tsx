@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { estimateParcel, validParcel, chargeableGrams } from '../../shared/parcelShipping';
-import { apiAdminParcelQuote, apiReadyForPickup } from '../services/api';
+import { apiAdminParcelQuote, apiReadyForPickup, apiMarkOrderPaid } from '../services/api';
 import { PRODUCT_SIZE_LABELS, productSizeFor } from '../../shared/productSizes';
 import { X, Phone, Mail, MapPin, Calendar, Clock, QrCode, CheckCircle2, XCircle, AlertCircle, MessageCircle, ExternalLink, Printer, Banknote } from 'lucide-react';
 import { Order, OrderStatus } from '../types';
@@ -18,12 +18,15 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus, onSh
   const [parcel,setParcel]=useState(()=>order?.shippingEstimate?.parcel||estimateParcel(order?.items||[])||{parcelLengthCm:0,parcelWidthCm:0,parcelHeightCm:0,parcelWeightGrams:0});
   const [pickupDate,setPickupDate]=useState(()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));
   const [pickupTime,setPickupTime]=useState('10:00');
-  const [paid,setPaid]=useState(false),[single,setSingle]=useState(false),[courierFee,setCourierFee]=useState<number|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[attempted,setAttempted]=useState(false);
+  const [single,setSingle]=useState(false),[courierFee,setCourierFee]=useState<number|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[attempted,setAttempted]=useState(false);
   const shippingSection=useRef<HTMLElement|null>(null);
   useEffect(()=>{if(readyShipIntent)shippingSection.current?.scrollIntoView({block:'center',behavior:'smooth'});},[readyShipIntent,order?.id]);
   if (!order) return null;
+  const isCod=order.payment.method==='COD',paid=order.payment.paymentStatus==='Verified';
+  const dispatchAllowed=isCod?order.payment.paymentStatus==='Pending on Delivery':paid;
   const quote=async()=>{setBusy(true);setMessage('');setCourierFee(null);try{const q=await apiAdminParcelQuote(order.id,parcel);setCourierFee(q.shippingCharge);}catch(e){setMessage(e instanceof Error?e.message:'Quote failed');}finally{setBusy(false);}};
-  const dispatch=async()=>{if(courierFee===null||!paid||!single||!window.confirm('Create a prepaid shipment with the configured courier? This may debit your courier wallet. Shadowfax uses its assigned or configured pickup slot, not the exact time entered.'))return;setBusy(true);setMessage('');try{const result=await apiReadyForPickup(order.id,{parcel,pickupDate,pickupTime,paymentConfirmed:paid,confirmSingleBox:single,acceptedCourierFee:courierFee});onShipmentUpdated?.(result.order);setMessage('Shipment accepted. Order is Ready for Ship; check the courier portal for pickup scheduling.');}catch(e){setMessage(e instanceof Error?e.message:'Check the original courier portal before retrying.');setAttempted(true);}finally{setBusy(false);}};
+  const markPaid=async()=>{if(!window.confirm('Confirm full payment of ₹'+order.totalAmount+' has been received or verified.'))return;setBusy(true);setMessage('');try{const result=await apiMarkOrderPaid(order.id);onShipmentUpdated?.(result.order);setMessage('Payment marked Paid.');}catch(e){setMessage(e instanceof Error?e.message:'Payment update failed.');}finally{setBusy(false);}};
+  const dispatch=async()=>{if(courierFee===null||!dispatchAllowed||!single||!window.confirm(isCod?'Create a COD shipment? Shadowfax will collect ₹'+order.totalAmount+' on delivery. Shipping may debit your wallet.':'Create a prepaid shipment? Shipping may debit your courier wallet.'))return;setBusy(true);setMessage('');try{const result=await apiReadyForPickup(order.id,{parcel,pickupDate,pickupTime,paymentConfirmed:paid,confirmSingleBox:single,acceptedCourierFee:courierFee});onShipmentUpdated?.(result.order);setMessage('Shipment accepted. Order is Ready for Ship; check the courier portal for pickup scheduling.');}catch(e){setMessage(e instanceof Error?e.message:'Check the original courier portal before retrying.');setAttempted(true);}finally{setBusy(false);}};
 
   const getStatusBadge = (status: OrderStatus) => {
     switch (status) {
@@ -198,6 +201,7 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus, onSh
             <h3 className="font-serif text-lg text-stone-900">Contact & confirmation</h3>
             <p className="mt-2 text-sm text-stone-600">Customer submitted the order online. Call to confirm the items, availability and payment arrangements.</p>
             <p className="mt-2 text-sm font-medium text-stone-800">Product subtotal: ₹{order.subtotal}</p>
+            {order.orderType!=='Custom'&&<div className="mt-3 space-y-2"><p className="text-sm font-medium">Payment method: {isCod?'Cash on Delivery':'Prepaid (manual)'}</p><p className="text-sm">Payment status: <strong className={paid?'text-emerald-700':'text-amber-700'}>{paid?'Paid':order.payment.paymentStatus==='Refunded'?'Refunded':'Unpaid'}</strong>{isCod&&!paid?' · Collect on delivery':''}</p><p className="text-sm">Amount: ₹{order.totalAmount}</p>{!paid&&order.payment.paymentStatus!=='Refunded'&&order.status!=='Cancelled'&&(isCod?order.status==='Delivered':!order.courierShipment)&&<button type="button" disabled={busy} onClick={()=>void markPaid()} className="rounded bg-stone-900 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">Mark as Paid</button>}{message&&<p className="text-xs" role="status">{message}</p>}</div>}
           </div>
 
           {order.orderType === 'Custom' && order.customDetails && (
@@ -234,9 +238,9 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus, onSh
               <button disabled={busy||!validParcel(parcel)} onClick={()=>void quote()} className="rounded border px-3 py-2 text-sm disabled:opacity-50">Recalculate courier charge</button>
               {courierFee!==null&&<p className="text-sm font-semibold">Courier estimate ₹{courierFee} · Store contribution if higher than customer fee: ₹{Math.max(0,courierFee-order.deliveryFee)}</p>}
               <div className="grid grid-cols-2 gap-2"><label className="text-xs">Pickup date<input type="date" value={pickupDate} onChange={e=>setPickupDate(e.target.value)} className="block w-full rounded border p-2"/></label><label className="text-xs">Pickup time (Delhivery; Shadowfax uses assigned or configured slot)<input type="time" value={pickupTime} onChange={e=>setPickupTime(e.target.value)} className="block w-full rounded border p-2"/></label></div>
-              <label className="flex gap-2 text-xs"><input type="checkbox" checked={paid} onChange={e=>setPaid(e.target.checked)}/> Full order payment received outside the website (prepaid shipment)</label>
+              <p className="text-sm font-medium">{isCod?`COD · Shadowfax will collect ₹${order.totalAmount}`:paid?'Prepaid · Payment verified':'Prepaid · Mark as Paid above before shipping'}</p>
               <label className="flex gap-2 text-xs"><input type="checkbox" checked={single} onChange={e=>setSingle(e.target.checked)}/> All items packed in one box and ready for collection</label>
-              <button disabled={busy||attempted||courierFee===null||!paid||!single} onClick={()=>void dispatch()} className="rounded bg-stone-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">Confirm Ready for Ship — request pickup</button>
+              <button disabled={busy||attempted||courierFee===null||!dispatchAllowed||!single} onClick={()=>void dispatch()} className="rounded bg-stone-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">Confirm Ready for Ship — request pickup</button>
               </>}{message&&<p role="status" className="text-sm text-stone-700">{message}</p>}
             </>}
           </section>}
