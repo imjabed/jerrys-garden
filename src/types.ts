@@ -1,6 +1,6 @@
 import type { ProductSizeKey, ProductSizeOption } from '../shared/productSizes';
 
-export type OrderStatus = 'Order Placed' | 'Pending' | 'Delivered' | 'Cancelled';
+export type OrderStatus = 'Order Placed' | 'Pending' | 'Ready for Ship' | 'Delivered' | 'Cancelled';
 
 export interface RibbonBouquet {
   id: string;
