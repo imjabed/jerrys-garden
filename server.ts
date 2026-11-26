@@ -1180,7 +1180,7 @@ async function startServer() {
           || Math.abs(bouquet.deliveryCost * 100 - Math.round(bouquet.deliveryCost * 100)) > 0.000001))) {
         return res.status(400).json({ success: false, error: 'Enter a valid stock quantity and delivery cost.' });
       }
-      if (!validParcel(bouquet)) return res.status(400).json({ success: false, error: 'Invalid packed parcel measurements.' });
+      if (!validParcel({parcelLengthCm:bouquet.parcelLengthCm,parcelWidthCm:bouquet.parcelWidthCm,parcelHeightCm:bouquet.parcelHeightCm,parcelWeightGrams:bouquet.parcelWeightGrams})) return res.status(400).json({ success: false, error: 'Invalid packed parcel measurements.' });
       if (hasProductSizes(bouquet)) {
         if (!Array.isArray(bouquet.sizeOptions) || bouquet.sizeOptions.length < 1
             || bouquet.sizeOptions.length > 4
