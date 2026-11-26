@@ -1013,6 +1013,29 @@ async function startServer() {
     const maxDays = free ? 2 : 3;
     return { shippingCharge: free ? 0 : 10, estimatedDeliveryDate: indiaTodayPlusDays(maxDays), earliestDeliveryDate: indiaTodayPlusDays(minDays), transitDays: maxDays, preparationDays: 0, deliveryMinDays: minDays, deliveryMaxDays: maxDays, estimateStatus: 'estimated', approximate: false, localDelivery: true };
   };
+  // PIN lookup is informational only. Never infer serviceability from postal records.
+  const pinLocationCache=new Map<string,{expires:number;location:string}>();
+  app.get('/api/shipping/location',async(req,res)=>{
+    const pin=String(req.query.pincode||'').trim();
+    if(!/^[1-9][0-9]{5}$/.test(pin))return res.status(400).json({success:false,error:'Enter a valid Indian PIN code.'});
+    if(pin==='742101')return res.json({success:true,pincode:pin,location:'Berhampore, West Bengal'});
+    const cached=pinLocationCache.get(pin);
+    if(cached&&cached.expires>Date.now())return res.json({success:true,pincode:pin,location:cached.location});
+    if(!allowLoginAttempt('pin-location:'+String(req.ip||'unknown'),40))return res.status(429).json({success:false,error:'Too many PIN lookups.'});
+    try{
+      const response=await fetch('https://api.postalpincode.in/pincode/'+pin,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(4000)});
+      if(!response.ok)throw Error('postal lookup unavailable');
+      const data=await response.json(),row=Array.isArray(data)?data[0]:data;
+      const offices=row?.Status==='Success'&&Array.isArray(row.PostOffice)?row.PostOffice.filter((o:any)=>String(o.Pincode||'')===pin):[];
+      const locations=[...new Set<string>(offices.map((o:any)=>[String(o.District||'').trim(),String(o.State||'').trim()].filter(Boolean).join(', ')).filter(Boolean))];
+      // A PIN can serve several post offices; show the common district/state, not an arbitrary locality.
+      if(locations.length!==1)return res.json({success:true,pincode:pin,location:null});
+      const location=locations[0].slice(0,160);
+      if(pinLocationCache.size>=1000)pinLocationCache.clear();
+      pinLocationCache.set(pin,{expires:Date.now()+86400000,location});
+      return res.json({success:true,pincode:pin,location});
+    }catch{return res.json({success:true,pincode:pin,location:null});}
+  });
   // Opt-in cutover; existing Delhivery configuration remains available.
   const useShadowfax=()=>process.env.SHIPPING_PROVIDER==='shadowfax';
   const activeCourierModes=(settings:any):CourierMode[]=>useShadowfax()?enabledCourierModes(settings).filter(mode=>mode==='standard'):enabledCourierModes(settings);
@@ -1094,7 +1117,10 @@ async function startServer() {
       if(raw?.message!=='Success'||raw.shipping_rate==null||raw.gst==null||String(raw.shipping_rate).trim()===''||String(raw.gst).trim()==='')throw Error('COURIER_RATE_UNAVAILABLE');
       const rate=Number(raw.shipping_rate),gst=Number(raw.gst);
       if(!Number.isFinite(rate)||!Number.isFinite(gst)||rate<=0||gst<0)throw Error('COURIER_RATE_UNAVAILABLE');
-      const result={provider:'shadowfax',pincode:pin,originPincode:shadowfaxOrigin(),chargeableWeightGrams:grams,shippingCharge:Math.ceil(Math.round((rate+gst)*100)/100),currency:'INR',estimatedDeliveryDate:null,transitDays:null,preparationDays,deliveryMode:'standard' as DeliveryMode,estimatedDispatchDate:indiaTodayPlusDays(preparationDays),estimateStatus:'rate_available_tat_pending',approximate:true};
+      // Shadowfax's rate API does not provide transit time. This is a configurable store planning estimate, not a carrier promise.
+      const configuredTransit=Number(process.env.SHADOWFAX_ESTIMATED_TRANSIT_DAYS??'7');
+      const transitDays=Number.isInteger(configuredTransit)&&configuredTransit>=1&&configuredTransit<=60?configuredTransit:null;
+      const result={provider:'shadowfax',pincode:pin,originPincode:shadowfaxOrigin(),chargeableWeightGrams:grams,shippingCharge:Math.ceil(Math.round((rate+gst)*100)/100),currency:'INR',estimatedDeliveryDate:transitDays===null?null:indiaTodayPlusDays(preparationDays+transitDays),transitDays,preparationDays,deliveryMode:'standard' as DeliveryMode,estimatedDispatchDate:indiaTodayPlusDays(preparationDays),estimateStatus:transitDays===null?'rate_available_tat_pending':'store_estimate',approximate:true};
       if(shippingQuoteCache.size>500)shippingQuoteCache.clear();shippingQuoteCache.set(key,{expires:Date.now()+300000,value:result});return result;
     }
     const token = process.env.DELHIVERY_API_TOKEN?.trim();
