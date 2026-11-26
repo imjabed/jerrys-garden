@@ -193,6 +193,7 @@ export default function App() {
     } catch { return []; }
   });
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<Order | null>(null);
+  const [readyShipIntent,setReadyShipIntent]=useState(false);
   const [bouquetEditorOpen, setBouquetEditorOpen] = useState(false);
   const [bouquetToEdit, setBouquetToEdit] = useState<RibbonBouquet | null>(null);
   const [policyOpen, setPolicyOpen] = useState<PolicyType | null>(null);
@@ -447,6 +448,15 @@ export default function App() {
 
   // Status updates by Owner
   const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    const order=orders.find(o=>o.id===orderId)|| (selectedOrderForDetails?.id===orderId?selectedOrderForDetails:null);
+    if(status==='Ready for Ship'){
+      if(!order||order.status==='Ready for Ship')return;
+      if(!['Order Placed','Pending'].includes(order.status)){showToast('Only active orders can be prepared for shipping.');return;}
+      if(order.orderType==='Custom'){showToast('Convert the custom enquiry to a standard order before shipping.');return;}
+      if(!order.shippingEstimate?.localDelivery&&order.deliveryMode!=='local'&&order.customer.pincode!=='742101'){
+        setReadyShipIntent(true);setSelectedOrderForDetails(order);return;
+      }
+    }
     const ok = await apiUpdateOrderStatus(orderId, status);
     if (!ok) { showToast('Could not update order status. Please try again.'); return; }
     setOrders((current) => current.map((order) => order.id === orderId ? { ...order, status, updatedAt: new Date().toISOString() } : order));
@@ -844,7 +854,7 @@ export default function App() {
           bouquets={bouquets}
           storeSettings={storeSettings}
           onUpdateOrderStatus={handleUpdateOrderStatus}
-          onOpenOrderDetails={(ord) => setSelectedOrderForDetails(ord)}
+          onOpenOrderDetails={(ord) => {setReadyShipIntent(false);setSelectedOrderForDetails(ord);}}
           onOpenBouquetEditor={(b) => {
             setBouquetToEdit(b || null);
             setBouquetEditorOpen(true);
@@ -1119,8 +1129,9 @@ renderCatalogue(true)
         <OrderDetailsModal
           key={selectedOrderForDetails.id}
           order={selectedOrderForDetails}
-          onShipmentUpdated={updated=>{setSelectedOrderForDetails(updated);setOrders(current=>current.map(o=>o.id===updated.id?updated:o));}}
-          onClose={() => setSelectedOrderForDetails(null)}
+          readyShipIntent={readyShipIntent}
+          onShipmentUpdated={updated=>{setReadyShipIntent(false);setSelectedOrderForDetails(updated);setOrders(current=>current.map(o=>o.id===updated.id?updated:o));}}
+          onClose={() => {setReadyShipIntent(false);setSelectedOrderForDetails(null);}}
           onUpdateStatus={handleUpdateOrderStatus}
         />
       )}
