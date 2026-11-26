@@ -1,3 +1,4 @@
+import { validParcel, chargeableGrams, estimateParcel } from '../../shared/parcelShipping';
 import CustomerCopy from './CustomerCopy';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, ChevronRight, Heart, Minus, Plus, ShoppingBag, Star } from 'lucide-react';
@@ -45,8 +46,9 @@ export default function ProductPage({
     setCourierQuote(null);
     if (!/^[0-9]{6}$/.test(deliveryPin)) return;
     try { localStorage.setItem('jb_delivery_pin', deliveryPin); } catch {}
-    if (!product.parcelWeightGrams || product.parcelWeightGrams <= 0) {
-      setCourierMessage('Courier estimate pending: packed weight is not configured.');
+    const parcel=estimateParcel([{bouquet:product,quantity}]);
+    if (!parcel) {
+      setCourierMessage('Courier estimate pending: packed dimensions are not configured or package is too large.');
       return;
     }
     setCourierBusy(true);
@@ -54,14 +56,14 @@ export default function ProductPage({
       try {
         const available = await apiShippingServiceability(deliveryPin);
         if (!available.serviceable || !available.prepaid) throw new Error('Delivery is not available for this PIN.');
-        const quote = await apiShippingQuote(deliveryPin, Math.ceil(product.parcelWeightGrams));
+        const quote = await apiShippingQuote(deliveryPin, chargeableGrams(parcel));
         if (!cancelled) setCourierQuote(quote);
       } catch (error: any) {
         if (!cancelled) setCourierMessage(error?.message || 'Courier estimate unavailable.');
       } finally { if (!cancelled) setCourierBusy(false); }
     })();
     return () => { cancelled = true; };
-  }, [deliveryPin, product.id, product.parcelWeightGrams]);
+  }, [deliveryPin, product.id, product.parcelWeightGrams,product.parcelLengthCm,product.parcelWidthCm,product.parcelHeightCm,quantity]);
 
 
   useEffect(() => {

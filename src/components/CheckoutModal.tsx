@@ -2,7 +2,7 @@ import CustomerCopy from './CustomerCopy';
 import { useEffect, useState, type FormEvent } from 'react';
 import { ArrowRight, CheckCircle2, X } from 'lucide-react';
 import { CartItem, CustomerDetails, Order, StoreSettings, UserAccount } from '../types';
-import { apiValidateCoupon, apiShippingQuote, apiShippingServiceability } from '../services/api';
+import { apiValidateCoupon, apiCartShippingQuote } from '../services/api';
 import { isValidOptionalDeliveryDate, earliestDeliveryDate } from '../../shared/orderRules';
 
 interface CheckoutModalProps {
@@ -36,41 +36,35 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
     specialInstructions: '',
     giftNote: '',
   });
-  const [shipping, setShipping] = useState<{ fee: number; pin: string; weight: number; estimatedDeliveryDate: string | null } | null>(null);
+  const [shipping, setShipping] = useState<{ fee: number; customerFee:number; subtotal:number; freeDeliveryEligible:boolean; pin: string; key:string; estimatedDeliveryDate: string | null } | null>(null);
   const [shippingError, setShippingError] = useState('');
   const [shippingBusy, setShippingBusy] = useState(false);
-  const packedWeight = cartItems.reduce((sum, item) => sum + Number(item.bouquet.parcelWeightGrams || 0) * item.quantity, 0);
-  const shippingCartKey = cartItems.map(item => item.bouquet.id + ':' + item.quantity + ':' + (item.bouquet.parcelWeightGrams || 0)).join('|');
+  const shippingCartKey = cartItems.map(item => item.bouquet.id + ':' + item.quantity + ':' + (item.selectedSize || 'ONE')).join('|');
+  const [quoteRevision,setQuoteRevision]=useState(0);
   useEffect(() => {
     let cancelled = false;
     setShipping(null);
     setShippingError('');
     if (!isOpen || !/^[0-9]{6}$/.test(customer.pincode)) return;
-    if (packedWeight <= 0 || cartItems.some(item => !Number(item.bouquet.parcelWeightGrams))) {
-      setShippingError('Shipping details are missing for a product. Please contact the shop.');
-      return;
-    }
     setShippingBusy(true);
     (async () => {
       try {
-        const availability = await apiShippingServiceability(customer.pincode);
-        if (!availability.serviceable || !availability.prepaid) throw new Error('Delhivery does not currently serve this PIN code.');
-        const quote = await apiShippingQuote(customer.pincode, Math.ceil(packedWeight));
-        if (!cancelled) setShipping({ fee: quote.shippingCharge, pin: customer.pincode, weight: packedWeight, estimatedDeliveryDate: quote.estimatedDeliveryDate });
+        const quote = await apiCartShippingQuote(customer.pincode,cartItems.map(item=>({productId:item.bouquet.id,quantity:item.quantity,selectedSize:item.selectedSize})));
+        if (!cancelled) setShipping({fee:quote.shippingCharge,customerFee:quote.customerDeliveryFee,subtotal:quote.subtotal,freeDeliveryEligible:quote.freeDeliveryEligible,pin:customer.pincode,key:shippingCartKey,estimatedDeliveryDate:quote.estimatedDeliveryDate});
       } catch (err: any) {
         if (!cancelled) setShippingError(err?.message || 'Could not calculate courier charges.');
       } finally { if (!cancelled) setShippingBusy(false); }
     })();
     return () => { cancelled = true; };
-  }, [isOpen, customer.pincode, shippingCartKey]);
+  }, [isOpen, customer.pincode, shippingCartKey,quoteRevision]);
   if (!isOpen) return null;
-  const subtotal = cartItems.reduce((sum, item) => sum + item.bouquet.price * item.quantity, 0);
+  const subtotal = shipping?.pin===customer.pincode&&shipping.key===shippingCartKey?shipping.subtotal:cartItems.reduce((sum, item) => sum + item.bouquet.price * item.quantity, 0);
   const cartKey = cartItems.map(item => `${item.bouquet.id}:${item.selectedSize || 'ONE'}:${item.quantity}`).join('|');
   const couponIsCurrent = Boolean(appliedCoupon && appliedCoupon.email === customer.email.trim().toLowerCase() && appliedCoupon.items === cartKey);
   const validCoupon = couponIsCurrent ? appliedCoupon : null;
-  const courierFee = shipping?.pin === customer.pincode && shipping.weight === packedWeight ? shipping.fee : null;
-  const freeDeliveryEligible = Number(storeSettings.freeDeliveryThreshold || 0) > 0 && subtotal >= Number(storeSettings.freeDeliveryThreshold);
-  const deliveryFee = courierFee === null ? null : freeDeliveryEligible ? 0 : courierFee;
+  const validShipping=shipping?.pin===customer.pincode&&shipping.key===shippingCartKey?shipping:null;
+  const freeDeliveryEligible=validShipping?.freeDeliveryEligible===true;
+  const deliveryFee=validShipping?.customerFee??null;
   const minimumDeliveryDate = shipping?.pin === customer.pincode && shipping.estimatedDeliveryDate ? shipping.estimatedDeliveryDate : null;
   const discount = validCoupon?.discount || 0;
   const update = (key: keyof CustomerDetails, value: string) => {
@@ -130,6 +124,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
       setStep('confirmed');
     } catch (err: any) {
       setError(err?.message || 'Unable to place your order. Please try again.');
+      setQuoteRevision(v=>v+1);
     } finally { setBusy(false); }
   };
   const field = (label: string, key: keyof CustomerDetails, type = 'text', required = false, placeholder = '') => (

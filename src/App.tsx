@@ -1112,7 +1112,9 @@ renderCatalogue(true)
       {/* Owner's Customer Details & Payment Modal */}
       {selectedOrderForDetails && (
         <OrderDetailsModal
+          key={selectedOrderForDetails.id}
           order={selectedOrderForDetails}
+          onShipmentUpdated={updated=>{setSelectedOrderForDetails(updated);setOrders(current=>current.map(o=>o.id===updated.id?updated:o));}}
           onClose={() => setSelectedOrderForDetails(null)}
           onUpdateStatus={handleUpdateOrderStatus}
         />

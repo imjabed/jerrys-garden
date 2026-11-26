@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { estimateParcel, validParcel, chargeableGrams } from '../../shared/parcelShipping';
+import { apiAdminParcelQuote, apiReadyForPickup } from '../services/api';
 import { PRODUCT_SIZE_LABELS, productSizeFor } from '../../shared/productSizes';
 import { X, Phone, Mail, MapPin, Calendar, Clock, QrCode, CheckCircle2, XCircle, AlertCircle, MessageCircle, ExternalLink, Printer, Banknote } from 'lucide-react';
 import { Order, OrderStatus } from '../types';
@@ -6,10 +9,17 @@ interface OrderDetailsModalProps {
   order: Order | null;
   onClose: () => void;
   onUpdateStatus: (orderId: string, status: OrderStatus) => void;
+  onShipmentUpdated?: (order:Order)=>void;
 }
 
-export default function OrderDetailsModal({ order, onClose, onUpdateStatus }: OrderDetailsModalProps) {
+export default function OrderDetailsModal({ order, onClose, onUpdateStatus, onShipmentUpdated }: OrderDetailsModalProps) {
+  const [parcel,setParcel]=useState(()=>order?.shippingEstimate?.parcel||estimateParcel(order?.items||[])||{parcelLengthCm:0,parcelWidthCm:0,parcelHeightCm:0,parcelWeightGrams:0});
+  const [pickupDate,setPickupDate]=useState(()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));
+  const [pickupTime,setPickupTime]=useState('10:00');
+  const [paid,setPaid]=useState(false),[single,setSingle]=useState(false),[courierFee,setCourierFee]=useState<number|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[attempted,setAttempted]=useState(false);
   if (!order) return null;
+  const quote=async()=>{setBusy(true);setMessage('');setCourierFee(null);try{const q=await apiAdminParcelQuote(order.id,parcel);setCourierFee(q.shippingCharge);}catch(e){setMessage(e instanceof Error?e.message:'Quote failed');}finally{setBusy(false);}};
+  const dispatch=async()=>{if(courierFee===null||!paid||!single||!window.confirm('Create a prepaid shipment and request Delhivery pickup? This may debit your courier wallet.'))return;setBusy(true);setMessage('');try{const result=await apiReadyForPickup(order.id,{parcel,pickupDate,pickupTime,paymentConfirmed:paid,confirmSingleBox:single,acceptedCourierFee:courierFee});onShipmentUpdated?.(result.order);setMessage('Pickup request confirmed.');}catch(e){setMessage(e instanceof Error?e.message:'Check Delhivery One before retrying.');setAttempted(true);}finally{setBusy(false);}};
 
   const getStatusBadge = (status: OrderStatus) => {
     switch (status) {
@@ -206,6 +216,23 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus }: Or
             </section>
           )}
 
+          {order.orderType!=='Custom'&&<section className="rounded-xl border border-stone-200 p-4 space-y-3">
+            <h3 className="font-semibold">Shipment management</h3>
+            {order.shippingEstimate?.localDelivery||order.customer.pincode==='742101'?<p className="text-sm">Local delivery — arrange yourself, no Delhivery pickup.</p>:<>
+              <p className="text-sm">Customer delivery fee: ₹{order.deliveryFee} · Checkout courier estimate: {order.shippingEstimate?'₹'+order.shippingEstimate.shippingCharge:'Not recorded'}</p>
+              {order.courierShipment?<div className="space-y-2 text-sm"><p>Carrier status: {order.courierShipment.state.replaceAll('_',' ')}</p>{order.courierShipment.waybill&&<p>AWB: {order.courierShipment.waybill}</p>}{order.courierShipment.pickupId&&<p>Pickup ID: {order.courierShipment.pickupId}</p>}<p>Courier estimate ₹{order.courierShipment.estimatedCourierFee}. Check Delhivery One for label, pickup and final billing.</p><a href="https://one.delhivery.com/" target="_blank" rel="noreferrer" className="underline">Open Delhivery One</a></div>:['Order Placed','Pending'].includes(order.status)&&<>
+              <p className="text-xs text-stone-500">Confirm the actual exterior measurements of one packed box. The checkout estimate is not the final carrier invoice.</p>
+              <div className="grid grid-cols-2 gap-2">{([['parcelLengthCm','Length (cm)'],['parcelWidthCm','Width (cm)'],['parcelHeightCm','Height (cm)'],['parcelWeightGrams','Weight (g)']] as const).map(([key,label])=><label key={key} className="text-xs">{label}<input type="number" min="0.01" step="any" value={parcel[key]||''} onChange={e=>{setParcel(p=>({...p,[key]:Number(e.target.value)}));setCourierFee(null);}} className="block w-full rounded border p-2"/></label>)}</div>
+              {validParcel(parcel)&&<p className="text-xs">Estimated chargeable weight: {chargeableGrams(parcel)} g</p>}
+              <button disabled={busy||!validParcel(parcel)} onClick={()=>void quote()} className="rounded border px-3 py-2 text-sm disabled:opacity-50">Recalculate courier charge</button>
+              {courierFee!==null&&<p className="text-sm font-semibold">Courier estimate ₹{courierFee} · Store contribution if higher than customer fee: ₹{Math.max(0,courierFee-order.deliveryFee)}</p>}
+              <div className="grid grid-cols-2 gap-2"><label className="text-xs">Pickup date<input type="date" value={pickupDate} onChange={e=>setPickupDate(e.target.value)} className="block w-full rounded border p-2"/></label><label className="text-xs">Pickup time (IST)<input type="time" value={pickupTime} onChange={e=>setPickupTime(e.target.value)} className="block w-full rounded border p-2"/></label></div>
+              <label className="flex gap-2 text-xs"><input type="checkbox" checked={paid} onChange={e=>setPaid(e.target.checked)}/> Full order payment received outside the website (prepaid shipment)</label>
+              <label className="flex gap-2 text-xs"><input type="checkbox" checked={single} onChange={e=>setSingle(e.target.checked)}/> All items packed in one box and ready for collection</label>
+              <button disabled={busy||attempted||courierFee===null||!paid||!single} onClick={()=>void dispatch()} className="rounded bg-stone-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">Ready to Pickup — create shipment & request pickup</button>
+              </>}{message&&<p role="status" className="text-sm text-stone-700">{message}</p>}
+            </>}
+          </section>}
           {/* Ordered Products List */}
           <div>
             <h3 className="font-serif text-sm font-bold uppercase tracking-wider text-stone-900 border-b border-stone-200 pb-2 mb-3">

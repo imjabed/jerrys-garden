@@ -1,3 +1,5 @@
+import { validParcel, estimateParcel, chargeableGrams } from './shared/parcelShipping';
+import type { Parcel } from './shared/parcelShipping';
 import express from 'express';
 import crypto from 'crypto';
 import path from 'path';
@@ -1048,20 +1050,21 @@ async function startServer() {
 
   // Read-only freight estimate; prices are approximate until carrier billing.
   const shippingQuoteCache = new Map<string, { expires: number; value: any }>();
-  const getShippingQuote = async (pin: string, grams: number) => {
+  const getShippingQuote = async (pin: string, grams: number, fresh = false) => {
     if (!/^\d{6}$/.test(pin) || !Number.isInteger(grams) || grams < 1 || grams > 100000)
       throw new Error('INVALID_SHIPPING_INPUT');
     const local = localShipping(pin);
     if (local) return { pincode: pin, originPincode: '742101', chargeableWeightGrams: grams, currency: 'INR', ...local };
     const key = `${pin}:${grams}`;
     const cached = shippingQuoteCache.get(key);
-    if (cached && cached.expires > Date.now()) return cached.value;
+    if (!fresh && cached && cached.expires > Date.now()) return cached.value;
     const token = process.env.DELHIVERY_API_TOKEN?.trim();
     if (!token) throw new Error('COURIER_NOT_CONFIGURED');
+    const courierHost = process.env.DELHIVERY_ENV === 'staging' ? 'https://staging-express.delhivery.com' : 'https://track.delhivery.com';
     const serviceabilityController = new AbortController();
     const serviceabilityTimer = setTimeout(() => serviceabilityController.abort(), 8000);
     try {
-      const availability = await fetch(`https://track.delhivery.com/c/api/pin-codes/json/?filter_codes=${pin}`, {
+      const availability = await fetch(`${courierHost}/c/api/pin-codes/json/?filter_codes=${pin}`, {
         headers: { Authorization: `Token ${token}`, Accept: 'application/json' }, signal: serviceabilityController.signal,
       });
       if (!availability.ok) throw new Error('COURIER_SERVICEABILITY_UNAVAILABLE');
@@ -1074,7 +1077,7 @@ async function startServer() {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 8000);
     try {
-      const response = await fetch(`https://track.delhivery.com/api/kinko/v1/invoice/charges/.json?${params}`, {
+      const response = await fetch(`${courierHost}/api/kinko/v1/invoice/charges/.json?${params}`, {
         headers: { Authorization: `Token ${token}`, Accept: 'application/json' }, signal: controller.signal,
       });
       if (!response.ok) throw new Error('COURIER_RATE_UNAVAILABLE');
@@ -1099,7 +1102,7 @@ async function startServer() {
         const tatController = new AbortController();
         const tatTimeout = setTimeout(() => tatController.abort(), 7000);
         try {
-          const tatResponse = await fetch(`https://track.delhivery.com/api/dc/expected_tat?${tatParams}`, {
+          const tatResponse = await fetch(`${courierHost}/api/dc/expected_tat?${tatParams}`, {
             headers: { Authorization: `Token ${token}`, Accept: 'application/json' },
             signal: tatController.signal,
           });
@@ -1140,6 +1143,32 @@ async function startServer() {
     } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
   });
 
+
+  // Use only authoritative product records for checkout quotes; never trust client weights or prices.
+  app.post('/api/shipping/cart-quote', requireClientHeader, async (req,res) => {
+    const pin=String(req.body?.pincode||'').trim(), raw=req.body?.items;
+    if(!/^\d{6}$/.test(pin)||!Array.isArray(raw)||!raw.length||raw.length>50)return res.status(400).json({success:false,error:'Invalid cart or PIN.'});
+    if(!allowLoginAttempt('cart-quote:'+String(req.ip||'unknown'),40))return res.status(429).json({success:false,error:'Too many shipping requests.'});
+    try{
+      const db=await getMongoDb(); if(!db)return res.status(503).json({success:false,error:'Database unavailable.'});
+      const items:any[]=[];let subtotal=0;
+      for(const item of raw){
+        const q=Number(item.quantity);if(!Number.isInteger(q)||q<1||q>20||typeof item.productId!=='string')return res.status(400).json({success:false,error:'Invalid cart item.'});
+        const p=await db.collection('products').findOne({id:item.productId});
+        if(!p||p.inStock===false)return res.status(409).json({success:false,error:'Product unavailable. Refresh your bag.'});
+        const sized=hasProductSizes(p),v=sized?productSizeFor(p as any,item.selectedSize||'M'):null;
+        if(sized&&!v)return res.status(409).json({success:false,error:'Selected size unavailable.'});
+        subtotal+=Number(v?.price??p.price)*q;items.push({bouquet:p,quantity:q});
+      }
+      const parcel=estimateParcel(items);
+      if(!parcel&&!localShipping(pin))return res.status(409).json({success:false,error:'Packed dimensions are not configured or the combined box is too large. Contact the shop.'});
+      const quote=await getShippingQuote(pin,parcel?chargeableGrams(parcel):1);
+      const settings=await mongoGetSettings();if(!settings)throw Error('settings');
+      const threshold=Number(settings.freeDeliveryThreshold||0),fee=threshold>0&&subtotal>=threshold?0:quote.shippingCharge;
+      return res.json({success:true,...quote,parcel,customerDeliveryFee:fee,subtotal,freeDeliveryEligible:threshold>0&&subtotal>=threshold});
+    }catch{return res.status(503).json({success:false,error:'Courier quote unavailable. Please try again.'});}
+  });
+
   app.post('/api/bouquets', requireOwner, requireClientHeader, async (req, res) => {
     try {
       const bouquet = req.body;
@@ -1151,7 +1180,7 @@ async function startServer() {
           || Math.abs(bouquet.deliveryCost * 100 - Math.round(bouquet.deliveryCost * 100)) > 0.000001))) {
         return res.status(400).json({ success: false, error: 'Enter a valid stock quantity and delivery cost.' });
       }
-      if (['parcelHeightCm', 'parcelWidthCm', 'parcelLengthCm', 'parcelWeightGrams'].some(key => bouquet[key] !== undefined && (!Number.isFinite(bouquet[key]) || bouquet[key] <= 0))) return res.status(400).json({ success: false, error: 'Invalid packed parcel measurements.' });
+      if (!validParcel(bouquet)) return res.status(400).json({ success: false, error: 'Invalid packed parcel measurements.' });
       if (hasProductSizes(bouquet)) {
         if (!Array.isArray(bouquet.sizeOptions) || bouquet.sizeOptions.length < 1
             || bouquet.sizeOptions.length > 4
@@ -1648,12 +1677,13 @@ async function startServer() {
         normalizedItems.push({ bouquet: itemSnapshot, quantity, selectedSize: variant?.size });
       }
       const subtotal = normalizedItems.reduce((sum, item) => sum + Number(item.bouquet.price || 0) * item.quantity, 0);
-      const totalPackedWeight = normalizedItems.reduce((sum, item) => sum + Number(item.bouquet.parcelWeightGrams || 0) * item.quantity, 0);
-      if (normalizedItems.some(item => !Number.isFinite(Number(item.bouquet.parcelWeightGrams)) || Number(item.bouquet.parcelWeightGrams) <= 0))
-        return res.status(409).json({ success: false, error: 'Shipping is not configured for one or more products. Please contact the shop.' });
+      const parcel=estimateParcel(normalizedItems);
+      if (!parcel && !localShipping(String(c.pincode))) return res.status(409).json({success:false,error:'Packed dimensions are missing or combined package is too large. Please contact the shop.'});
       let deliveryFee: number;
+      let shippingEstimate: any;
       try {
-        const quote = await getShippingQuote(String(c.pincode), Math.ceil(totalPackedWeight));
+        const quote = await getShippingQuote(String(c.pincode), parcel?chargeableGrams(parcel):1, true);
+        shippingEstimate={...quote,parcel,quotedAt:new Date().toISOString()};
         if (c.deliveryDate && (!quote.estimatedDeliveryDate || !/^\d{4}-\d{2}-\d{2}$/.test(String(c.deliveryDate)) || String(c.deliveryDate) < (quote.earliestDeliveryDate || quote.estimatedDeliveryDate)))
           return res.status(400).json({ success: false, error: 'Preferred delivery date must be on or after the earliest available delivery date. Leave blank when an estimate is unavailable.' });
         deliveryFee = quote.shippingCharge;
@@ -1681,6 +1711,7 @@ async function startServer() {
       if (Number.isFinite(freeDeliveryThreshold) && freeDeliveryThreshold > 0 && subtotal >= freeDeliveryThreshold)
         deliveryFee = 0;
       const totalAmount = Math.round((Math.max(0, subtotal - discountAmount) + deliveryFee) * 100) / 100;
+      if(Math.abs(Number(body.totalAmount)-totalAmount)>0.009 || Math.abs(Number(body.deliveryFee)-deliveryFee)>0.009 || !Number.isFinite(Number(body.totalAmount)) || !Number.isFinite(Number(body.deliveryFee))) return res.status(409).json({success:false,error:'Order price or shipping changed. Refresh checkout to review the updated amount.'});
       const now = new Date().toISOString();
       const id = `ord-${crypto.randomUUID()}`;
       const orderNumber = '';
@@ -1692,7 +1723,7 @@ async function startServer() {
       };
       const paymentMethod = 'CONTACT_LATER';
       const order = {
-        id, orderNumber, createdAt: now, updatedAt: now, status: 'Order Placed', items: normalizedItems, subtotal, deliveryFee, codHandlingCharge, totalAmount,
+        id, orderNumber, createdAt: now, updatedAt: now, status: 'Order Placed', items: normalizedItems, subtotal, deliveryFee, codHandlingCharge, totalAmount, shippingEstimate,
         couponCode: couponCode || undefined, discountAmount,
         customer: safeCustomer,
         authenticatedCustomer: customerAuth?.role === 'customer',
@@ -1719,6 +1750,65 @@ async function startServer() {
       }
       return res.status(201).json({ success: true, connected: true, order: saved });
     } catch (err: any) { console.error('Order creation error:', err); return res.status(500).json({ success: false, error: 'Could not place your order. Please try again.' }); }
+  });
+
+
+  // Owner-only dispatch. No carrier mutation until the owner explicitly confirms a packed, paid order.
+  app.post('/api/admin/orders/:id/parcel-quote',requireOwner,requireClientHeader,async(req,res)=>{
+    try{
+      const db=await getMongoDb();const order=await db?.collection('orders').findOne({id:req.params.id});
+      if(!order||order.orderType==='Custom')return res.status(404).json({success:false,error:'Standard order not found.'});
+      if(localShipping(order.customer.pincode))return res.status(400).json({success:false,error:'Local delivery: courier pickup is not needed.'});
+      if(!validParcel(req.body?.parcel))return res.status(400).json({success:false,error:'Enter valid actual packed measurements.'});
+      const quote=await getShippingQuote(order.customer.pincode,chargeableGrams(req.body.parcel),true);
+      return res.json({success:true,...quote});
+    }catch{return res.status(503).json({success:false,error:'Courier quote unavailable.'});}
+  });
+  app.post('/api/admin/orders/:id/ready-for-pickup',requireOwner,requireClientHeader,async(req,res)=>{
+    const token=process.env.DELHIVERY_API_TOKEN?.trim(),warehouse=process.env.DELHIVERY_PICKUP_LOCATION?.trim();
+    const environment=process.env.DELHIVERY_ENV==='staging'?'staging':'production';
+    const host=environment==='staging'?'https://staging-express.delhivery.com':'https://track.delhivery.com';
+    if(process.env.DELHIVERY_DISPATCH_ENABLED!=='true'||!token||!warehouse)return res.status(503).json({success:false,error:'Pickup is disabled until Delhivery token, registered warehouse and dispatch enable flag are configured.'});
+    const parcel=req.body?.parcel, date=String(req.body?.pickupDate||''),time=String(req.body?.pickupTime||'');
+    if(!validParcel(parcel)||!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<indiaTodayPlusDays(0)||date>indiaTodayPlusDays(7)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)||req.body?.paymentConfirmed!==true||req.body?.confirmSingleBox!==true)
+      return res.status(400).json({success:false,error:'Confirm full payment and one packed box, valid measurements, and pickup date/time within 7 days.'});
+    const db=await getMongoDb();if(!db)return res.status(503).json({success:false,error:'Database unavailable.'});
+    const collection=db.collection('orders');
+    const order=await collection.findOne({id:req.params.id});
+    if(!order||order.orderType==='Custom'||!['Order Placed','Pending'].includes(order.status))return res.status(409).json({success:false,error:'Only active standard orders can be dispatched.'});
+    if(localShipping(order.customer.pincode))return res.status(409).json({success:false,error:'This is a local delivery order.'});
+    if(order.courierShipment)return res.status(409).json({success:false,error:'Shipment already started. Check Delhivery One before any further action; do not create a duplicate.'});
+    let quote:any;
+    try{quote=await getShippingQuote(order.customer.pincode,chargeableGrams(parcel),true);}catch{return res.status(503).json({success:false,error:'Unable to verify current courier cost.'});}
+    if(Number(req.body?.acceptedCourierFee)!==quote.shippingCharge)return res.status(409).json({success:false,error:'Courier cost changed. Recalculate and confirm the new amount.'});
+    const at=new Date().toISOString();
+    const initial={state:'manifesting',environment,warehouse,parcel,estimatedCourierFee:quote.shippingCharge,customerDeliveryFee:order.deliveryFee,startedAt:at,pickupDate:date,pickupTime:time};
+    // Atomic durable lock. Timeouts/uncertain provider outcomes require manual reconciliation, not automatic retries.
+    const lock=await collection.updateOne({id:order.id,status:{$in:['Order Placed','Pending']},courierShipment:{$exists:false}},{$set:{courierShipment:initial,updatedAt:at}});
+    if(lock.modifiedCount!==1)return res.status(409).json({success:false,error:'Dispatch already started; refresh the order.'});
+    let waybill='',stage='manifesting';
+    const persist=async(state:string,extra:any={})=>{await collection.updateOne({id:order.id},{$set:{courierShipment:{...initial,state,...(waybill?{waybill}:{}),...extra},updatedAt:new Date().toISOString()}});};
+    const post=async(path:string,body:string,contentType:string)=>{
+      const response=await fetch(host+path,{method:'POST',headers:{Authorization:'Token '+token,Accept:'application/json','Content-Type':contentType},body,signal:AbortSignal.timeout(15000)});
+      const data:any=await response.json().catch(()=>null);return {ok:response.ok,data};
+    };
+    try{
+      const cust=order.customer;
+      const shipment={order:order.orderNumber,name:cust.fullName,add:cust.deliveryAddress,pin:String(cust.pincode),city:cust.city,phone:cust.phone,country:'India',payment_mode:'Prepaid',cod_amount:0,total_amount:order.totalAmount,products_desc:order.items.map((i:any)=>i.bouquet.title+' x'+i.quantity).join(', ').slice(0,250),quantity:order.items.reduce((n:number,i:any)=>n+i.quantity,0),weight:Math.ceil(parcel.parcelWeightGrams),shipment_length:parcel.parcelLengthCm,shipment_width:parcel.parcelWidthCm,shipment_height:parcel.parcelHeightCm,shipping_mode:'Surface',seller_name:'Jame Bouquets'};
+      const manifest=await post('/api/cmu/create.json',new URLSearchParams({format:'json',data:JSON.stringify({pickup_location:{name:warehouse},shipments:[shipment]})}).toString(),'application/x-www-form-urlencoded');
+      const pack=manifest.data?.packages?.[0];
+      if(!manifest.ok||manifest.data?.success!==true||!pack?.waybill||/fail|error/i.test(String(pack.status||'')))throw Error('Shipment not confirmed');
+      waybill=String(pack.waybill);stage='pickup';
+      await persist('manifested');
+      const pickup=await post('/fm/request/new/',JSON.stringify({pickup_location:warehouse,pickup_date:date,pickup_time:time+':00',expected_package_count:1}),'application/json');
+      const pickupId=pickup.data?.pickup_id??pickup.data?.data?.pickup_id;
+      if(!pickup.ok||!pickupId)throw Error('Pickup not confirmed');
+      await persist('pickup_requested',{pickupId:String(pickupId)});
+      return res.json({success:true,order:await collection.findOne({id:order.id})});
+    }catch{
+      await persist(stage==='manifesting'?'manifest_review_required':'pickup_review_required').catch(()=>{});
+      return res.status(502).json({success:false,error:stage==='manifesting'?'Shipment outcome needs verification in Delhivery One. Do not retry blindly.':'Shipment created; pickup was not confirmed. Check Delhivery One for an existing warehouse pickup or arrange it manually.'});
+    }
   });
 
   app.patch('/api/orders/:id/status', requireOwner, requireClientHeader, async (req, res) => {

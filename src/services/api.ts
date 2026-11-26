@@ -443,3 +443,13 @@ export async function apiShippingQuote(pincode: string, weightGrams: number): Pr
 export async function apiShippingServiceability(pincode: string): Promise<{ success: boolean; serviceable: boolean; city: string | null; prepaid: boolean }> {
   return parseResponse(await fetch(`${API_URL}/api/shipping/serviceability?pincode=${encodeURIComponent(pincode)}`, { cache: 'no-store' }));
 }
+
+export async function apiCartShippingQuote(pincode:string,items:{productId:string;quantity:number;selectedSize?:string}[]):Promise<CourierQuote & {customerDeliveryFee:number;subtotal:number;freeDeliveryEligible:boolean}>{
+  return parseResponse(await fetch(API_URL+'/api/shipping/cart-quote',{method:'POST',headers:jsonHeaders,credentials:'include',body:JSON.stringify({pincode,items}),cache:'no-store'}));
+}
+export async function apiAdminParcelQuote(id:string,parcel:import('../../shared/parcelShipping').Parcel):Promise<CourierQuote>{
+  return parseResponse(await fetch(API_URL+'/api/admin/orders/'+encodeURIComponent(id)+'/parcel-quote',{method:'POST',headers:jsonHeaders,credentials:'include',body:JSON.stringify({parcel})}));
+}
+export async function apiReadyForPickup(id:string,payload:{parcel:import('../../shared/parcelShipping').Parcel;pickupDate:string;pickupTime:string;paymentConfirmed:boolean;confirmSingleBox:boolean;acceptedCourierFee:number}):Promise<{success:boolean;order:Order}>{
+  return parseResponse(await fetch(API_URL+'/api/admin/orders/'+encodeURIComponent(id)+'/ready-for-pickup',{method:'POST',headers:jsonHeaders,credentials:'include',body:JSON.stringify(payload)}));
+}

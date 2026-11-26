@@ -1,3 +1,4 @@
+import { validParcel, chargeableGrams } from '../../shared/parcelShipping';
 import { useState, type FormEvent, type ChangeEvent } from 'react';
 import { X, Sparkles, Check, Loader2 } from 'lucide-react';
 import { RibbonBouquet } from '../types';
@@ -101,8 +102,8 @@ export default function BouquetEditorModal({
       setSaveError('Enter a valid stock quantity and delivery cost.');
       return;
     }
-    if ([parcelHeight, parcelWidth, parcelLength, parcelWeight].some(v => v !== '' && (!Number.isFinite(Number(v)) || Number(v) <= 0))) {
-      setSaveError('Packed parcel measurements must be positive numbers.'); return;
+    if (!validParcel({parcelHeightCm:Number(parcelHeight),parcelWidthCm:Number(parcelWidth),parcelLengthCm:Number(parcelLength),parcelWeightGrams:Number(parcelWeight)})) {
+      setSaveError('Enter all four packed-box measurements (cm and grams) within the supported limits.'); return;
     }
     if (description.trim().length < 12) { setSaveError('Add a product description of at least 12 characters.'); return; }
     const colors = ribbonColorsText
@@ -220,7 +221,7 @@ export default function BouquetEditorModal({
             </label>
           </div>
           <section className="space-y-3 rounded-xl border border-stone-200 bg-stone-50 p-4" aria-label="Packed parcel specifications">
-            <h3 className="font-semibold text-stone-900">Packed parcel measurements (for courier estimates)</h3>
+            <h3 className="font-semibold text-stone-900">Packed parcel measurements (required)</h3><p className="text-xs text-stone-600">Measure the exterior shipping box and weigh it including packaging. If sizes differ, enter the largest packed dimensions and heaviest packed weight as a conservative shared estimate.</p>
             <div className="grid grid-cols-2 gap-3">
               {([
                 ['Height (cm)', parcelHeight, setParcelHeight],
@@ -229,10 +230,11 @@ export default function BouquetEditorModal({
                 ['Weight (grams)', parcelWeight, setParcelWeight],
               ] as const).map(([label, value, setter]) => (
                 <label key={label} className="text-xs text-stone-700">{label}
-                  <input className={fieldClass} type="number" min="0.01" step="any" value={value} onChange={e => setter(e.target.value)} placeholder="Enter packed measurement" />
+                  <input className={fieldClass} type="number" required min="0.01" step="any" value={value} onChange={e => setter(e.target.value)} placeholder="Enter packed measurement" />
                 </label>
               ))}
             </div>
+            {validParcel({parcelHeightCm:Number(parcelHeight),parcelWidthCm:Number(parcelWidth),parcelLengthCm:Number(parcelLength),parcelWeightGrams:Number(parcelWeight)})&&<p className="text-xs font-medium">Estimated chargeable weight: {chargeableGrams({parcelHeightCm:Number(parcelHeight),parcelWidthCm:Number(parcelWidth),parcelLengthCm:Number(parcelLength),parcelWeightGrams:Number(parcelWeight)})} g</p>}
           </section>
           <section className="space-y-3 rounded-xl border border-stone-200 bg-stone-50 p-4" aria-label="Product categories">
             <h3 className="font-serif text-xl text-stone-900">Product categories</h3>

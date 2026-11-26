@@ -61,6 +61,8 @@ export interface CustomOrderDetails {
 }
 
 export interface Order {
+  shippingEstimate?: {shippingCharge:number;localDelivery?:boolean;parcel?:import('../shared/parcelShipping').Parcel;chargeableWeightGrams:number;quotedAt:string};
+  courierShipment?: {state:string;waybill?:string;pickupId?:string;estimatedCourierFee:number;customerDeliveryFee:number;environment:string;parcel:import('../shared/parcelShipping').Parcel};
   orderType?: 'Standard' | 'Custom';
   customDetails?: CustomOrderDetails;
   id: string;

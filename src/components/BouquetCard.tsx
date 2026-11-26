@@ -1,3 +1,4 @@
+import { validParcel, chargeableGrams, estimateParcel } from '../../shared/parcelShipping';
 import { useEffect, useState } from 'react';
 import { Star, ShoppingCart } from 'lucide-react';
 import { apiShippingQuote, apiShippingServiceability, type ReviewSummary } from '../services/api';
@@ -34,17 +35,17 @@ export default function BouquetCard({
     let cancelled = false;
     let pin = '';
     try { pin = localStorage.getItem('jb_delivery_pin') || ''; } catch {}
-    if (!/^[0-9]{6}$/.test(pin) || !bouquet.parcelWeightGrams) return;
+    if (!/^[0-9]{6}$/.test(pin) || !validParcel(bouquet)) return;
     (async () => {
       try {
         const service = await apiShippingServiceability(pin);
         if (!service.serviceable || !service.prepaid) return;
-        const quote = await apiShippingQuote(pin, Math.ceil(bouquet.parcelWeightGrams!));
+        const quote = await apiShippingQuote(pin, chargeableGrams(bouquet as import('../../shared/parcelShipping').Parcel));
         if (!cancelled) setShipping(quote);
       } catch { /* No date or charge displayed without carrier confirmation. */ }
     })();
     return () => { cancelled = true; };
-  }, [bouquet.id, bouquet.parcelWeightGrams]);
+  }, [bouquet.id, bouquet.parcelWeightGrams,bouquet.parcelLengthCm,bouquet.parcelWidthCm,bouquet.parcelHeightCm]);
   return (
     <div role="link" tabIndex={0} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(bouquet); } }} onClick={event => { if ((event.target as HTMLElement).closest("button")) return; onSelect(bouquet); }} className="jb-product-card group bg-white border border-stone-200/60 hover:border-stone-300 transition-all duration-300 flex flex-col overflow-hidden relative cursor-pointer no-underline">
       {/* Labels sit above the image, never over the product photo. */}
