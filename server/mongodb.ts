@@ -531,11 +531,12 @@ export async function mongoSaveBouquet(bouquet: any) {
 
   const now = new Date().toISOString();
   const doc = { ...bouquet, updatedAt: now };
+  delete doc.deliveryCost;
 
   // Save to both collections (bouquets and products)
   await Promise.all([
-    database.collection('bouquets').updateOne({ id: bouquet.id }, { $set: doc }, { upsert: true }),
-    database.collection('products').updateOne({ id: bouquet.id }, { $set: doc }, { upsert: true }),
+    database.collection('bouquets').updateOne({ id: bouquet.id }, { $set: doc, $unset: {deliveryCost:''} }, { upsert: true }),
+    database.collection('products').updateOne({ id: bouquet.id }, { $set: doc, $unset: {deliveryCost:''} }, { upsert: true }),
   ]);
 
   return await database.collection('bouquets').findOne({ id: bouquet.id });
