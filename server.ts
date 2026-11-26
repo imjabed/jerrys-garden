@@ -34,7 +34,6 @@ import {
   mongoGetOrdersForCustomer,
   mongoCreateOrder,
   getMongoDb,
-  mongoUpdateOrderStatus,
   mongoGetSettings,
   mongoUpdateSettings,
   mongoGetCoupons,
@@ -1841,7 +1840,7 @@ async function startServer() {
     const lock=await collection.updateOne({id:order.id,status:{$in:['Order Placed','Pending']},courierShipment:{$exists:false}},{$set:{courierShipment:initial,updatedAt:at,'payment.paymentStatus':'Verified','payment.paidAt':at}});
     if(lock.modifiedCount!==1)return res.status(409).json({success:false,error:'Dispatch already started; refresh the order.'});
     let waybill='',stage='manifesting';
-    const persist=async(state:string,extra:any={})=>{await collection.updateOne({id:order.id},{$set:{courierShipment:{...initial,state,...(waybill?{waybill}:{}),...extra},updatedAt:new Date().toISOString()}});};
+    const persist=async(state:string,extra:any={},ready=false)=>{await collection.updateOne({id:order.id},{$set:{courierShipment:{...initial,state,...(waybill?{waybill}:{}),...extra},...(ready?{status:'Ready for Ship'}:{}),updatedAt:new Date().toISOString()}});};
     const post=async(path:string,body:string,contentType:string)=>{
       const response=await fetch(host+path,{method:'POST',headers:{Authorization:'Token '+token,Accept:'application/json','Content-Type':contentType},body,signal:AbortSignal.timeout(15000)});
       const data:any=await response.json().catch(()=>null);return {ok:response.ok,data};
@@ -1856,7 +1855,7 @@ async function startServer() {
         const record=result?.message==='Success'?result.data:result;
         if(!record?.awb_number||String(record.client_order_id)!==String(order.orderNumber))throw Error('Shadowfax shipment not confirmed');
         waybill=String(record.awb_number);stage='pickup';
-        await persist('manifested',{pickupSlot:sfSlot,promisedDeliveryDate:record.promised_delivery_date||null});
+        await persist('pickup_requested',{pickupSlot:sfSlot,promisedDeliveryDate:record.promised_delivery_date||null},true);
         return res.json({success:true,order:await collection.findOne({id:order.id})});
       }
       const shipment={order:order.orderNumber,invoice_reference:order.orderNumber,name:cust.fullName,add:cust.deliveryAddress,pin:String(cust.pincode),city:cust.city,phone:cust.phone,country:'India',payment_mode:'Pre-paid',cod_amount:0,total_amount:order.totalAmount,products_desc:order.items.map((i:any)=>i.bouquet.title+' x'+i.quantity).join(', ').slice(0,250),quantity:order.items.reduce((n:number,i:any)=>n+i.quantity,0),weight:Math.ceil(parcel.parcelWeightGrams),shipment_length:parcel.parcelLengthCm,shipment_width:parcel.parcelWidthCm,shipment_height:parcel.parcelHeightCm,shipping_mode:carrierShippingName(order.deliveryMode==='express'?'express':'standard'),seller_name:'Jame Bouquets'};
@@ -1868,7 +1867,7 @@ async function startServer() {
       const pickup=await post('/fm/request/new/',JSON.stringify({pickup_location:warehouse,pickup_date:date,pickup_time:time+':00',expected_package_count:1}),'application/json');
       const pickupId=pickup.data?.pickup_id??pickup.data?.data?.pickup_id;
       if(!pickup.ok||!pickupId)throw Error('Pickup not confirmed');
-      await persist('pickup_requested',{pickupId:String(pickupId)});
+      await persist('pickup_requested',{pickupId:String(pickupId)},true);
       return res.json({success:true,order:await collection.findOne({id:order.id})});
     }catch{
       await persist(stage==='manifesting'?'manifest_review_required':'pickup_review_required').catch(()=>{});
@@ -1879,10 +1878,25 @@ async function startServer() {
 
   app.patch('/api/orders/:id/status', requireOwner, requireClientHeader, async (req, res) => {
     try {
-      const allowed = new Set(['Order Placed', 'Pending', 'Delivered', 'Cancelled']);
+      const allowed = new Set(['Order Placed', 'Pending', 'Ready for Ship', 'Delivered', 'Cancelled']);
       const status = String(req.body?.status || '');
       if (!allowed.has(status)) return res.status(400).json({ success: false, error: 'Invalid order status.' });
-      const updated = await mongoUpdateOrderStatus(req.params.id, status);
+      const database=await getMongoDb();if(!database)return res.status(503).json({success:false,error:'Database unavailable.'});
+      const orders=database.collection('orders'),order=await orders.findOne({id:req.params.id});
+      if(!order)return res.status(404).json({success:false,error:'Order not found.'});
+      if(status==='Ready for Ship'){
+        if(order.status==='Ready for Ship')return res.json({success:true,connected:true,order});
+        if(!['Order Placed','Pending'].includes(order.status))return res.status(409).json({success:false,error:'Only active orders can be prepared for shipping.'});
+        if(order.orderType==='Custom'||!order.shippingEstimate?.localDelivery&&!localShipping(String(order.customer?.pincode||'')))return res.status(409).json({success:false,error:'Use the Ready for Ship shipment confirmation to request courier pickup.'});
+        const result=await orders.updateOne({id:order.id,status:{$in:['Order Placed','Pending']},courierShipment:{$exists:false}},{$set:{status,updatedAt:new Date().toISOString()}});
+        if(!result.matchedCount)return res.status(409).json({success:false,error:'Order changed. Refresh before retrying.'});
+        return res.json({success:true,connected:true,order:await orders.findOne({id:order.id})});
+      }
+      // Do not mark an order cancelled/reopened while a courier shipment is active or uncertain.
+      if(order.courierShipment&&status!==order.status&&(status!=='Delivered'||order.courierShipment.state!=='pickup_requested'))return res.status(409).json({success:false,error:'Reconcile the courier shipment in its portal before changing this order status.'});
+      const updatedResult=await orders.updateOne({id:order.id,status:order.status,...(order.courierShipment?{'courierShipment.state':order.courierShipment.state}:{courierShipment:{$exists:false}})},{$set:{status,updatedAt:new Date().toISOString()}});
+      if(!updatedResult.matchedCount)return res.status(409).json({success:false,error:'Order changed. Refresh before retrying.'});
+      const updated=await orders.findOne({id:order.id});
       if (!updated) return res.status(404).json({ success: false, error: 'Order not found.' });
       return res.json({ success: true, connected: true, order: updated });
     } catch (err: any) { return res.status(500).json({ success: false, error: 'Request failed. Please try again.' }); }
