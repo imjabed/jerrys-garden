@@ -453,6 +453,7 @@ export default function App() {
       if(!order||order.status==='Ready for Ship')return;
       if(!['Order Placed','Pending'].includes(order.status)){showToast('Only active orders can be prepared for shipping.');return;}
       if(order.orderType==='Custom'){showToast('Convert the custom enquiry to a standard order before shipping.');return;}
+      if(order.payment.method!=='COD'&&order.payment.paymentStatus!=='Verified'){setReadyShipIntent(false);setSelectedOrderForDetails(order);showToast('Mark the prepaid payment as Paid before shipping.');return;}
       if(!order.shippingEstimate?.localDelivery&&order.deliveryMode!=='local'&&order.customer.pincode!=='742101'){
         setReadyShipIntent(true);setSelectedOrderForDetails(order);return;
       }
