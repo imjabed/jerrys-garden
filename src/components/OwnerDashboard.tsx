@@ -497,7 +497,7 @@ export default function OwnerDashboard({
                                 ? 'text-amber-800 bg-amber-100 font-bold' 
                                 : 'text-emerald-700 bg-emerald-50'
                             }`}>
-                              {order.orderType === 'Custom' ? 'Custom enquiry · Call' : order.payment.method === 'CONTACT_LATER' ? 'Call to confirm' : 'Legacy order'}
+                              {order.orderType === 'Custom' ? 'Custom enquiry · Call' : `${order.payment.method==='COD'?'COD':'Prepaid'} · ${order.payment.paymentStatus==='Verified'?'Paid':order.payment.paymentStatus==='Refunded'?'Refunded':'Unpaid'}`}
                             </span>
                           </td>
 
