@@ -1043,7 +1043,7 @@ async function startServer() {
     if (local) return res.json({ success: true, pincode, serviceable: true, prepaid: true, cod: true, ...local });
     if(useShadowfax()){
       if(!allowLoginAttempt('shipping-serviceability:'+String(req.ip||'unknown'),40))return res.status(429).json({success:false,error:'Too many shipping requests.'});
-      try{const serviceable=await shadowfaxServiceable(pincode);return res.json({success:true,pincode,serviceable,prepaid:serviceable,cod:false,city:null,state:null,preparationDays:preparationDaysFor(await mongoGetSettings()),estimatedDeliveryDate:null,shippingCharge:null,estimateStatus:'pending_courier_quote'});}
+      try{const serviceable=await shadowfaxServiceable(pincode);return res.json({success:true,pincode,serviceable,prepaid:serviceable,cod:serviceable,city:null,state:null,preparationDays:preparationDaysFor(await mongoGetSettings()),estimatedDeliveryDate:null,shippingCharge:null,estimateStatus:'pending_courier_quote'});}
       catch{return res.status(502).json({success:false,error:'Shadowfax availability could not be verified.'});}
     }
     const token = process.env.DELHIVERY_API_TOKEN?.trim();
@@ -1205,7 +1205,7 @@ async function startServer() {
       const options=settled.flatMap(result=>{
         if(result.status!=='fulfilled')return [];
         const quote=result.value,mode=quote.deliveryMode as DeliveryMode;
-        return [{...quote,customerDeliveryFee:customerShippingFee(quote.shippingCharge,subtotal,threshold,mode),freeDeliveryEligible:mode!=='express'&&threshold>0&&subtotal>=threshold}];
+        return [{...quote,codAvailable:quote.localDelivery===true||useShadowfax(),customerDeliveryFee:customerShippingFee(quote.shippingCharge,subtotal,threshold,mode),freeDeliveryEligible:mode!=='express'&&threshold>0&&subtotal>=threshold}];
       });
       if(!options.length)return res.status(503).json({success:false,error:'No enabled delivery method returned a courier quote for this address.'});
       return res.json({success:true,...options[0],options,parcel,subtotal});
@@ -1767,7 +1767,10 @@ async function startServer() {
         deliveryAddress: String(c.deliveryAddress).trim().slice(0, 500), city: String(c.city).trim().slice(0, 120), pincode: String(c.pincode).replace(/\s/g, ''),
         deliveryDate: String(c.deliveryDate).trim(), deliveryTimeSlot: String(c.deliveryTimeSlot || '').slice(0, 100), specialInstructions: String(c.specialInstructions || '').slice(0, 500), giftNote: String(c.giftNote || '').slice(0, 500),
       };
-      const paymentMethod = 'CONTACT_LATER';
+      const paymentMethod=body.payment?.method??'PREPAID';
+      if(!['PREPAID','COD','CONTACT_LATER'].includes(paymentMethod))return res.status(400).json({success:false,error:'Select prepaid or cash on delivery.'});
+      if(paymentMethod==='COD'&&(!isLocal&&!useShadowfax()||totalAmount<=0))return res.status(409).json({success:false,error:'Cash on delivery is unavailable for this order. Select prepaid.'});
+      // Never trust client-supplied payment status or timestamps.
       const order = {
         id, orderNumber, createdAt: now, updatedAt: now, status: 'Order Placed', items: normalizedItems, subtotal, deliveryFee, codHandlingCharge, totalAmount, shippingEstimate, deliveryMode,
         couponCode: couponCode || undefined, discountAmount,
@@ -1776,7 +1779,7 @@ async function startServer() {
         customerEmail: customerAuth?.role === 'customer' ? customerAuth.email : safeCustomer.email,
         payment: {
           method: paymentMethod,
-          paymentStatus: 'Not Required',
+          paymentStatus: paymentMethod==='COD'?'Pending on Delivery':'Awaiting Confirmation',
           paidAt: '',
         },
       };
@@ -1790,7 +1793,7 @@ async function startServer() {
           await sendEmailWithAgentMail({
             to: safeCustomer.email,
             subject: `Jame Bouquets — Order Placed ${order.orderNumber}`,
-            html: `<div style="font-family:Georgia,serif;max-width:640px;margin:auto;padding:28px;color:#292524"><h1>Jame Bouquets</h1><h2>Order Placed!</h2><p>Thank you for your order <strong>${order.orderNumber}</strong>.</p><p>Our team will contact you by phone to confirm your order and discuss payment. No payment is required on the website.</p><table style="width:100%"><tbody>${rows}</tbody></table><p>Products subtotal: ₹${subtotal}</p><p>Delivery: ₹${deliveryFee} · Total: ₹${totalAmount}</p><p><strong>Phone:</strong> ${safeCustomer.phone}</p><p><strong>Delivery address:</strong> ${safeCustomer.deliveryAddress}, ${safeCustomer.city} - ${safeCustomer.pincode}</p></div>`,
+            html: `<div style="font-family:Georgia,serif;max-width:640px;margin:auto;padding:28px;color:#292524"><h1>Jame Bouquets</h1><h2>Order Placed!</h2><p>Thank you for your order <strong>${order.orderNumber}</strong>.</p><p>${paymentMethod==='COD'?'Cash on delivery: pay the total shown below when your parcel arrives.':'Prepaid: payment is currently unpaid. Our team will contact you to arrange payment before dispatch.'}</p><table style="width:100%"><tbody>${rows}</tbody></table><p>Products subtotal: ₹${subtotal}</p><p>Delivery: ₹${deliveryFee} · Total: ₹${totalAmount}</p><p><strong>Phone:</strong> ${safeCustomer.phone}</p><p><strong>Delivery address:</strong> ${safeCustomer.deliveryAddress}, ${safeCustomer.city} - ${safeCustomer.pincode}</p></div>`,
           });
         } catch (emailErr) { console.error("[Jame Bouquets] Order confirmation email failed:", emailErr); }
       }
@@ -1820,13 +1823,18 @@ async function startServer() {
     const host=environment==='staging'?'https://staging-express.delhivery.com':'https://track.delhivery.com';
     if(!isShadowfax&&(process.env.DELHIVERY_DISPATCH_ENABLED!=='true'||!token||!warehouse))return res.status(503).json({success:false,error:'Pickup is disabled until Delhivery token, registered warehouse and dispatch enable flag are configured.'});
     const parcel=req.body?.parcel, date=String(req.body?.pickupDate||''),time=String(req.body?.pickupTime||'');
-    if(!validParcel(parcel)||!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<indiaTodayPlusDays(0)||date>indiaTodayPlusDays(7)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)||req.body?.paymentConfirmed!==true||req.body?.confirmSingleBox!==true)
-      return res.status(400).json({success:false,error:'Confirm full payment and one packed box, valid measurements, and pickup date/time within 7 days.'});
+    if(!validParcel(parcel)||!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<indiaTodayPlusDays(0)||date>indiaTodayPlusDays(7)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)||req.body?.confirmSingleBox!==true)
+      return res.status(400).json({success:false,error:'Confirm one packed box, valid measurements, and pickup date/time within 7 days.'});
     const db=await getMongoDb();if(!db)return res.status(503).json({success:false,error:'Database unavailable.'});
     const collection=db.collection('orders');
     const order=await collection.findOne({id:req.params.id});
     if(!order||order.orderType==='Custom'||!['Order Placed','Pending'].includes(order.status))return res.status(409).json({success:false,error:'Only active standard orders can be dispatched.'});
     if(localShipping(order.customer.pincode))return res.status(409).json({success:false,error:'This is a local delivery order.'});
+    const isCod=order.payment?.method==='COD';
+    if(isCod){
+      if(!isShadowfax||order.payment?.paymentStatus!=='Pending on Delivery'||!Number.isFinite(order.totalAmount)||order.totalAmount<=0)return res.status(409).json({success:false,error:'This COD order is not eligible for Shadowfax collection.'});
+    }else if(order.payment?.paymentStatus!=='Verified'||req.body?.paymentConfirmed!==true)return res.status(409).json({success:false,error:'Mark prepaid payment as Paid before requesting pickup.'});
+    const codAmount=isCod?Math.round(order.totalAmount*100)/100:0;
     if(order.courierShipment)return res.status(409).json({success:false,error:'Shipment already started. Check the original courier portal before any further action; do not create a duplicate.'});
     if(isShadowfax&&(order.deliveryMode==='express'||order.shippingEstimate?.provider!=='shadowfax'))return res.status(409).json({success:false,error:'Existing order was not quoted for Shadowfax. Reconcile it manually before changing couriers.'});
     if(!isShadowfax&&order.shippingEstimate?.provider==='shadowfax')return res.status(409).json({success:false,error:'This order was quoted for Shadowfax. Reconcile it manually before changing couriers.'});
@@ -1835,9 +1843,9 @@ async function startServer() {
     try{quote=await getShippingQuote(order.customer.pincode,chargeableGrams(parcel),true,order.deliveryMode==='express'?'express':'standard');}catch{return res.status(503).json({success:false,error:'Unable to verify current courier cost.'});}
     if(Number(req.body?.acceptedCourierFee)!==quote.shippingCharge)return res.status(409).json({success:false,error:'Courier cost changed. Recalculate and confirm the new amount.'});
     const at=new Date().toISOString();
-    const initial={state:'manifesting',provider,environment,warehouse:isShadowfax?sfPickup.name:warehouse,parcel,deliveryMode:order.deliveryMode==='express'?'express':'standard',estimatedCourierFee:quote.shippingCharge,customerDeliveryFee:order.deliveryFee,startedAt:at,pickupDate:date,pickupTime:time};
+    const initial={state:'manifesting',provider,paymentMode:isCod?'cod':'prepaid',codAmount,environment,warehouse:isShadowfax?sfPickup.name:warehouse,parcel,deliveryMode:order.deliveryMode==='express'?'express':'standard',estimatedCourierFee:quote.shippingCharge,customerDeliveryFee:order.deliveryFee,startedAt:at,pickupDate:date,pickupTime:time};
     // Atomic durable lock. Timeouts/uncertain provider outcomes require manual reconciliation, not automatic retries.
-    const lock=await collection.updateOne({id:order.id,status:{$in:['Order Placed','Pending']},courierShipment:{$exists:false}},{$set:{courierShipment:initial,updatedAt:at,'payment.paymentStatus':'Verified','payment.paidAt':at}});
+    const lock=await collection.updateOne({id:order.id,status:{$in:['Order Placed','Pending']},courierShipment:{$exists:false},'payment.method':order.payment.method,'payment.paymentStatus':order.payment.paymentStatus},{$set:{courierShipment:initial,updatedAt:at}});
     if(lock.modifiedCount!==1)return res.status(409).json({success:false,error:'Dispatch already started; refresh the order.'});
     let waybill='',stage='manifesting';
     const persist=async(state:string,extra:any={},ready=false)=>{await collection.updateOne({id:order.id},{$set:{courierShipment:{...initial,state,...(waybill?{waybill}:{}),...extra},...(ready?{status:'Ready for Ship'}:{}),updatedAt:new Date().toISOString()}});};
@@ -1851,9 +1859,9 @@ async function startServer() {
         const pickup={...sfPickup,pincode:Number(shadowfaxOrigin())};
         const productValue=order.items.reduce((sum:number,i:any)=>sum+Number(i.bouquet.price)*i.quantity,0);
         const productDetails=order.items.map((i:any)=>({sku_name:String(i.bouquet.title),sku_id:(String(i.bouquet.id)+(i.selectedSize?'-'+i.selectedSize:'')).slice(0,100),price:Number(i.bouquet.price),category:String(i.bouquet.category||'Gifts'),invoice_no:String(order.orderNumber),brand:'Jame Bouquets',additional_details:{quantity:i.quantity}}));
-        const result=await shadowfaxRequest('/v3/clients/orders/',{customer_details:{name:cust.fullName,contact:cust.phone,address_line_1:cust.deliveryAddress,city:cust.city,pincode:Number(cust.pincode)},order_details:{client_order_id:order.orderNumber,product_value:productValue,payment_mode:'prepaid',cod_amount:0,total_amount:order.totalAmount,order_service:'Regular',actual_weight:parcel.parcelWeightGrams/1000,volumetric_weight:parcel.parcelLengthCm*parcel.parcelWidthCm*parcel.parcelHeightCm/5000},pickup_details:{...pickup,pickup_type:'seller',pickup_date:date,...(sfSlot?{pickup_slot:sfSlot}:{})},return_details:{...pickup,return_type:'seller'},product_details:productDetails});
+        const result=await shadowfaxRequest('/v3/clients/orders/',{customer_details:{name:cust.fullName,contact:cust.phone,address_line_1:cust.deliveryAddress,city:cust.city,pincode:Number(cust.pincode)},order_details:{client_order_id:order.orderNumber,product_value:productValue,payment_mode:isCod?'cod':'prepaid',cod_amount:codAmount,total_amount:order.totalAmount,order_service:'Regular',actual_weight:parcel.parcelWeightGrams/1000,volumetric_weight:parcel.parcelLengthCm*parcel.parcelWidthCm*parcel.parcelHeightCm/5000},pickup_details:{...pickup,pickup_type:'seller',pickup_date:date,...(sfSlot?{pickup_slot:sfSlot}:{})},return_details:{...pickup,return_type:'seller'},product_details:productDetails});
         const record=result?.message==='Success'?result.data:result;
-        if(!record?.awb_number||String(record.client_order_id)!==String(order.orderNumber))throw Error('Shadowfax shipment not confirmed');
+        if(!record?.awb_number||String(record.client_order_id)!==String(order.orderNumber)||(record.payment_mode!=null&&record.payment_mode!==(isCod?'cod':'prepaid'))||(record.cod_amount!=null&&Number(record.cod_amount)!==codAmount))throw Error('Shadowfax shipment not confirmed');
         waybill=String(record.awb_number);stage='pickup';
         await persist('pickup_requested',{...(sfSlot?{pickupSlot:sfSlot}:{}),promisedDeliveryDate:record.promised_delivery_date||null},true);
         return res.json({success:true,order:await collection.findOne({id:order.id})});
@@ -1876,6 +1884,25 @@ async function startServer() {
     }
   });
 
+  // Owner manually verifies external prepaid receipts (or COD collection after delivery).
+  app.patch('/api/admin/orders/:id/payment',requireOwner,requireClientHeader,async(req,res)=>{
+    try{
+      if(req.body?.confirmReceived!==true)return res.status(400).json({success:false,error:'Confirm that the full payment was received.'});
+      const database=await getMongoDb();if(!database)return res.status(503).json({success:false,error:'Database unavailable.'});
+      const orders=database.collection('orders'),order=await orders.findOne({id:req.params.id});
+      if(!order||order.orderType==='Custom')return res.status(404).json({success:false,error:'Standard order not found.'});
+      if(order.status==='Cancelled'||order.payment?.paymentStatus==='Refunded')return res.status(409).json({success:false,error:'Cancelled or refunded orders cannot be marked paid.'});
+      if(order.payment?.paymentStatus==='Verified')return res.json({success:true,order});
+      const cod=order.payment?.method==='COD';
+      if(cod&&order.status!=='Delivered')return res.status(409).json({success:false,error:'Verify COD payment only after delivery and collection confirmation.'});
+      if(!cod&&order.courierShipment)return res.status(409).json({success:false,error:'Reconcile the existing shipment before editing payment.'});
+      const now=new Date().toISOString();
+      const filter={id:order.id,status:order.status,'payment.method':order.payment?.method,'payment.paymentStatus':order.payment?.paymentStatus,...(cod?{}:{courierShipment:{$exists:false}})};
+      const result=await orders.updateOne(filter,{$set:{'payment.paymentStatus':'Verified','payment.paidAt':now,updatedAt:now}});
+      if(!result.matchedCount)return res.status(409).json({success:false,error:'Order changed. Refresh and try again.'});
+      return res.json({success:true,order:await orders.findOne({id:order.id})});
+    }catch{return res.status(500).json({success:false,error:'Unable to update payment status.'});}
+  });
   app.patch('/api/orders/:id/status', requireOwner, requireClientHeader, async (req, res) => {
     try {
       const allowed = new Set(['Order Placed', 'Pending', 'Ready for Ship', 'Delivered', 'Cancelled']);
@@ -1887,8 +1914,9 @@ async function startServer() {
       if(status==='Ready for Ship'){
         if(order.status==='Ready for Ship')return res.json({success:true,connected:true,order});
         if(!['Order Placed','Pending'].includes(order.status))return res.status(409).json({success:false,error:'Only active orders can be prepared for shipping.'});
+        if(order.payment?.method!=='COD'&&order.payment?.paymentStatus!=='Verified')return res.status(409).json({success:false,error:'Mark prepaid payment as Paid first.'});
         if(order.orderType==='Custom'||!order.shippingEstimate?.localDelivery&&!localShipping(String(order.customer?.pincode||'')))return res.status(409).json({success:false,error:'Use the Ready for Ship shipment confirmation to request courier pickup.'});
-        const result=await orders.updateOne({id:order.id,status:{$in:['Order Placed','Pending']},courierShipment:{$exists:false}},{$set:{status,updatedAt:new Date().toISOString()}});
+        const result=await orders.updateOne({id:order.id,status:{$in:['Order Placed','Pending']},courierShipment:{$exists:false},'payment.method':order.payment.method,'payment.paymentStatus':order.payment.paymentStatus},{$set:{status,updatedAt:new Date().toISOString()}});
         if(!result.matchedCount)return res.status(409).json({success:false,error:'Order changed. Refresh before retrying.'});
         return res.json({success:true,connected:true,order:await orders.findOne({id:order.id})});
       }
