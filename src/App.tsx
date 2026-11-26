@@ -943,7 +943,7 @@ export default function App() {
               {deliveryAddresses.map((entry,i) => <fieldset key={i} disabled={profileBusy} className="space-y-2 rounded-xl border p-3">
                 <legend className="text-sm font-medium">Address {i+1}</legend>
                 {DELIVERY_ADDRESS_FIELDS.map(({key,label,max,type}) => <label key={key} className="block text-xs">{label}
-                  <input className="block w-full rounded border p-2" type={type} required maxLength={max} pattern={key==='pincode'?'[0-9]{6}':undefined} inputMode={key==='pincode'?'numeric':undefined} value={entry[key]} onChange={e=>setDeliveryAddresses(prev=>prev.map((a,j)=>i===j?{...a,[key]:key==='pincode'?e.target.value.replace(/\\D/g,'').slice(0,6):e.target.value}:a))}/>
+                  <input className="block w-full rounded border p-2" type={type} required maxLength={max} pattern={key==='pincode'?'[0-9]{6}':undefined} inputMode={key==='pincode'?'numeric':undefined} value={entry[key]} onChange={e=>setDeliveryAddresses(prev=>prev.map((a,j)=>i===j?{...a,[key]:key==='pincode'?e.target.value.replace(/\D/g,'').slice(0,6):e.target.value}:a))}/>
                 </label>)}
                 <button type="button" className="text-sm text-red-700" onClick={()=>setDeliveryAddresses(prev=>prev.filter((_,j)=>i!==j))}>Remove address</button>
               </fieldset>)}
