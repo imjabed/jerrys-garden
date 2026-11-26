@@ -73,6 +73,7 @@ export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', 
   const minimumDeliveryDate=validShipping?.earliestDeliveryDate||validShipping?.estimatedDeliveryDate||null;
   const discount = validCoupon?.discount || 0;
   const update = (key: keyof CustomerDetails, value: string) => {
+    if(key==='pincode'){value=value.replace(/\D/g,'').slice(0,6);try{if(/^[0-9]{6}$/.test(value))localStorage.setItem('jb_delivery_pin',value);else localStorage.removeItem('jb_delivery_pin');}catch{}}
     setCustomer(prev => ({ ...prev, [key]: value }));
     if (key === 'email') setCouponError('');
   };
@@ -175,7 +176,7 @@ export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', 
                 {field('Delivery address','deliveryAddress','text',true,'Street, locality, landmark')}
               </div>
               {field('PIN code','pincode','text',true,'6-digit PIN')}
-              <p className="text-xs text-stone-600 sm:col-span-2" role="status">{shippingBusy ? 'Checking Delhivery charges…' : shippingError || (validShipping ? 'Courier estimate ₹' + validShipping.shippingCharge : 'Enter PIN for courier charges.')}</p>
+              <p className="text-xs text-stone-600 sm:col-span-2" role="status">{shippingBusy ? 'Checking delivery charges…' : shippingError || (validShipping ? 'Courier estimate ₹' + validShipping.shippingCharge : 'Enter PIN for courier charges.')}</p>
               {options.length>0&&<fieldset className="sm:col-span-2 space-y-2"><legend className="mb-2 text-sm font-semibold">Choose delivery method</legend>{options.map(o=><label key={o.deliveryMode} className={`flex items-center gap-3 rounded-xl border p-3 ${deliveryMode===o.deliveryMode?'border-stone-900 bg-stone-50':'border-stone-200'}`}><input type="radio" name="deliveryMode" checked={deliveryMode===o.deliveryMode} onChange={()=>{setDeliveryMode(o.deliveryMode);setCustomer(c=>({...c,deliveryDate:''}));}}/><span className="flex-1 text-sm"><strong>{o.deliveryMode==='local'?'Local Delivery':o.deliveryMode==='express'?'Express Delivery':'Standard Delivery'}</strong><span className="block text-xs text-stone-500">{o.deliveryMode!=='local'&&`${o.preparationDays} preparation days${o.transitDays==null?'':` + ${o.transitDays} courier days`} · `}{o.estimatedDeliveryDate?'Estimated by '+new Date(o.estimatedDeliveryDate+'T12:00:00Z').toLocaleDateString('en-IN',{day:'numeric',month:'short',weekday:'short',timeZone:'UTC'}):'Delivery date not confirmed by courier'}</span></span><strong className="text-sm">{o.customerDeliveryFee===0?'Free':`₹${o.customerDeliveryFee}`}</strong></label>)}</fieldset>}
               <div>{field('Preferred delivery date (optional)','deliveryDate','date')}<p className="mt-1 text-[11px] text-stone-500">{minimumDeliveryDate ? 'Choose ' + new Date(minimumDeliveryDate + 'T12:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', weekday: 'long', timeZone: 'UTC' }) + ' or later. This is a preference, not a guaranteed arrival date.' : 'Date selection becomes available when Delhivery confirms a transit estimate.'}</p></div>
               <div className="sm:col-span-2">{field('Gift note (optional)','giftNote','text',false,'Your message')}</div>
@@ -204,9 +205,9 @@ export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', 
               <span className="font-medium text-stone-900">₹{subtotal.toLocaleString('en-IN')}</span>
             </div>
             {Number(storeSettings.freeDeliveryThreshold || 0) > 0 && <p className="mt-3 text-xs text-emerald-800">{freeDeliveryEligible ? 'Your order qualifies for free delivery!' : `Free standard delivery on orders of ₹${Number(storeSettings.freeDeliveryThreshold).toLocaleString('en-IN')} or more.`}</p>}
-            <div className="mt-2 flex justify-between text-sm text-stone-700"><span>Delivery</span><span>{deliveryFee === null ? 'Awaiting courier quote' : freeDeliveryEligible ? 'Free Delivery' : `₹${deliveryFee.toLocaleString('en-IN')}`}</span></div>
+            <div className="mt-2 flex justify-between text-sm text-stone-700"><span>Delivery</span><span>{deliveryFee === null ? 'Awaiting courier quote' : deliveryFee === 0 ? 'Free Delivery' : `₹${deliveryFee.toLocaleString('en-IN')}`}</span></div>
             {validCoupon && <div className="mt-2 flex justify-between text-sm text-emerald-800"><span><CustomerCopy id={"checkout.3"} fallback={"Offer discount"}/></span><span>−₹{discount.toLocaleString('en-IN')}</span></div>}
-            <div className="mt-2 flex justify-between text-sm font-medium text-stone-900"><span><CustomerCopy id={"checkout.4"} fallback={"Estimated total"}/></span><span>₹{deliveryFee === null ? 'Pending shipping estimate' : `₹${(Math.max(0, subtotal - discount) + deliveryFee).toLocaleString('en-IN')}`}</span></div>
+            <div className="mt-2 flex justify-between text-sm font-medium text-stone-900"><span><CustomerCopy id={"checkout.4"} fallback={"Estimated total"}/></span><span>{deliveryFee === null ? 'Pending shipping estimate' : `₹${(Math.max(0, subtotal - discount) + deliveryFee).toLocaleString('en-IN')}`}</span></div>
             <p className="mt-2 text-[11px] leading-5 text-stone-500"><CustomerCopy id={"checkoutExtra.2"} fallback={"No payment is taken online. Our team confirms your order, delivery and final amount before proceeding."}/></p>
             {error && <p role="alert" className="mt-4 text-sm text-red-700">{error}</p>}
             <button disabled={busy || shippingBusy || deliveryFee === null} type="submit" className="mt-7 flex w-full items-center justify-center gap-2 bg-stone-900 px-6 py-4 text-xs uppercase tracking-widest text-white transition hover:bg-stone-700 disabled:opacity-60">
