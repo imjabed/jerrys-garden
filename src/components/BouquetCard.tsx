@@ -30,7 +30,7 @@ export default function BouquetCard({
   const startingPrice = startingOption?.price ?? bouquet.price;
   const originalPrice = startingOption?.originalPrice ?? (!startingOption?.name && startingPrice === bouquet.price ? bouquet.originalPrice : undefined);
   const discount = discountPercent(startingPrice, originalPrice);
-  const [shipping, setShipping] = useState<{ shippingCharge: number; estimatedDeliveryDate: string | null } | null>(null);
+  const [shipping, setShipping] = useState<{ shippingCharge: number; estimatedDeliveryDate: string | null; estimateStatus?: string } | null>(null);
   useEffect(() => {
     let cancelled = false;
     let pin = '';
@@ -136,7 +136,7 @@ export default function BouquetCard({
               </span>
             </div>
             {shipping && <div className="mt-1.5">
-              <p className="text-[11px] font-semibold text-stone-800">{shipping.estimatedDeliveryDate ? 'Delivery within ' + new Date(shipping.estimatedDeliveryDate + 'T12:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'long', timeZone: 'UTC' }) : 'Delivery date pending'}</p>
+              <p className="text-[11px] font-semibold text-stone-800">{shipping.estimatedDeliveryDate ? (shipping.estimateStatus==='store_estimate'?'Estimated delivery by ':'Delivery within ') + new Date(shipping.estimatedDeliveryDate + 'T12:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'long', timeZone: 'UTC' }) : 'Delivery date pending'}</p>
               <p className="mt-0.5 text-[10px] text-stone-600">Delivery Charge: <span className="line-through text-stone-400">₹{shipping.shippingCharge + 15}</span> <span className="font-semibold text-stone-900">₹{shipping.shippingCharge}</span></p>
             </div>}
           </div>
