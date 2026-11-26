@@ -40,6 +40,7 @@ export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', 
   });
   const [shipping,setShipping]=useState<{options:(CourierQuote & {customerDeliveryFee:number;freeDeliveryEligible:boolean})[];subtotal:number;pin:string;key:string}|null>(null);
   const [deliveryMode,setDeliveryMode]=useState<DeliveryMode>(initialDeliveryMode);
+  const [paymentMethod,setPaymentMethod]=useState<'PREPAID'|'COD'>('PREPAID');
   const [shippingError, setShippingError] = useState('');
   const [shippingBusy, setShippingBusy] = useState(false);
   const shippingCartKey = cartItems.map(item => item.bouquet.id + ':' + item.quantity + ':' + (item.selectedSize || 'ONE')).join('|');
@@ -116,6 +117,7 @@ export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', 
       return;
     }
     if (deliveryFee === null || shippingBusy) { setError(shippingError || 'Please wait for a valid courier shipping estimate.'); return; }
+    if(paymentMethod==='COD'&&(!validShipping?.codAvailable||Math.max(0,subtotal-discount)+deliveryFee<=0)){setError('Cash on delivery is unavailable for this order. Select prepaid.');return;}
     setBusy(true); setError('');
     try {
       const now = new Date().toISOString();
@@ -124,7 +126,7 @@ export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', 
         status: 'Order Placed', items: cartItems, subtotal,
         couponCode: validCoupon?.code, deliveryMode,
         deliveryFee, codHandlingCharge: 0, totalAmount: Math.max(0, subtotal - discount) + deliveryFee,
-        customer, payment: { method: 'CONTACT_LATER', paymentStatus: 'Not Required', paidAt: '' },
+        customer, payment: { method: paymentMethod, paymentStatus: paymentMethod==='COD'?'Pending on Delivery':'Awaiting Confirmation', paidAt: '' },
       });
       setSubmittedOrder(saved);
       setStep('confirmed');
@@ -159,7 +161,7 @@ export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', 
           <div className="px-8 py-14 text-center">
             <CheckCircle2 className="mx-auto h-12 w-12 text-stone-700" strokeWidth={1.2}/>
             <h3 className="mt-6 font-serif text-3xl text-stone-900"><CustomerCopy id={"checkout.0"} fallback={"Thank you for your order."}/></h3>
-            <p className="mt-4 text-sm leading-6 text-stone-600">Our team will contact you by phone to confirm your order and arrange payment. No payment is required on the website.</p>
+            <p className="mt-4 text-sm leading-6 text-stone-600">{submittedOrder?.payment.method==='COD'?'Cash on Delivery selected. Pay the final order amount on delivery.':'Prepaid selected — payment is Unpaid. Our team will contact you to arrange payment before shipping.'}</p>
             <p className="mt-5 text-sm text-stone-600">Order reference: <strong className="text-stone-900">{submittedOrder?.orderNumber}</strong></p>
             <button type="button" onClick={onClose} className="mt-9 bg-stone-900 px-9 py-3 text-xs uppercase tracking-widest text-white hover:bg-stone-700"><CustomerCopy id={"checkout.1"} fallback={"Continue shopping"}/></button>
           </div>
@@ -178,13 +180,18 @@ export default function CheckoutModal({ isOpen, initialDeliveryMode='standard', 
               {field('PIN code','pincode','text',true,'6-digit PIN')}
               <p className="text-xs text-stone-600 sm:col-span-2" role="status">{shippingBusy ? 'Checking delivery charges…' : shippingError || (validShipping ? 'Courier estimate ₹' + validShipping.shippingCharge : 'Enter PIN for courier charges.')}</p>
               {options.length>0&&<fieldset className="sm:col-span-2 space-y-2"><legend className="mb-2 text-sm font-semibold">Choose delivery method</legend>{options.map(o=><label key={o.deliveryMode} className={`flex items-center gap-3 rounded-xl border p-3 ${deliveryMode===o.deliveryMode?'border-stone-900 bg-stone-50':'border-stone-200'}`}><input type="radio" name="deliveryMode" checked={deliveryMode===o.deliveryMode} onChange={()=>{setDeliveryMode(o.deliveryMode);setCustomer(c=>({...c,deliveryDate:''}));}}/><span className="flex-1 text-sm"><strong>{o.deliveryMode==='local'?'Local Delivery':o.deliveryMode==='express'?'Express Delivery':'Standard Delivery'}</strong><span className="block text-xs text-stone-500">{o.deliveryMode!=='local'&&`${o.preparationDays} preparation days${o.transitDays==null?'':` + ${o.transitDays} courier days`} · `}{o.estimatedDeliveryDate?'Estimated by '+new Date(o.estimatedDeliveryDate+'T12:00:00Z').toLocaleDateString('en-IN',{day:'numeric',month:'short',weekday:'short',timeZone:'UTC'}):'Delivery date not confirmed by courier'}</span></span><strong className="text-sm">{o.customerDeliveryFee===0?'Free':`₹${o.customerDeliveryFee}`}</strong></label>)}</fieldset>}
-              <div>{field('Preferred delivery date (optional)','deliveryDate','date')}<p className="mt-1 text-[11px] text-stone-500">{minimumDeliveryDate ? 'Choose ' + new Date(minimumDeliveryDate + 'T12:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', weekday: 'long', timeZone: 'UTC' }) + ' or later. This is a preference, not a guaranteed arrival date.' : 'Date selection becomes available when Delhivery confirms a transit estimate.'}</p></div>
+              <div>{field('Preferred delivery date (optional)','deliveryDate','date')}<p className="mt-1 text-[11px] text-stone-500">{minimumDeliveryDate ? 'Choose ' + new Date(minimumDeliveryDate + 'T12:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', weekday: 'long', timeZone: 'UTC' }) + ' or later. This is a preference, not a guaranteed arrival date.' : 'Date selection becomes available when the courier confirms a transit estimate.'}</p></div>
               <div className="sm:col-span-2">{field('Gift note (optional)','giftNote','text',false,'Your message')}</div>
             </div>
             <label className="mt-5 flex items-start gap-3 text-xs leading-5 text-stone-700">
               <input type="checkbox" required checked={areaConfirmed} onChange={event => setAreaConfirmed(event.target.checked)} className="mt-1 h-4 w-4 accent-stone-900"/>
               I confirm that my delivery address and PIN code are correct.
             </label>
+            <fieldset className="mt-6 space-y-2 border-t border-stone-200 pt-5">
+              <legend className="text-sm font-semibold">Payment method</legend>
+              <label className="flex gap-3 rounded-xl border p-3"><input type="radio" name="payment-method" checked={paymentMethod==='PREPAID'} onChange={()=>setPaymentMethod('PREPAID')}/><span><strong className="text-sm">Prepaid</strong><span className="block text-xs text-stone-600">Place your order now. Our team will contact you to arrange payment before shipping. No online payment at checkout.</span></span></label>
+              <label className="flex gap-3 rounded-xl border p-3"><input type="radio" name="payment-method" checked={paymentMethod==='COD'} disabled={!validShipping?.codAvailable} onChange={()=>setPaymentMethod('COD')}/><span><strong className="text-sm">Cash on Delivery</strong><span className="block text-xs text-stone-600">{validShipping?.codAvailable?'Pay the full order amount when delivered.':'Enter a serviceable delivery PIN to check COD availability.'}</span></span></label>
+            </fieldset>
             <section aria-label="Apply an offer code" className="mt-7 border-t border-stone-200 pt-5">
               <label className="text-xs font-medium text-stone-700" htmlFor="checkout-coupon"><CustomerCopy id={"checkout.2"} fallback={"Have an offer code?"}/></label>
               <div className="mt-2 flex gap-2">
