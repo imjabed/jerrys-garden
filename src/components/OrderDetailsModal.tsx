@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { estimateParcel, validParcel, chargeableGrams } from '../../shared/parcelShipping';
 import { apiAdminParcelQuote, apiReadyForPickup } from '../services/api';
 import { PRODUCT_SIZE_LABELS, productSizeFor } from '../../shared/productSizes';
@@ -8,19 +8,22 @@ import { Order, OrderStatus } from '../types';
 interface OrderDetailsModalProps {
   key?: string;
   order: Order | null;
+  readyShipIntent?: boolean;
   onClose: () => void;
   onUpdateStatus: (orderId: string, status: OrderStatus) => void;
   onShipmentUpdated?: (order:Order)=>void;
 }
 
-export default function OrderDetailsModal({ order, onClose, onUpdateStatus, onShipmentUpdated }: OrderDetailsModalProps) {
+export default function OrderDetailsModal({ order, onClose, onUpdateStatus, onShipmentUpdated, readyShipIntent=false }: OrderDetailsModalProps) {
   const [parcel,setParcel]=useState(()=>order?.shippingEstimate?.parcel||estimateParcel(order?.items||[])||{parcelLengthCm:0,parcelWidthCm:0,parcelHeightCm:0,parcelWeightGrams:0});
   const [pickupDate,setPickupDate]=useState(()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));
   const [pickupTime,setPickupTime]=useState('10:00');
   const [paid,setPaid]=useState(false),[single,setSingle]=useState(false),[courierFee,setCourierFee]=useState<number|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[attempted,setAttempted]=useState(false);
+  const shippingSection=useRef<HTMLElement|null>(null);
+  useEffect(()=>{if(readyShipIntent)shippingSection.current?.scrollIntoView({block:'center',behavior:'smooth'});},[readyShipIntent,order?.id]);
   if (!order) return null;
   const quote=async()=>{setBusy(true);setMessage('');setCourierFee(null);try{const q=await apiAdminParcelQuote(order.id,parcel);setCourierFee(q.shippingCharge);}catch(e){setMessage(e instanceof Error?e.message:'Quote failed');}finally{setBusy(false);}};
-  const dispatch=async()=>{if(courierFee===null||!paid||!single||!window.confirm('Create a prepaid shipment with the configured courier? This may debit your courier wallet. Shadowfax uses the configured pickup slot, not the exact time entered.'))return;setBusy(true);setMessage('');try{const result=await apiReadyForPickup(order.id,{parcel,pickupDate,pickupTime,paymentConfirmed:paid,confirmSingleBox:single,acceptedCourierFee:courierFee});onShipmentUpdated?.(result.order);setMessage('Shipment submitted. Check the courier portal for pickup confirmation.');}catch(e){setMessage(e instanceof Error?e.message:'Check the original courier portal before retrying.');setAttempted(true);}finally{setBusy(false);}};
+  const dispatch=async()=>{if(courierFee===null||!paid||!single||!window.confirm('Create a prepaid shipment with the configured courier? This may debit your courier wallet. Shadowfax uses the configured pickup slot, not the exact time entered.'))return;setBusy(true);setMessage('');try{const result=await apiReadyForPickup(order.id,{parcel,pickupDate,pickupTime,paymentConfirmed:paid,confirmSingleBox:single,acceptedCourierFee:courierFee});onShipmentUpdated?.(result.order);setMessage('Shipment accepted. Order is Ready for Ship; check the courier portal for pickup scheduling.');}catch(e){setMessage(e instanceof Error?e.message:'Check the original courier portal before retrying.');setAttempted(true);}finally{setBusy(false);}};
 
   const getStatusBadge = (status: OrderStatus) => {
     switch (status) {
@@ -28,6 +31,8 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus, onSh
         return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'Pending':
         return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'Ready for Ship':
+        return 'bg-violet-50 text-violet-700 border-violet-200';
       case 'Delivered':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'Cancelled':
@@ -96,11 +101,12 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus, onSh
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {(['Order Placed', 'Pending', 'Delivered', 'Cancelled'] as OrderStatus[]).map((status) => (
+              {(['Order Placed', 'Pending', 'Ready for Ship', 'Delivered', 'Cancelled'] as OrderStatus[]).map((status) => (
                 <button
                   key={status}
                   type="button"
-                  onClick={() => onUpdateStatus(order.id, status)}
+                  disabled={busy||(status==='Ready for Ship'&&(order.orderType==='Custom'||!['Order Placed','Pending','Ready for Ship'].includes(order.status)))}
+                  onClick={() => {if(status==='Ready for Ship'&&order.status!=='Ready for Ship')shippingSection.current?.scrollIntoView({block:'center',behavior:'smooth'});onUpdateStatus(order.id,status);}}
                   className={`px-3 py-1.5 rounded-xl font-semibold text-xs transition-all cursor-pointer ${
                     order.status === status
                       ? 'bg-stone-900 text-white shadow-xs'
@@ -217,8 +223,8 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus, onSh
             </section>
           )}
 
-          {order.orderType!=='Custom'&&<section className="rounded-xl border border-stone-200 p-4 space-y-3">
-            <h3 className="font-semibold">Shipment management</h3><p className="text-sm font-medium">Delivery method: {order.deliveryMode==="express"?"Express":order.deliveryMode==="local"||order.shippingEstimate?.localDelivery?"Local":"Standard"}</p>{order.shippingEstimate?.estimatedDeliveryDate&&<p className="text-xs text-stone-600">Checkout arrival estimate: {order.shippingEstimate.estimatedDeliveryDate} · Preparation {order.shippingEstimate.preparationDays??3} days</p>}<p className="text-xs text-stone-600">Courier order reference: {order.orderNumber}</p>
+          {order.orderType!=='Custom'&&<section ref={shippingSection} className="rounded-xl border border-stone-200 p-4 space-y-3">
+            <h3 className="font-semibold">Shipment management</h3>{readyShipIntent&&<p className="text-sm font-medium text-violet-700" role="status">Ready for Ship: confirm the packed parcel, payment, date and courier charge below. The order status changes only after the courier accepts the shipment.</p>}<p className="text-sm font-medium">Delivery method: {order.deliveryMode==="express"?"Express":order.deliveryMode==="local"||order.shippingEstimate?.localDelivery?"Local":"Standard"}</p>{order.shippingEstimate?.estimatedDeliveryDate&&<p className="text-xs text-stone-600">Checkout arrival estimate: {order.shippingEstimate.estimatedDeliveryDate} · Preparation {order.shippingEstimate.preparationDays??3} days</p>}<p className="text-xs text-stone-600">Courier order reference: {order.orderNumber}</p>
             {order.shippingEstimate?.localDelivery||order.customer.pincode==='742101'?<p className="text-sm">Local delivery — arrange yourself, no courier pickup.</p>:<>
               <p className="text-sm">Customer delivery fee: ₹{order.deliveryFee} · Checkout courier estimate: {order.shippingEstimate?'₹'+order.shippingEstimate.shippingCharge:'Not recorded'}</p>
               {order.courierShipment?<div className="space-y-2 text-sm"><p>Carrier status: {order.courierShipment.state.replaceAll('_',' ')}</p>{order.courierShipment.waybill&&<p>AWB: {order.courierShipment.waybill}</p>}{order.courierShipment.pickupId&&<p>Pickup ID: {order.courierShipment.pickupId}</p>}<p>Courier estimate ₹{order.courierShipment.estimatedCourierFee}. Check the original courier portal for label, pickup and final billing.</p><a href="https://shadowfax360.in/" target="_blank" rel="noreferrer" className="underline">Shadowfax360</a> · <a href="https://one.delhivery.com/" target="_blank" rel="noreferrer" className="underline">Delhivery One</a></div>:['Order Placed','Pending'].includes(order.status)&&<>
@@ -230,7 +236,7 @@ export default function OrderDetailsModal({ order, onClose, onUpdateStatus, onSh
               <div className="grid grid-cols-2 gap-2"><label className="text-xs">Pickup date<input type="date" value={pickupDate} onChange={e=>setPickupDate(e.target.value)} className="block w-full rounded border p-2"/></label><label className="text-xs">Pickup time (Delhivery; Shadowfax uses configured slot)<input type="time" value={pickupTime} onChange={e=>setPickupTime(e.target.value)} className="block w-full rounded border p-2"/></label></div>
               <label className="flex gap-2 text-xs"><input type="checkbox" checked={paid} onChange={e=>setPaid(e.target.checked)}/> Full order payment received outside the website (prepaid shipment)</label>
               <label className="flex gap-2 text-xs"><input type="checkbox" checked={single} onChange={e=>setSingle(e.target.checked)}/> All items packed in one box and ready for collection</label>
-              <button disabled={busy||attempted||courierFee===null||!paid||!single} onClick={()=>void dispatch()} className="rounded bg-stone-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">Ready to Pickup — submit shipment</button>
+              <button disabled={busy||attempted||courierFee===null||!paid||!single} onClick={()=>void dispatch()} className="rounded bg-stone-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">Confirm Ready for Ship — request pickup</button>
               </>}{message&&<p role="status" className="text-sm text-stone-700">{message}</p>}
             </>}
           </section>}
