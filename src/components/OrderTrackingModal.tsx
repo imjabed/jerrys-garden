@@ -77,8 +77,10 @@ export default function OrderTrackingModal({
         return 1;
       case 'Pending':
         return 2;
-      case 'Delivered':
+      case 'Ready for Ship':
         return 3;
+      case 'Delivered':
+        return 4;
       case 'Cancelled':
         return -1;
       default:
@@ -225,8 +227,8 @@ export default function OrderTrackingModal({
                           currentStep === 1
                             ? '10%'
                             : currentStep === 2
-                            ? '50%'
-                            : '88%',
+                            ? '34%'
+                            : currentStep === 3 ? '66%' : '88%',
                       }}
                     />
 
@@ -260,11 +262,13 @@ export default function OrderTrackingModal({
                       <span className="text-[10px] text-stone-500">Hand-rolling Ribbons</span>
                     </div>
 
-                    {/* Step 3: Delivered */}
+                    {/* Step 3: Ready for Ship */}
+                    <div className="relative z-10 flex flex-col items-center text-center"><div className={`w-10 h-10 rounded-full flex items-center justify-center ${currentStep>=3?'bg-violet-600 text-white':'bg-stone-100 text-stone-400'}`}><Truck className="w-5 h-5"/></div><span className="text-xs font-bold text-stone-900 mt-2">Ready for Ship</span><span className="text-[10px] text-stone-500">Packed</span></div>
+                    {/* Step 4: Delivered */}
                     <div className="relative z-10 flex flex-col items-center">
                       <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                          currentStep >= 3
+                          currentStep >= 4
                             ? 'bg-emerald-600 text-white shadow-md ring-4 ring-emerald-100'
                             : 'bg-stone-100 text-stone-400'
                         }`}
