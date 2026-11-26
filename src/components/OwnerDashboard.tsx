@@ -193,6 +193,8 @@ export default function OwnerDashboard({
         return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'Pending':
         return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'Ready for Ship':
+        return 'bg-violet-50 text-violet-700 border-violet-200';
       case 'Delivered':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'Cancelled':
@@ -396,7 +398,7 @@ export default function OwnerDashboard({
               
               {/* Status Pills */}
               <div className="flex flex-wrap gap-1.5">
-                {(['ALL', 'Order Placed', 'Pending', 'Delivered', 'Cancelled'] as const).map((filter) => (
+                {(['ALL', 'Order Placed', 'Pending', 'Ready for Ship', 'Delivered', 'Cancelled'] as const).map((filter) => (
                   <button
                     key={filter}
                     onClick={() => setStatusFilter(filter)}
@@ -509,6 +511,7 @@ export default function OwnerDashboard({
                               >
                                 <option value="Order Placed">Order Placed</option>
                                 <option value="Pending">Pending</option>
+                                <option value="Ready for Ship" disabled={order.orderType==='Custom'||(!['Order Placed','Pending','Ready for Ship'].includes(order.status))}>Ready for Ship</option>
                                 <option value="Delivered">Delivered</option>
                                 <option value="Cancelled">Cancelled</option>
                               </select>
