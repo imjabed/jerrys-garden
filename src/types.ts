@@ -80,7 +80,7 @@ export interface Order {
   discountAmount?: number;
   customer: CustomerDetails;
   payment: {
-    method: 'CONTACT_LATER' | 'ONLINE' | 'COD' | 'UPI_QR' | 'UPI_ID';
+    method: 'PREPAID' | 'CONTACT_LATER' | 'ONLINE' | 'COD' | 'UPI_QR' | 'UPI_ID';
     upiIdUsed?: string;
     transactionRef?: string;
     paymentStatus: 'Awaiting Confirmation' | 'Verified' | 'Refunded' | 'Pending on Delivery' | 'Not Required';
