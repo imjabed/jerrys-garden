@@ -376,6 +376,9 @@ export async function apiGetSettings(): Promise<{ connected: boolean; settings: 
       logoUrl: safeString(s.logoUrl, ''),
       deliveryFee: Number.isFinite(Number(s.deliveryFee)) ? Number(s.deliveryFee) : 0,
       freeDeliveryThreshold: Number.isFinite(Number(s.freeDeliveryThreshold)) ? Number(s.freeDeliveryThreshold) : 0,
+      preparationDays: Number.isInteger(s.preparationDays)&&s.preparationDays>=0&&s.preparationDays<=30?s.preparationDays:3,
+      standardDeliveryEnabled:s.standardDeliveryEnabled!==false,
+      expressDeliveryEnabled:s.expressDeliveryEnabled!==false,
       customSizeFlowers: s.customSizeFlowers,
       productCategories: Array.isArray(s.productCategories) ? s.productCategories.filter((v: unknown) => typeof v === 'string') : undefined,
     };
@@ -434,6 +437,10 @@ export interface CourierQuote {
   chargeableWeightGrams: number;
   estimatedDeliveryDate: string | null;
   preparationDays: number;
+  deliveryMode: import('../../shared/deliveryModes').DeliveryMode;
+  transitDays?:number|null;
+  estimatedDispatchDate?:string;
+  earliestDeliveryDate?:string;
   approximate: boolean;
 }
 export async function apiShippingQuote(pincode: string, weightGrams: number): Promise<CourierQuote> {
@@ -444,7 +451,7 @@ export async function apiShippingServiceability(pincode: string): Promise<{ succ
   return parseResponse(await fetch(`${API_URL}/api/shipping/serviceability?pincode=${encodeURIComponent(pincode)}`, { cache: 'no-store' }));
 }
 
-export async function apiCartShippingQuote(pincode:string,items:{productId:string;quantity:number;selectedSize?:string}[]):Promise<CourierQuote & {customerDeliveryFee:number;subtotal:number;freeDeliveryEligible:boolean}>{
+export async function apiCartShippingQuote(pincode:string,items:{productId:string;quantity:number;selectedSize?:string}[]):Promise<CourierQuote & {customerDeliveryFee:number;subtotal:number;freeDeliveryEligible:boolean;options:(CourierQuote & {customerDeliveryFee:number;freeDeliveryEligible:boolean})[]}>{
   return parseResponse(await fetch(API_URL+'/api/shipping/cart-quote',{method:'POST',headers:jsonHeaders,credentials:'include',body:JSON.stringify({pincode,items}),cache:'no-store'}));
 }
 export async function apiAdminParcelQuote(id:string,parcel:import('../../shared/parcelShipping').Parcel):Promise<CourierQuote>{

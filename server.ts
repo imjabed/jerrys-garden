@@ -1,3 +1,4 @@
+import { preparationDaysFor, enabledCourierModes, carrierModeCode, carrierShippingName, customerShippingFee, type CourierMode, type DeliveryMode } from './shared/deliveryModes';
 import { validParcel, estimateParcel, chargeableGrams } from './shared/parcelShipping';
 import type { Parcel } from './shared/parcelShipping';
 import express from 'express';
@@ -1041,7 +1042,7 @@ async function startServer() {
       const match = records.map((entry: any) => entry?.postal_code).find((entry: any) => String(entry?.pin) === pincode);
       const serviceable = Boolean(match && !String(match.remarks || '').trim() && (match.pre_paid === 'Y' || match.cash === 'Y'));
       res.setHeader('Cache-Control', 'public, max-age=300');
-      return res.json({ success: true, pincode, serviceable, prepaid: match?.pre_paid === 'Y', cod: match?.cod === 'Y', city: match?.city || null, state: match?.state_code || null, preparationDays: 4, estimatedDeliveryDate: null, shippingCharge: null, estimateStatus: 'pending_courier_quote' });
+      return res.json({ success: true, pincode, serviceable, prepaid: match?.pre_paid === 'Y', cod: match?.cod === 'Y', city: match?.city || null, state: match?.state_code || null, preparationDays: preparationDaysFor(await mongoGetSettings()), estimatedDeliveryDate: null, shippingCharge: null, estimateStatus: 'pending_courier_quote' });
     } catch (error) {
       console.warn('Delhivery serviceability request failed:', error instanceof Error ? error.message : 'unknown');
       return res.status(502).json({ success: false, error: 'Courier availability is temporarily unavailable.' });
@@ -1050,12 +1051,13 @@ async function startServer() {
 
   // Read-only freight estimate; prices are approximate until carrier billing.
   const shippingQuoteCache = new Map<string, { expires: number; value: any }>();
-  const getShippingQuote = async (pin: string, grams: number, fresh = false) => {
+  const getShippingQuote = async (pin: string, grams: number, fresh = false, mode: CourierMode = 'standard', prepDays?: number) => {
     if (!/^\d{6}$/.test(pin) || !Number.isInteger(grams) || grams < 1 || grams > 100000)
       throw new Error('INVALID_SHIPPING_INPUT');
     const local = localShipping(pin);
-    if (local) return { pincode: pin, originPincode: '742101', chargeableWeightGrams: grams, currency: 'INR', ...local };
-    const key = `${pin}:${grams}`;
+    if (local) return { pincode: pin, originPincode: '742101', chargeableWeightGrams: grams, currency: 'INR', ...local, deliveryMode:'local' as DeliveryMode };
+    const preparationDays=prepDays??preparationDaysFor(await mongoGetSettings());
+    const key = `${pin}:${grams}:${mode}:${preparationDays}:${indiaTodayPlusDays(0)}`;
     const cached = shippingQuoteCache.get(key);
     if (!fresh && cached && cached.expires > Date.now()) return cached.value;
     const token = process.env.DELHIVERY_API_TOKEN?.trim();
@@ -1073,7 +1075,7 @@ async function startServer() {
       const postal = entries.map((entry: any) => entry?.postal_code).find((entry: any) => String(entry?.pin) === pin);
       if (!postal || postal.pre_paid !== 'Y') throw new Error('COURIER_PIN_UNSERVICEABLE');
     } finally { clearTimeout(serviceabilityTimer); }
-    const params = new URLSearchParams({ md: 'S', ss: 'Delivered', d_pin: pin, o_pin: '742101', cgm: String(grams), pt: 'Pre-paid' });
+    const params = new URLSearchParams({ md: carrierModeCode(mode), ss: 'Delivered', d_pin: pin, o_pin: '742101', cgm: String(grams), pt: 'Pre-paid' });
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 8000);
     try {
@@ -1085,18 +1087,15 @@ async function startServer() {
       const candidates = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [raw];
       const amount = candidates.map((x: any) => Number(x?.total_amount)).find((x: number) => Number.isFinite(x) && x > 0);
       if (amount === undefined) throw new Error('COURIER_RATE_UNAVAILABLE');
-      // TAT is requested for the expected dispatch date, after four preparation days.
+      // TAT is requested for the expected dispatch date, after the configured preparation days.
       // Never manufacture a delivery promise when Delhivery omits or rejects the TAT.
-      const todayIndia = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-      const dateParts = todayIndia.match(/(\d{4})-(\d{2})-(\d{2})/);
-      const baseDate = dateParts ? new Date(Date.UTC(Number(dateParts[1]), Number(dateParts[2]) - 1, Number(dateParts[3]))) : new Date();
-      const dispatchDate = new Date(baseDate.getTime() + 4 * 86400000);
+      const dispatchDate = new Date(indiaTodayPlusDays(preparationDays)+'T00:00:00Z');
       const dateISO = (date: Date) => date.toISOString().slice(0, 10);
       let estimatedDeliveryDate: string | null = null;
       let transitDays: number | null = null;
       try {
         const tatParams = new URLSearchParams({
-          origin_pin: '742101', destination_pin: pin, mot: 'S', pdt: 'B2C',
+          origin_pin: '742101', destination_pin: pin, mot: carrierModeCode(mode), pdt: 'B2C',
           expected_pickup_date: dateISO(dispatchDate) + ' 10:00',
         });
         const tatController = new AbortController();
@@ -1118,7 +1117,7 @@ async function startServer() {
       } catch (error) {
         console.warn('Delhivery TAT unavailable:', error instanceof Error ? error.message : 'unknown');
       }
-      const result = { pincode: pin, originPincode: '742101', chargeableWeightGrams: grams, shippingCharge: Math.ceil(amount), currency: 'INR', estimatedDeliveryDate, transitDays, preparationDays: 4, estimateStatus: estimatedDeliveryDate ? 'estimated' : 'rate_available_tat_pending', approximate: true };
+      const result = { pincode: pin, originPincode: '742101', chargeableWeightGrams: grams, shippingCharge: Math.ceil(amount), currency: 'INR', estimatedDeliveryDate, transitDays, preparationDays, deliveryMode:mode as DeliveryMode, estimatedDispatchDate:dateISO(dispatchDate), estimateStatus: estimatedDeliveryDate ? 'estimated' : 'rate_available_tat_pending', approximate: true };
       if (shippingQuoteCache.size > 500) shippingQuoteCache.clear();
       shippingQuoteCache.set(key, { expires: Date.now() + 300000, value: result });
       return result;
@@ -1131,7 +1130,7 @@ async function startServer() {
       return res.status(400).json({ success: false, error: 'Provide a six-digit PIN and packed weight in grams (1-100000).' });
     if (!allowLoginAttempt(`shipping:${String(req.ip || 'unknown')}`, 40))
       return res.status(429).json({ success: false, error: 'Too many shipping requests.' });
-    try { return res.json({ success: true, ...(await getShippingQuote(pin, grams)) }); }
+    try { const settings=await mongoGetSettings(); const mode=enabledCourierModes(settings)[0]; if(!mode&&!localShipping(pin))throw Error('No courier service enabled'); return res.json({ success: true, ...(await getShippingQuote(pin, grams,false,mode||'standard',preparationDaysFor(settings))) }); }
     catch { return res.status(502).json({ success: false, error: 'Delhivery shipping estimate is currently unavailable.' }); }
   });
 
@@ -1162,10 +1161,17 @@ async function startServer() {
       }
       const parcel=estimateParcel(items);
       if(!parcel&&!localShipping(pin))return res.status(409).json({success:false,error:'Packed dimensions are not configured or the combined box is too large. Contact the shop.'});
-      const quote=await getShippingQuote(pin,parcel?chargeableGrams(parcel):1);
       const settings=await mongoGetSettings();if(!settings)throw Error('settings');
-      const threshold=Number(settings.freeDeliveryThreshold||0),fee=threshold>0&&subtotal>=threshold?0:quote.shippingCharge;
-      return res.json({success:true,...quote,parcel,customerDeliveryFee:fee,subtotal,freeDeliveryEligible:threshold>0&&subtotal>=threshold});
+      const threshold=Number(settings.freeDeliveryThreshold||0),prep=preparationDaysFor(settings);
+      const modes:CourierMode[]=localShipping(pin)?['standard']:enabledCourierModes(settings);
+      const settled=await Promise.allSettled(modes.map(mode=>getShippingQuote(pin,parcel?chargeableGrams(parcel):1,false,mode,prep)));
+      const options=settled.flatMap(result=>{
+        if(result.status!=='fulfilled')return [];
+        const quote=result.value,mode=quote.deliveryMode as DeliveryMode;
+        return [{...quote,customerDeliveryFee:customerShippingFee(quote.shippingCharge,subtotal,threshold,mode),freeDeliveryEligible:mode!=='express'&&threshold>0&&subtotal>=threshold}];
+      });
+      if(!options.length)return res.status(503).json({success:false,error:'No enabled delivery method returned a courier quote for this address.'});
+      return res.json({success:true,...options[0],options,parcel,subtotal});
     }catch{return res.status(503).json({success:false,error:'Courier quote unavailable. Please try again.'});}
   });
 
@@ -1681,8 +1687,14 @@ async function startServer() {
       if (!parcel && !localShipping(String(c.pincode))) return res.status(409).json({success:false,error:'Packed dimensions are missing or combined package is too large. Please contact the shop.'});
       let deliveryFee: number;
       let shippingEstimate: any;
+      const shippingSettings = await mongoGetSettings();
+      if (!shippingSettings) return res.status(503).json({ success:false,error:'Store delivery settings are unavailable.' });
+      const isLocal=Boolean(localShipping(String(c.pincode)));
+      const requestedMode=body.deliveryMode??(isLocal?'local':'standard');
+      if(isLocal?requestedMode!=='local':!enabledCourierModes(shippingSettings).includes(requestedMode))return res.status(409).json({success:false,error:'Selected delivery method is unavailable. Refresh checkout.'});
+      const deliveryMode:DeliveryMode=requestedMode;
       try {
-        const quote = await getShippingQuote(String(c.pincode), parcel?chargeableGrams(parcel):1, true);
+        const quote = await getShippingQuote(String(c.pincode), parcel?chargeableGrams(parcel):1, true,deliveryMode==='express'?'express':'standard',preparationDaysFor(shippingSettings));
         shippingEstimate={...quote,parcel,quotedAt:new Date().toISOString()};
         if (c.deliveryDate && (!quote.estimatedDeliveryDate || !/^\d{4}-\d{2}-\d{2}$/.test(String(c.deliveryDate)) || String(c.deliveryDate) < (quote.earliestDeliveryDate || quote.estimatedDeliveryDate)))
           return res.status(400).json({ success: false, error: 'Preferred delivery date must be on or after the earliest available delivery date. Leave blank when an estimate is unavailable.' });
@@ -1705,11 +1717,8 @@ async function startServer() {
         discountAmount = calculateCouponDiscount(couponDoc, couponItems);
         if (discountAmount <= 0) return res.status(400).json({ success: false, error: 'This coupon does not apply to the selected products.' });
       }
-      const shippingSettings = await mongoGetSettings();
-      if (!shippingSettings) return res.status(503).json({ success: false, error: 'Store delivery settings are unavailable. Please try again.' });
       const freeDeliveryThreshold = Number(shippingSettings.freeDeliveryThreshold || 0);
-      if (Number.isFinite(freeDeliveryThreshold) && freeDeliveryThreshold > 0 && subtotal >= freeDeliveryThreshold)
-        deliveryFee = 0;
+      deliveryFee=customerShippingFee(deliveryFee,subtotal,freeDeliveryThreshold,deliveryMode);
       const totalAmount = Math.round((Math.max(0, subtotal - discountAmount) + deliveryFee) * 100) / 100;
       if(Math.abs(Number(body.totalAmount)-totalAmount)>0.009 || Math.abs(Number(body.deliveryFee)-deliveryFee)>0.009 || !Number.isFinite(Number(body.totalAmount)) || !Number.isFinite(Number(body.deliveryFee))) return res.status(409).json({success:false,error:'Order price or shipping changed. Refresh checkout to review the updated amount.'});
       const now = new Date().toISOString();
@@ -1723,7 +1732,7 @@ async function startServer() {
       };
       const paymentMethod = 'CONTACT_LATER';
       const order = {
-        id, orderNumber, createdAt: now, updatedAt: now, status: 'Order Placed', items: normalizedItems, subtotal, deliveryFee, codHandlingCharge, totalAmount, shippingEstimate,
+        id, orderNumber, createdAt: now, updatedAt: now, status: 'Order Placed', items: normalizedItems, subtotal, deliveryFee, codHandlingCharge, totalAmount, shippingEstimate, deliveryMode,
         couponCode: couponCode || undefined, discountAmount,
         customer: safeCustomer,
         authenticatedCustomer: customerAuth?.role === 'customer',
@@ -1760,7 +1769,7 @@ async function startServer() {
       if(!order||order.orderType==='Custom')return res.status(404).json({success:false,error:'Standard order not found.'});
       if(localShipping(order.customer.pincode))return res.status(400).json({success:false,error:'Local delivery: courier pickup is not needed.'});
       if(!validParcel(req.body?.parcel))return res.status(400).json({success:false,error:'Enter valid actual packed measurements.'});
-      const quote=await getShippingQuote(order.customer.pincode,chargeableGrams(req.body.parcel),true);
+      const quote=await getShippingQuote(order.customer.pincode,chargeableGrams(req.body.parcel),true,order.deliveryMode==='express'?'express':'standard');
       return res.json({success:true,...quote});
     }catch{return res.status(503).json({success:false,error:'Courier quote unavailable.'});}
   });
@@ -1779,10 +1788,10 @@ async function startServer() {
     if(localShipping(order.customer.pincode))return res.status(409).json({success:false,error:'This is a local delivery order.'});
     if(order.courierShipment)return res.status(409).json({success:false,error:'Shipment already started. Check Delhivery One before any further action; do not create a duplicate.'});
     let quote:any;
-    try{quote=await getShippingQuote(order.customer.pincode,chargeableGrams(parcel),true);}catch{return res.status(503).json({success:false,error:'Unable to verify current courier cost.'});}
+    try{quote=await getShippingQuote(order.customer.pincode,chargeableGrams(parcel),true,order.deliveryMode==='express'?'express':'standard');}catch{return res.status(503).json({success:false,error:'Unable to verify current courier cost.'});}
     if(Number(req.body?.acceptedCourierFee)!==quote.shippingCharge)return res.status(409).json({success:false,error:'Courier cost changed. Recalculate and confirm the new amount.'});
     const at=new Date().toISOString();
-    const initial={state:'manifesting',environment,warehouse,parcel,estimatedCourierFee:quote.shippingCharge,customerDeliveryFee:order.deliveryFee,startedAt:at,pickupDate:date,pickupTime:time};
+    const initial={state:'manifesting',environment,warehouse,parcel,deliveryMode:order.deliveryMode==='express'?'express':'standard',estimatedCourierFee:quote.shippingCharge,customerDeliveryFee:order.deliveryFee,startedAt:at,pickupDate:date,pickupTime:time};
     // Atomic durable lock. Timeouts/uncertain provider outcomes require manual reconciliation, not automatic retries.
     const lock=await collection.updateOne({id:order.id,status:{$in:['Order Placed','Pending']},courierShipment:{$exists:false}},{$set:{courierShipment:initial,updatedAt:at,'payment.paymentStatus':'Verified','payment.paidAt':at}});
     if(lock.modifiedCount!==1)return res.status(409).json({success:false,error:'Dispatch already started; refresh the order.'});
@@ -1794,7 +1803,7 @@ async function startServer() {
     };
     try{
       const cust=order.customer;
-      const shipment={order:order.orderNumber,name:cust.fullName,add:cust.deliveryAddress,pin:String(cust.pincode),city:cust.city,phone:cust.phone,country:'India',payment_mode:'Prepaid',cod_amount:0,total_amount:order.totalAmount,products_desc:order.items.map((i:any)=>i.bouquet.title+' x'+i.quantity).join(', ').slice(0,250),quantity:order.items.reduce((n:number,i:any)=>n+i.quantity,0),weight:Math.ceil(parcel.parcelWeightGrams),shipment_length:parcel.parcelLengthCm,shipment_width:parcel.parcelWidthCm,shipment_height:parcel.parcelHeightCm,shipping_mode:'Surface',seller_name:'Jame Bouquets'};
+      const shipment={order:order.orderNumber,invoice_reference:order.orderNumber,name:cust.fullName,add:cust.deliveryAddress,pin:String(cust.pincode),city:cust.city,phone:cust.phone,country:'India',payment_mode:'Pre-paid',cod_amount:0,total_amount:order.totalAmount,products_desc:order.items.map((i:any)=>i.bouquet.title+' x'+i.quantity).join(', ').slice(0,250),quantity:order.items.reduce((n:number,i:any)=>n+i.quantity,0),weight:Math.ceil(parcel.parcelWeightGrams),shipment_length:parcel.parcelLengthCm,shipment_width:parcel.parcelWidthCm,shipment_height:parcel.parcelHeightCm,shipping_mode:carrierShippingName(order.deliveryMode==='express'?'express':'standard'),seller_name:'Jame Bouquets'};
       const manifest=await post('/api/cmu/create.json',new URLSearchParams({format:'json',data:JSON.stringify({pickup_location:{name:warehouse},shipments:[shipment]})}).toString(),'application/x-www-form-urlencoded');
       const pack=manifest.data?.packages?.[0];
       if(!manifest.ok||manifest.data?.success!==true||!pack?.waybill||/fail|error/i.test(String(pack.status||'')))throw Error('Shipment not confirmed');
@@ -1829,7 +1838,7 @@ async function startServer() {
       // Translate old business-name defaults without overwriting intentional custom names.
       const legacyName = /^(jerry(?:'s|s)? garden|jericasgarden)$/i;
       const displaySettings = settings
-        ? { ...settings, customSizeFlowers: customSizeMap(settings.customSizeFlowers), storeName: legacyName.test(String(settings.storeName || '').trim())
+        ? { ...settings, preparationDays:preparationDaysFor(settings),standardDeliveryEnabled:settings.standardDeliveryEnabled!==false,expressDeliveryEnabled:settings.expressDeliveryEnabled!==false,customSizeFlowers: customSizeMap(settings.customSizeFlowers), storeName: legacyName.test(String(settings.storeName || '').trim())
             ? 'Jame Bouquets' : (settings.storeName || 'Jame Bouquets') }
         : null;
       return res.json({ success: true, connected: settings !== null, settings: displaySettings });
@@ -1856,11 +1865,15 @@ async function startServer() {
       if (!Number.isInteger(threshold) || threshold < 0 || threshold > 1000000)
         return res.status(400).json({ success: false, error: 'Free delivery threshold must be a whole number from 0 to 1000000.' });
       const existing = await mongoGetSettings();
+      const preparationDays=settings.preparationDays??preparationDaysFor(existing);
+      const standardDeliveryEnabled=settings.standardDeliveryEnabled??(existing?.standardDeliveryEnabled!==false);
+      const expressDeliveryEnabled=settings.expressDeliveryEnabled??(existing?.expressDeliveryEnabled!==false);
+      if(!Number.isInteger(preparationDays)||preparationDays<0||preparationDays>30||typeof standardDeliveryEnabled!=='boolean'||typeof expressDeliveryEnabled!=='boolean'||(!standardDeliveryEnabled&&!expressDeliveryEnabled))return res.status(400).json({success:false,error:'Set preparation time to 0–30 whole days and enable at least one courier mode.'});
       const saved = await mongoUpdateSettings({
         ...(existing || {
           tagline: 'Everlasting, by hand.', ownerEmail: ADMIN_EMAIL, upiId: '', upiName: '',
           city: 'Berhampore', deliveryFee: 0, freeDeliveryThreshold: 0,
-        }), storeName, logoUrl, freeDeliveryThreshold: threshold,
+        }), storeName, logoUrl, freeDeliveryThreshold: threshold,preparationDays,standardDeliveryEnabled,expressDeliveryEnabled,
         customSizeFlowers: customSizeMap(settings.customSizeFlowers),
         productCategories: (() => {
           const raw = settings.productCategories;

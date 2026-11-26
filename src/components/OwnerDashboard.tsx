@@ -767,7 +767,14 @@ export default function OwnerDashboard({
                       onChange={event => setSettingsForm(current => ({ ...current, freeDeliveryThreshold: Number(event.target.value) }))}
                       className="mt-2 w-full border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900"/>
                   </label>
-                  <p className="mt-2 text-xs text-stone-500">Set 0 to disable. Eligible orders get free delivery, while Delhivery courier charges are paid by the store. Eligibility is based on product subtotal before coupons.</p>
+                  <p className="mt-2 text-xs text-stone-500">Set 0 to disable. Eligible standard/local orders get free delivery, while courier charges are paid by the store. Express delivery is charged separately. Eligibility is based on product subtotal before coupons.</p>
+                </section>
+                <section className="border border-stone-200 bg-[#FCFAF7] p-5 sm:p-6 space-y-3">
+                  <h4 className="font-serif text-xl text-stone-900">Delivery methods & preparation</h4>
+                  <label className="block text-xs font-medium">Preparation and packaging days (before courier pickup)<input type="number" min="0" max="30" step="1" required value={settingsForm.preparationDays??3} onChange={e=>setSettingsForm(current=>({...current,preparationDays:Number(e.target.value)}))} className="mt-2 w-full rounded border p-3"/></label>
+                  <label className="flex gap-2 text-sm"><input type="checkbox" checked={settingsForm.standardDeliveryEnabled!==false} onChange={e=>setSettingsForm(current=>({...current,standardDeliveryEnabled:e.target.checked}))}/> Standard Delivery (Surface)</label>
+                  <label className="flex gap-2 text-sm"><input type="checkbox" checked={settingsForm.expressDeliveryEnabled!==false} onChange={e=>setSettingsForm(current=>({...current,expressDeliveryEnabled:e.target.checked}))}/> Express Delivery</label>
+                  <p className="text-xs text-stone-500">Enable at least one courier method. Estimated arrival adds carrier transit time to preparation days. Free-delivery threshold applies to standard and local delivery, not Express. Local delivery keeps its own delivery schedule.</p>
                 </section>
                 {/* Contact Info */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

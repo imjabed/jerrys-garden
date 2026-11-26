@@ -1,8 +1,9 @@
+import type { DeliveryMode } from '../../shared/deliveryModes';
 import CustomerCopy from './CustomerCopy';
 import { useEffect, useState, type FormEvent } from 'react';
 import { ArrowRight, CheckCircle2, X } from 'lucide-react';
 import { CartItem, CustomerDetails, Order, StoreSettings, UserAccount } from '../types';
-import { apiValidateCoupon, apiCartShippingQuote } from '../services/api';
+import { apiValidateCoupon, apiCartShippingQuote, type CourierQuote } from '../services/api';
 import { isValidOptionalDeliveryDate, earliestDeliveryDate } from '../../shared/orderRules';
 
 interface CheckoutModalProps {
@@ -36,7 +37,8 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
     specialInstructions: '',
     giftNote: '',
   });
-  const [shipping, setShipping] = useState<{ fee: number; customerFee:number; subtotal:number; freeDeliveryEligible:boolean; pin: string; key:string; estimatedDeliveryDate: string | null } | null>(null);
+  const [shipping,setShipping]=useState<{options:(CourierQuote & {customerDeliveryFee:number;freeDeliveryEligible:boolean})[];subtotal:number;pin:string;key:string}|null>(null);
+  const [deliveryMode,setDeliveryMode]=useState<DeliveryMode>('standard');
   const [shippingError, setShippingError] = useState('');
   const [shippingBusy, setShippingBusy] = useState(false);
   const shippingCartKey = cartItems.map(item => item.bouquet.id + ':' + item.quantity + ':' + (item.selectedSize || 'ONE')).join('|');
@@ -45,12 +47,13 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
     let cancelled = false;
     setShipping(null);
     setShippingError('');
+    setShippingBusy(false);
     if (!isOpen || !/^[0-9]{6}$/.test(customer.pincode)) return;
     setShippingBusy(true);
     (async () => {
       try {
         const quote = await apiCartShippingQuote(customer.pincode,cartItems.map(item=>({productId:item.bouquet.id,quantity:item.quantity,selectedSize:item.selectedSize})));
-        if (!cancelled) setShipping({fee:quote.shippingCharge,customerFee:quote.customerDeliveryFee,subtotal:quote.subtotal,freeDeliveryEligible:quote.freeDeliveryEligible,pin:customer.pincode,key:shippingCartKey,estimatedDeliveryDate:quote.estimatedDeliveryDate});
+        if (!cancelled) {const options=quote.options||[{...quote,deliveryMode:quote.deliveryMode||'standard'}];setShipping({options,subtotal:quote.subtotal,pin:customer.pincode,key:shippingCartKey});setDeliveryMode(current=>options.some(o=>o.deliveryMode===current)?current:options[0].deliveryMode);}
       } catch (err: any) {
         if (!cancelled) setShippingError(err?.message || 'Could not calculate courier charges.');
       } finally { if (!cancelled) setShippingBusy(false); }
@@ -62,10 +65,11 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
   const cartKey = cartItems.map(item => `${item.bouquet.id}:${item.selectedSize || 'ONE'}:${item.quantity}`).join('|');
   const couponIsCurrent = Boolean(appliedCoupon && appliedCoupon.email === customer.email.trim().toLowerCase() && appliedCoupon.items === cartKey);
   const validCoupon = couponIsCurrent ? appliedCoupon : null;
-  const validShipping=shipping?.pin===customer.pincode&&shipping.key===shippingCartKey?shipping:null;
+  const options=shipping?.pin===customer.pincode&&shipping.key===shippingCartKey?shipping.options:[];
+  const validShipping=options.find(o=>o.deliveryMode===deliveryMode)||null;
   const freeDeliveryEligible=validShipping?.freeDeliveryEligible===true;
-  const deliveryFee=validShipping?.customerFee??null;
-  const minimumDeliveryDate = shipping?.pin === customer.pincode && shipping.estimatedDeliveryDate ? shipping.estimatedDeliveryDate : null;
+  const deliveryFee=validShipping?.customerDeliveryFee??null;
+  const minimumDeliveryDate=validShipping?.earliestDeliveryDate||validShipping?.estimatedDeliveryDate||null;
   const discount = validCoupon?.discount || 0;
   const update = (key: keyof CustomerDetails, value: string) => {
     setCustomer(prev => ({ ...prev, [key]: value }));
@@ -116,7 +120,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
       const saved = await onOrderSuccess({
         id: '', orderNumber: '', createdAt: now, updatedAt: now,
         status: 'Order Placed', items: cartItems, subtotal,
-        couponCode: validCoupon?.code,
+        couponCode: validCoupon?.code, deliveryMode,
         deliveryFee, codHandlingCharge: 0, totalAmount: Math.max(0, subtotal - discount) + deliveryFee,
         customer, payment: { method: 'CONTACT_LATER', paymentStatus: 'Not Required', paidAt: '' },
       });
@@ -170,7 +174,8 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
                 {field('Delivery address','deliveryAddress','text',true,'Street, locality, landmark')}
               </div>
               {field('PIN code','pincode','text',true,'6-digit PIN')}
-              <p className="text-xs text-stone-600 sm:col-span-2" role="status">{shippingBusy ? 'Checking Delhivery charges…' : shippingError || (shipping ? 'Courier estimate ₹' + shipping.fee : 'Enter PIN for courier charges.')}</p>
+              <p className="text-xs text-stone-600 sm:col-span-2" role="status">{shippingBusy ? 'Checking Delhivery charges…' : shippingError || (validShipping ? 'Courier estimate ₹' + validShipping.shippingCharge : 'Enter PIN for courier charges.')}</p>
+              {options.length>0&&<fieldset className="sm:col-span-2 space-y-2"><legend className="mb-2 text-sm font-semibold">Choose delivery method</legend>{options.map(o=><label key={o.deliveryMode} className={`flex items-center gap-3 rounded-xl border p-3 ${deliveryMode===o.deliveryMode?'border-stone-900 bg-stone-50':'border-stone-200'}`}><input type="radio" name="deliveryMode" checked={deliveryMode===o.deliveryMode} onChange={()=>{setDeliveryMode(o.deliveryMode);setCustomer(c=>({...c,deliveryDate:''}));}}/><span className="flex-1 text-sm"><strong>{o.deliveryMode==='local'?'Local Delivery':o.deliveryMode==='express'?'Express Delivery':'Standard Delivery'}</strong><span className="block text-xs text-stone-500">{o.deliveryMode!=='local'&&`${o.preparationDays} preparation days${o.transitDays==null?'':` + ${o.transitDays} courier days`} · `}{o.estimatedDeliveryDate?'Estimated by '+new Date(o.estimatedDeliveryDate+'T12:00:00Z').toLocaleDateString('en-IN',{day:'numeric',month:'short',weekday:'short',timeZone:'UTC'}):'Delivery date not confirmed by courier'}</span></span><strong className="text-sm">{o.customerDeliveryFee===0?'Free':`₹${o.customerDeliveryFee}`}</strong></label>)}</fieldset>}
               <div>{field('Preferred delivery date (optional)','deliveryDate','date')}<p className="mt-1 text-[11px] text-stone-500">{minimumDeliveryDate ? 'Choose ' + new Date(minimumDeliveryDate + 'T12:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', weekday: 'long', timeZone: 'UTC' }) + ' or later. This is a preference, not a guaranteed arrival date.' : 'Date selection becomes available when Delhivery confirms a transit estimate.'}</p></div>
               <div className="sm:col-span-2">{field('Gift note (optional)','giftNote','text',false,'Your message')}</div>
             </div>
@@ -197,7 +202,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, storeSetting
               <span>{cartItems.reduce((n, item) => n + item.quantity, 0)} item(s) · Product subtotal</span>
               <span className="font-medium text-stone-900">₹{subtotal.toLocaleString('en-IN')}</span>
             </div>
-            {Number(storeSettings.freeDeliveryThreshold || 0) > 0 && <p className="mt-3 text-xs text-emerald-800">{freeDeliveryEligible ? 'Your order qualifies for free delivery!' : `Free delivery on orders of ₹${Number(storeSettings.freeDeliveryThreshold).toLocaleString('en-IN')} or more.`}</p>}
+            {Number(storeSettings.freeDeliveryThreshold || 0) > 0 && <p className="mt-3 text-xs text-emerald-800">{freeDeliveryEligible ? 'Your order qualifies for free delivery!' : `Free standard delivery on orders of ₹${Number(storeSettings.freeDeliveryThreshold).toLocaleString('en-IN')} or more.`}</p>}
             <div className="mt-2 flex justify-between text-sm text-stone-700"><span>Delivery</span><span>{deliveryFee === null ? 'Awaiting courier quote' : freeDeliveryEligible ? 'Free Delivery' : `₹${deliveryFee.toLocaleString('en-IN')}`}</span></div>
             {validCoupon && <div className="mt-2 flex justify-between text-sm text-emerald-800"><span><CustomerCopy id={"checkout.3"} fallback={"Offer discount"}/></span><span>−₹{discount.toLocaleString('en-IN')}</span></div>}
             <div className="mt-2 flex justify-between text-sm font-medium text-stone-900"><span><CustomerCopy id={"checkout.4"} fallback={"Estimated total"}/></span><span>₹{deliveryFee === null ? 'Pending shipping estimate' : `₹${(Math.max(0, subtotal - discount) + deliveryFee).toLocaleString('en-IN')}`}</span></div>
