@@ -1014,11 +1014,39 @@ async function startServer() {
     const maxDays = free ? 2 : 3;
     return { shippingCharge: free ? 0 : 10, estimatedDeliveryDate: indiaTodayPlusDays(maxDays), earliestDeliveryDate: indiaTodayPlusDays(minDays), transitDays: maxDays, preparationDays: 0, deliveryMinDays: minDays, deliveryMaxDays: maxDays, estimateStatus: 'estimated', approximate: false, localDelivery: true };
   };
+  // Opt-in cutover; existing Delhivery configuration remains available.
+  const useShadowfax=()=>process.env.SHIPPING_PROVIDER==='shadowfax';
+  const activeCourierModes=(settings:any):CourierMode[]=>useShadowfax()?enabledCourierModes(settings).filter(mode=>mode==='standard'):enabledCourierModes(settings);
+  const shadowfaxEnv=()=>process.env.SHADOWFAX_ENV==='staging'?'staging':'production';
+  const shadowfaxOrigin=()=>{const pin=process.env.SHADOWFAX_PICKUP_PINCODE?.trim()||'742101';if(!/^[1-9][0-9]{5}$/.test(pin))throw Error('INVALID_PICKUP_PIN');return pin;};
+  const shadowfaxRequest=async(path:string,body?:any)=>{
+    const token=process.env.SHADOWFAX_API_TOKEN?.trim();if(!token)throw Error('SHADOWFAX_NOT_CONFIGURED');
+    const host=shadowfaxEnv()==='staging'?'https://dale.staging.shadowfax.in/api':'https://dale.shadowfax.in/api';
+    const response=await fetch(host+path,{method:body===undefined?'GET':'POST',headers:{Authorization:'Token '+token,Accept:'application/json',...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(10000)});
+    if(!response.ok)throw Error('SHADOWFAX_HTTP_'+response.status);return await response.json();
+  };
+  const sfCoverageCache=new Map<string,{expires:number;available:boolean}>();
+  const shadowfaxServiceable=async(pin:string,fresh=false)=>{
+    const origin=shadowfaxOrigin();
+    const results=await Promise.all([['seller_pickup',origin,'Marketplace'],['seller_delivery',origin,'RTS'],['customer_delivery',pin,'Regular']].map(async([service,pincode,tier])=>{
+      const key=shadowfaxEnv()+':'+service+':'+pincode,hit=sfCoverageCache.get(key);
+      if(!fresh&&hit&&hit.expires>Date.now())return hit.available;
+      const data=await shadowfaxRequest('/v1/clients/serviceability/?'+new URLSearchParams({service,pincodes:pincode}));
+      if(!Array.isArray(data))throw Error('SHADOWFAX_INVALID_COVERAGE');
+      const available=data.some((row:any)=>String(row?.code)===pincode&&Array.isArray(row.services)&&row.services.includes(tier));
+      if(sfCoverageCache.size>1000)sfCoverageCache.clear();sfCoverageCache.set(key,{expires:Date.now()+300000,available});return available;
+    }));return results.every(Boolean);
+  };
   app.get('/api/shipping/serviceability', async (req, res) => {
     const pincode = String(req.query.pincode || '').trim();
     if (!/^\d{6}$/.test(pincode)) return res.status(400).json({ success: false, error: 'Enter a valid six-digit Indian PIN code.' });
     const local = localShipping(pincode);
     if (local) return res.json({ success: true, pincode, serviceable: true, prepaid: true, cod: true, ...local });
+    if(useShadowfax()){
+      if(!allowLoginAttempt('shipping-serviceability:'+String(req.ip||'unknown'),40))return res.status(429).json({success:false,error:'Too many shipping requests.'});
+      try{const serviceable=await shadowfaxServiceable(pincode);return res.json({success:true,pincode,serviceable,prepaid:serviceable,cod:false,city:null,state:null,preparationDays:preparationDaysFor(await mongoGetSettings()),estimatedDeliveryDate:null,shippingCharge:null,estimateStatus:'pending_courier_quote'});}
+      catch{return res.status(502).json({success:false,error:'Shadowfax availability could not be verified.'});}
+    }
     const token = process.env.DELHIVERY_API_TOKEN?.trim();
     if (!token) return res.status(503).json({ success: false, error: 'Courier service is not configured.' });
     const environment = process.env.DELHIVERY_ENV === 'staging' ? 'staging' : 'production';
@@ -1057,9 +1085,19 @@ async function startServer() {
     const local = localShipping(pin);
     if (local) return { pincode: pin, originPincode: '742101', chargeableWeightGrams: grams, currency: 'INR', ...local, deliveryMode:'local' as DeliveryMode };
     const preparationDays=prepDays??preparationDaysFor(await mongoGetSettings());
-    const key = `${pin}:${grams}:${mode}:${preparationDays}:${indiaTodayPlusDays(0)}`;
+    const key = `${useShadowfax()?'shadowfax':'delhivery'}:${pin}:${grams}:${mode}:${preparationDays}:${indiaTodayPlusDays(0)}`;
     const cached = shippingQuoteCache.get(key);
     if (!fresh && cached && cached.expires > Date.now()) return cached.value;
+    if(useShadowfax()){
+      if(mode!=='standard')throw Error('SHADOWFAX_MODE_UNAVAILABLE');
+      if(!(await shadowfaxServiceable(pin,fresh)))throw Error('COURIER_PIN_UNSERVICEABLE');
+      const raw=await shadowfaxRequest('/v1/clients/rate_calculator/',{origin_pincode:Number(shadowfaxOrigin()),destination_pincode:Number(pin),weight:grams/1000,service:'forward'});
+      if(raw?.message!=='Success'||raw.shipping_rate==null||raw.gst==null||String(raw.shipping_rate).trim()===''||String(raw.gst).trim()==='')throw Error('COURIER_RATE_UNAVAILABLE');
+      const rate=Number(raw.shipping_rate),gst=Number(raw.gst);
+      if(!Number.isFinite(rate)||!Number.isFinite(gst)||rate<=0||gst<0)throw Error('COURIER_RATE_UNAVAILABLE');
+      const result={provider:'shadowfax',pincode:pin,originPincode:shadowfaxOrigin(),chargeableWeightGrams:grams,shippingCharge:Math.ceil(Math.round((rate+gst)*100)/100),currency:'INR',estimatedDeliveryDate:null,transitDays:null,preparationDays,deliveryMode:'standard' as DeliveryMode,estimatedDispatchDate:indiaTodayPlusDays(preparationDays),estimateStatus:'rate_available_tat_pending',approximate:true};
+      if(shippingQuoteCache.size>500)shippingQuoteCache.clear();shippingQuoteCache.set(key,{expires:Date.now()+300000,value:result});return result;
+    }
     const token = process.env.DELHIVERY_API_TOKEN?.trim();
     if (!token) throw new Error('COURIER_NOT_CONFIGURED');
     const courierHost = process.env.DELHIVERY_ENV === 'staging' ? 'https://staging-express.delhivery.com' : 'https://track.delhivery.com';
@@ -1117,7 +1155,7 @@ async function startServer() {
       } catch (error) {
         console.warn('Delhivery TAT unavailable:', error instanceof Error ? error.message : 'unknown');
       }
-      const result = { pincode: pin, originPincode: '742101', chargeableWeightGrams: grams, shippingCharge: Math.ceil(amount), currency: 'INR', estimatedDeliveryDate, transitDays, preparationDays, deliveryMode:mode as DeliveryMode, estimatedDispatchDate:dateISO(dispatchDate), estimateStatus: estimatedDeliveryDate ? 'estimated' : 'rate_available_tat_pending', approximate: true };
+      const result = { provider:'delhivery', pincode: pin, originPincode: '742101', chargeableWeightGrams: grams, shippingCharge: Math.ceil(amount), currency: 'INR', estimatedDeliveryDate, transitDays, preparationDays, deliveryMode:mode as DeliveryMode, estimatedDispatchDate:dateISO(dispatchDate), estimateStatus: estimatedDeliveryDate ? 'estimated' : 'rate_available_tat_pending', approximate: true };
       if (shippingQuoteCache.size > 500) shippingQuoteCache.clear();
       shippingQuoteCache.set(key, { expires: Date.now() + 300000, value: result });
       return result;
@@ -1130,8 +1168,8 @@ async function startServer() {
       return res.status(400).json({ success: false, error: 'Provide a six-digit PIN and packed weight in grams (1-100000).' });
     if (!allowLoginAttempt(`shipping:${String(req.ip || 'unknown')}`, 40))
       return res.status(429).json({ success: false, error: 'Too many shipping requests.' });
-    try { const settings=await mongoGetSettings(); const mode=enabledCourierModes(settings)[0]; if(!mode&&!localShipping(pin))throw Error('No courier service enabled'); return res.json({ success: true, ...(await getShippingQuote(pin, grams,false,mode||'standard',preparationDaysFor(settings))) }); }
-    catch { return res.status(502).json({ success: false, error: 'Delhivery shipping estimate is currently unavailable.' }); }
+    try { const settings=await mongoGetSettings(); const mode=activeCourierModes(settings)[0]; if(!mode&&!localShipping(pin))throw Error('No courier service enabled'); return res.json({ success: true, ...(await getShippingQuote(pin, grams,false,mode||'standard',preparationDaysFor(settings))) }); }
+    catch { return res.status(502).json({ success: false, error: 'Courier shipping estimate is currently unavailable.' }); }
   });
 
   app.get('/api/bouquets', async (req, res) => {
@@ -1163,7 +1201,7 @@ async function startServer() {
       if(!parcel&&!localShipping(pin))return res.status(409).json({success:false,error:'Packed dimensions are not configured or the combined box is too large. Contact the shop.'});
       const settings=await mongoGetSettings();if(!settings)throw Error('settings');
       const threshold=Number(settings.freeDeliveryThreshold||0),prep=preparationDaysFor(settings);
-      const modes:CourierMode[]=localShipping(pin)?['standard']:enabledCourierModes(settings);
+      const modes:CourierMode[]=localShipping(pin)?['standard']:activeCourierModes(settings);
       const settled=await Promise.allSettled(modes.map(mode=>getShippingQuote(pin,parcel?chargeableGrams(parcel):1,false,mode,prep)));
       const options=settled.flatMap(result=>{
         if(result.status!=='fulfilled')return [];
@@ -1691,7 +1729,7 @@ async function startServer() {
       if (!shippingSettings) return res.status(503).json({ success:false,error:'Store delivery settings are unavailable.' });
       const isLocal=Boolean(localShipping(String(c.pincode)));
       const requestedMode=body.deliveryMode??(isLocal?'local':'standard');
-      if(isLocal?requestedMode!=='local':!enabledCourierModes(shippingSettings).includes(requestedMode))return res.status(409).json({success:false,error:'Selected delivery method is unavailable. Refresh checkout.'});
+      if(isLocal?requestedMode!=='local':!activeCourierModes(shippingSettings).includes(requestedMode))return res.status(409).json({success:false,error:'Selected delivery method is unavailable. Refresh checkout.'});
       const deliveryMode:DeliveryMode=requestedMode;
       try {
         const quote = await getShippingQuote(String(c.pincode), parcel?chargeableGrams(parcel):1, true,deliveryMode==='express'?'express':'standard',preparationDaysFor(shippingSettings));
@@ -1774,10 +1812,14 @@ async function startServer() {
     }catch{return res.status(503).json({success:false,error:'Courier quote unavailable.'});}
   });
   app.post('/api/admin/orders/:id/ready-for-pickup',requireOwner,requireClientHeader,async(req,res)=>{
+    const isShadowfax=useShadowfax(),provider=isShadowfax?'shadowfax':'delhivery';
     const token=process.env.DELHIVERY_API_TOKEN?.trim(),warehouse=process.env.DELHIVERY_PICKUP_LOCATION?.trim();
-    const environment=process.env.DELHIVERY_ENV==='staging'?'staging':'production';
+    const sfPickup={name:process.env.SHADOWFAX_PICKUP_NAME?.trim()||'Jame Bouquets',contact:process.env.SHADOWFAX_PICKUP_PHONE?.trim()||'',address_line_1:process.env.SHADOWFAX_PICKUP_ADDRESS?.trim()||'',city:process.env.SHADOWFAX_PICKUP_CITY?.trim()||'Berhampore'};
+    const sfSlot=process.env.SHADOWFAX_PICKUP_SLOT?.trim();
+    if(isShadowfax&&(process.env.SHADOWFAX_DISPATCH_ENABLED!=='true'||!process.env.SHADOWFAX_API_TOKEN?.trim()||!sfPickup.address_line_1||!/^\+?[0-9]{10,13}$/.test(sfPickup.contact)||!sfSlot))return res.status(503).json({success:false,error:'Shadowfax pickup is disabled until the token, pickup contact/address, confirmed slot and dispatch enable flag are configured.'});
+    const environment=isShadowfax?shadowfaxEnv():process.env.DELHIVERY_ENV==='staging'?'staging':'production';
     const host=environment==='staging'?'https://staging-express.delhivery.com':'https://track.delhivery.com';
-    if(process.env.DELHIVERY_DISPATCH_ENABLED!=='true'||!token||!warehouse)return res.status(503).json({success:false,error:'Pickup is disabled until Delhivery token, registered warehouse and dispatch enable flag are configured.'});
+    if(!isShadowfax&&(process.env.DELHIVERY_DISPATCH_ENABLED!=='true'||!token||!warehouse))return res.status(503).json({success:false,error:'Pickup is disabled until Delhivery token, registered warehouse and dispatch enable flag are configured.'});
     const parcel=req.body?.parcel, date=String(req.body?.pickupDate||''),time=String(req.body?.pickupTime||'');
     if(!validParcel(parcel)||!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<indiaTodayPlusDays(0)||date>indiaTodayPlusDays(7)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)||req.body?.paymentConfirmed!==true||req.body?.confirmSingleBox!==true)
       return res.status(400).json({success:false,error:'Confirm full payment and one packed box, valid measurements, and pickup date/time within 7 days.'});
@@ -1786,12 +1828,15 @@ async function startServer() {
     const order=await collection.findOne({id:req.params.id});
     if(!order||order.orderType==='Custom'||!['Order Placed','Pending'].includes(order.status))return res.status(409).json({success:false,error:'Only active standard orders can be dispatched.'});
     if(localShipping(order.customer.pincode))return res.status(409).json({success:false,error:'This is a local delivery order.'});
-    if(order.courierShipment)return res.status(409).json({success:false,error:'Shipment already started. Check Delhivery One before any further action; do not create a duplicate.'});
+    if(order.courierShipment)return res.status(409).json({success:false,error:'Shipment already started. Check the original courier portal before any further action; do not create a duplicate.'});
+    if(isShadowfax&&(order.deliveryMode==='express'||order.shippingEstimate?.provider!=='shadowfax'))return res.status(409).json({success:false,error:'Existing order was not quoted for Shadowfax. Reconcile it manually before changing couriers.'});
+    if(!isShadowfax&&order.shippingEstimate?.provider==='shadowfax')return res.status(409).json({success:false,error:'This order was quoted for Shadowfax. Reconcile it manually before changing couriers.'});
+    if(isShadowfax&&order.items.reduce((sum:number,i:any)=>sum+Number(i.bouquet.price)*i.quantity,0)>=50000)return res.status(400).json({success:false,error:'High-value shipments require e-way bill/GST details; create this shipment in Shadowfax360 manually.'});
     let quote:any;
     try{quote=await getShippingQuote(order.customer.pincode,chargeableGrams(parcel),true,order.deliveryMode==='express'?'express':'standard');}catch{return res.status(503).json({success:false,error:'Unable to verify current courier cost.'});}
     if(Number(req.body?.acceptedCourierFee)!==quote.shippingCharge)return res.status(409).json({success:false,error:'Courier cost changed. Recalculate and confirm the new amount.'});
     const at=new Date().toISOString();
-    const initial={state:'manifesting',environment,warehouse,parcel,deliveryMode:order.deliveryMode==='express'?'express':'standard',estimatedCourierFee:quote.shippingCharge,customerDeliveryFee:order.deliveryFee,startedAt:at,pickupDate:date,pickupTime:time};
+    const initial={state:'manifesting',provider,environment,warehouse:isShadowfax?sfPickup.name:warehouse,parcel,deliveryMode:order.deliveryMode==='express'?'express':'standard',estimatedCourierFee:quote.shippingCharge,customerDeliveryFee:order.deliveryFee,startedAt:at,pickupDate:date,pickupTime:time};
     // Atomic durable lock. Timeouts/uncertain provider outcomes require manual reconciliation, not automatic retries.
     const lock=await collection.updateOne({id:order.id,status:{$in:['Order Placed','Pending']},courierShipment:{$exists:false}},{$set:{courierShipment:initial,updatedAt:at,'payment.paymentStatus':'Verified','payment.paidAt':at}});
     if(lock.modifiedCount!==1)return res.status(409).json({success:false,error:'Dispatch already started; refresh the order.'});
@@ -1803,6 +1848,17 @@ async function startServer() {
     };
     try{
       const cust=order.customer;
+      if(isShadowfax){
+        const pickup={...sfPickup,pincode:Number(shadowfaxOrigin())};
+        const productValue=order.items.reduce((sum:number,i:any)=>sum+Number(i.bouquet.price)*i.quantity,0);
+        const productDetails=order.items.map((i:any)=>({sku_name:String(i.bouquet.title),sku_id:(String(i.bouquet.id)+(i.selectedSize?'-'+i.selectedSize:'')).slice(0,100),price:Number(i.bouquet.price),category:String(i.bouquet.category||'Gifts'),invoice_no:String(order.orderNumber),brand:'Jame Bouquets',additional_details:{quantity:i.quantity}}));
+        const result=await shadowfaxRequest('/v3/clients/orders/',{customer_details:{name:cust.fullName,contact:cust.phone,address_line_1:cust.deliveryAddress,city:cust.city,pincode:Number(cust.pincode)},order_details:{client_order_id:order.orderNumber,product_value:productValue,payment_mode:'prepaid',cod_amount:0,total_amount:order.totalAmount,order_service:'Regular',actual_weight:parcel.parcelWeightGrams/1000,volumetric_weight:parcel.parcelLengthCm*parcel.parcelWidthCm*parcel.parcelHeightCm/5000},pickup_details:{...pickup,pickup_type:'seller',pickup_date:date,pickup_slot:sfSlot},return_details:{...pickup,return_type:'seller'},product_details:productDetails});
+        const record=result?.message==='Success'?result.data:result;
+        if(!record?.awb_number||String(record.client_order_id)!==String(order.orderNumber))throw Error('Shadowfax shipment not confirmed');
+        waybill=String(record.awb_number);stage='pickup';
+        await persist('manifested',{pickupSlot:sfSlot,promisedDeliveryDate:record.promised_delivery_date||null});
+        return res.json({success:true,order:await collection.findOne({id:order.id})});
+      }
       const shipment={order:order.orderNumber,invoice_reference:order.orderNumber,name:cust.fullName,add:cust.deliveryAddress,pin:String(cust.pincode),city:cust.city,phone:cust.phone,country:'India',payment_mode:'Pre-paid',cod_amount:0,total_amount:order.totalAmount,products_desc:order.items.map((i:any)=>i.bouquet.title+' x'+i.quantity).join(', ').slice(0,250),quantity:order.items.reduce((n:number,i:any)=>n+i.quantity,0),weight:Math.ceil(parcel.parcelWeightGrams),shipment_length:parcel.parcelLengthCm,shipment_width:parcel.parcelWidthCm,shipment_height:parcel.parcelHeightCm,shipping_mode:carrierShippingName(order.deliveryMode==='express'?'express':'standard'),seller_name:'Jame Bouquets'};
       const manifest=await post('/api/cmu/create.json',new URLSearchParams({format:'json',data:JSON.stringify({pickup_location:{name:warehouse},shipments:[shipment]})}).toString(),'application/x-www-form-urlencoded');
       const pack=manifest.data?.packages?.[0];
@@ -1816,6 +1872,7 @@ async function startServer() {
       return res.json({success:true,order:await collection.findOne({id:order.id})});
     }catch{
       await persist(stage==='manifesting'?'manifest_review_required':'pickup_review_required').catch(()=>{});
+      if(isShadowfax)return res.status(502).json({success:false,error:'Shadowfax shipment outcome requires verification in Shadowfax360. Do not retry blindly.'});
       return res.status(502).json({success:false,error:stage==='manifesting'?'Shipment outcome needs verification in Delhivery One. Do not retry blindly.':'Shipment created; pickup was not confirmed. Check Delhivery One for an existing warehouse pickup or arrange it manually.'});
     }
   });
