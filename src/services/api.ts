@@ -442,6 +442,7 @@ export interface CourierQuote {
   estimatedDispatchDate?:string;
   earliestDeliveryDate?:string;
   approximate: boolean;
+  codAvailable?: boolean;
 }
 export async function apiShippingQuote(pincode: string, weightGrams: number): Promise<CourierQuote> {
   const params = new URLSearchParams({ pincode, weightGrams: String(weightGrams) });
@@ -456,6 +457,9 @@ export async function apiCartShippingQuote(pincode:string,items:{productId:strin
 }
 export async function apiAdminParcelQuote(id:string,parcel:import('../../shared/parcelShipping').Parcel):Promise<CourierQuote>{
   return parseResponse(await fetch(API_URL+'/api/admin/orders/'+encodeURIComponent(id)+'/parcel-quote',{method:'POST',headers:jsonHeaders,credentials:'include',body:JSON.stringify({parcel})}));
+}
+export async function apiMarkOrderPaid(id:string):Promise<{success:boolean;order:Order}>{
+  return parseResponse(await fetch(API_URL+'/api/admin/orders/'+encodeURIComponent(id)+'/payment',{method:'PATCH',headers:jsonHeaders,credentials:'include',body:JSON.stringify({confirmReceived:true})}));
 }
 export async function apiReadyForPickup(id:string,payload:{parcel:import('../../shared/parcelShipping').Parcel;pickupDate:string;pickupTime:string;paymentConfirmed:boolean;confirmSingleBox:boolean;acceptedCourierFee:number}):Promise<{success:boolean;order:Order}>{
   return parseResponse(await fetch(API_URL+'/api/admin/orders/'+encodeURIComponent(id)+'/ready-for-pickup',{method:'POST',headers:jsonHeaders,credentials:'include',body:JSON.stringify(payload)}));
