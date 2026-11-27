@@ -15,7 +15,10 @@ export const carrierLabels: Record<string,string> = {
 export const terminalTracking = ['delivered','rts_d','rto_d','cancelled_by_customer','lost'];
 export function webhookAuthorized(header: unknown, secret: string|undefined): boolean {
   if (!secret || secret.length < 32 || typeof header !== 'string') return false;
-  const supplied=Buffer.from(header), expected=Buffer.from('Bearer '+secret);
+  // The portal's Token mode may use Token or Bearer in the Authorization header.
+  const match=/^(?:Token|Bearer) ([^\s]+)$/i.exec(header);
+  if(!match)return false;
+  const supplied=Buffer.from(match[1]), expected=Buffer.from(secret);
   return supplied.length===expected.length && crypto.timingSafeEqual(supplied,expected);
 }
 export function eventTime(value: unknown): string|null {

@@ -4,7 +4,8 @@ import { webhookAuthorized, eventTime, trackingEvent, canAdvance, applyTrackingE
 const secret='a'.repeat(48);
 test('webhook requires the correct independent bearer secret',()=>{
   assert.equal(webhookAuthorized('Bearer '+secret,secret),true);
-  for(const input of [undefined,'Bearer wrong','Token '+secret,secret])assert.equal(webhookAuthorized(input,secret),false);
+  assert.equal(webhookAuthorized('Token '+secret,secret),true);
+  for(const input of [undefined,'Bearer wrong','Token wrong',secret])assert.equal(webhookAuthorized(input,secret),false);
   assert.equal(webhookAuthorized('Bearer short','short'),false);
 });
 test('normalizes IST and UTC timestamps, rejects missing/invalid dates and unknown codes',()=>{
