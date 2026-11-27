@@ -1,3 +1,5 @@
+import giftGuides from '../shared/giftGuides.json';
+import { updateStorefrontSeo } from './services/storefrontSeo';
 import { DELIVERY_ADDRESS_FIELDS, DELIVERY_ADDRESS_LIMIT, normalizeDeliveryAddressBook, type SavedDeliveryAddress } from '../shared/deliveryAddress';
 import type { DeliveryMode } from '../shared/deliveryModes';
 import { CustomerTextContext } from './services/customerText';
@@ -326,14 +328,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (editorRoute) return;
-    if(studioPreview)return;
-    document.title = allProducts?'All Products | Jame Bouquets':productId
-      ? (bouquets.find(p => p.id === productId)?.title || 'Product') + ' | Jame Bouquets'
-      : siteContent.seo.title;
-    const description = document.querySelector('meta[name="description"]');
-    if (description) description.setAttribute('content', siteContent.seo.description);
-  }, [siteContent.seo, editorRoute, productId, bouquets,allProducts,studioPreview]);
+    if (studioPreview) return;
+    updateStorefrontSeo({
+      home: siteContent.seo,
+      allProducts,
+      productId,
+      product: bouquets.find(product => product.id === productId),
+      privatePage: editorRoute || isOwnerView || Boolean(productId && catalogStatus === 'ready' && !bouquets.some(product => product.id === productId)),
+    });
+  }, [siteContent.seo, editorRoute, productId, bouquets, allProducts, studioPreview, isOwnerView, catalogStatus]);
 
   // Keep the order queue current while the admin is viewing the dashboard.
   useEffect(() => {
@@ -1035,6 +1038,16 @@ renderCatalogue(true)
           })}
 
           </>)}
+
+          {!androidApp && !studioPreview && !productId && (
+            <nav aria-label="Gift guides" className="mx-auto flex max-w-5xl flex-wrap justify-center gap-x-6 gap-y-3 px-5 py-7 text-center text-sm">
+              {giftGuides.map(guide => (
+                <a key={guide.slug} href={`/guides/${guide.slug}.html`} className="underline underline-offset-4">
+                  {guide.title}
+                </a>
+              ))}
+            </nav>
+          )}
 
           {/* Boutique Footer */}
           <Footer

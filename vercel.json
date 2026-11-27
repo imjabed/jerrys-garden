@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/all-products",
+      "destination": "/catalogue.html"
+    },
+    {
       "source": "/admin/editor",
       "destination": "/index.html"
     },
@@ -11,6 +15,35 @@
     {
       "source": "/:path*",
       "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/admin/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    },
+    {
+      "source": "/owner-login",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    },
+    {
+      "source": "/catalogue.html",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
     }
   ]
 }
