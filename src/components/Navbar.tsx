@@ -83,7 +83,7 @@ export default function Navbar({
 
   const [appSearchFocused,setAppSearchFocused] = useState(false);
   if(androidApp) return <>
-    <header className="sticky top-0 z-40 border-b border-stone-200 bg-white text-stone-900 shadow-sm">
+    <header className="jb-android-header sticky top-0 z-40 border-b border-stone-200 bg-white text-stone-900 shadow-sm">
       <div className="flex items-center justify-between px-3 py-2">
         <button type="button" onClick={()=>{setAppSearchFocused(false);(onNavigateHome||onNavigateToShop)();}} aria-label="Jame Bouquets home"><Logo size="sm" showSubtitle={false} logoUrl={storeSettings.logoUrl} fallbackLogoUrl="/favicon.png" brandName={storeSettings.storeName||'Jame Bouquets'}/></button>
         <button type="button" id="cart-btn" onClick={()=>{setAppSearchFocused(false);onOpenCart();}} aria-label={`Shopping cart, ${cartCount} items`} className="relative flex h-10 w-10 items-center justify-center rounded-full bg-stone-100">
@@ -165,7 +165,7 @@ export default function Navbar({
         <div className="jb-nav-inner flex min-h-[68px] items-center justify-between gap-2 sm:min-h-20">
           {/* Brand Logo */}
           <div onClick={onNavigateHome||onNavigateToShop} className="jb-nav-brand min-w-0 shrink cursor-pointer">
-            <Logo editableBrand size="md" logoUrl={storeSettings.logoUrl} brandName={storeSettings.storeName || "Jame Bouquets"} />
+            <Logo editableBrand size="md" logoUrl={storeSettings.logoUrl} fallbackLogoUrl="/favicon.png" brandName={storeSettings.storeName || "Jame Bouquets"} />
           </div>
 
           {/* Desktop Navigation Links */}

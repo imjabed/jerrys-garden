@@ -94,7 +94,7 @@ export default function Footer({
           {/* Brand Col (4 cols) */}
           <div className="lg:col-span-4 space-y-4">
             <div className="[&_.font-serif]:!text-[#FAF8F5] [&_p]:!text-stone-400 [&_.text-stone-900]:!text-[#FAF8F5]">
-              <Logo editableBrand size="md" showSubtitle={true} logoUrl={storeSettings.logoUrl} brandName={storeSettings.storeName || "Jame Bouquets"} />
+              <Logo editableBrand size="md" showSubtitle={true} logoUrl={storeSettings.logoUrl} fallbackLogoUrl="/favicon.png" brandName={storeSettings.storeName || "Jame Bouquets"} />
             </div>
             
             <p className="text-xs text-stone-400 leading-relaxed">

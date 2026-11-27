@@ -1578,3 +1578,7 @@
 /* Cart stays tappable even with custom icon media and seasonal decorations. */
 #cart-btn{isolation:isolate;touch-action:manipulation;flex-shrink:0;pointer-events:auto;}
 #cart-btn img,#cart-btn svg,#cart-btn span{pointer-events:none;}
+
+/* Android app header stays light even when the website uses a dark seasonal navbar. */
+.site-shell[data-site-theme] .jb-android-header #cart-btn { color: #292524 !important; background-color: #f5f5f4 !important; }
+.site-shell[data-site-theme] .jb-android-header #cart-btn img { filter: brightness(0) saturate(100%); opacity: .82; }
