@@ -1,3 +1,4 @@
+import CarrierTracking from './CarrierTracking';
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { OrderStatus, Order } from '../types';
@@ -63,6 +64,8 @@ export const OrderTrackingView: React.FC = () => {
             Pending (In Arrangement)
           </span>
         );
+      case 'Ready for Ship':
+        return <span className="text-xs font-bold text-violet-800">Ready for Ship</span>;
       case 'Delivered':
         return (
           <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-2xs">
@@ -84,7 +87,7 @@ export const OrderTrackingView: React.FC = () => {
   const getStepState = (currentStatus: OrderStatus, stepName: 'Order Placed' | 'Pending' | 'Delivered') => {
     if (currentStatus === 'Cancelled') return 'cancelled';
 
-    const orderHierarchy: OrderStatus[] = ['Order Placed', 'Pending', 'Delivered'];
+    const orderHierarchy: OrderStatus[] = ['Order Placed', 'Pending', 'Ready for Ship', 'Delivered'];
     const currentIndex = orderHierarchy.indexOf(currentStatus);
     const stepIndex = orderHierarchy.indexOf(stepName);
 
@@ -165,6 +168,7 @@ export const OrderTrackingView: React.FC = () => {
                 </div>
               </div>
 
+              <CarrierTracking order={activeOrder}/>
               {/* Status Timeline Stepper */}
               <div className="py-8">
                 {activeOrder.status === 'Cancelled' ? (

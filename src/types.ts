@@ -63,7 +63,7 @@ export interface CustomOrderDetails {
 export interface Order {
   deliveryMode?: import('../shared/deliveryModes').DeliveryMode;
   shippingEstimate?: {deliveryMode?:import('../shared/deliveryModes').DeliveryMode;preparationDays?:number;transitDays?:number|null;estimatedDeliveryDate?:string|null;estimatedDispatchDate?:string;shippingCharge:number;localDelivery?:boolean;parcel?:import('../shared/parcelShipping').Parcel;chargeableWeightGrams:number;quotedAt:string};
-  courierShipment?: {state:string;waybill?:string;pickupId?:string;estimatedCourierFee:number;customerDeliveryFee:number;environment:string;parcel:import('../shared/parcelShipping').Parcel};
+  courierShipment?: {state:string;provider?:string;trackingCode?:string;trackingStatus?:string;trackingEventAt?:string;trackingHistory?:{code:string;label:string;at:string}[];promisedDeliveryDate?:string|null;waybill?:string;pickupId?:string;estimatedCourierFee:number;customerDeliveryFee:number;environment:string;parcel:import('../shared/parcelShipping').Parcel};
   orderType?: 'Standard' | 'Custom';
   customDetails?: CustomOrderDetails;
   id: string;

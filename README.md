@@ -103,3 +103,9 @@ order ranges are estimates and are not treated as revenue.
 Go to **Settings → Brand identity** to upload a logo and edit the business
 display name. The name always appears beside the logo in header and footer.
 The change takes effect after saving the settings.
+
+## Shadowfax delivery tracking
+
+Production POST: /api/webhooks/shadowfax. Staging POST: /api/webhooks/shadowfax/staging. Register the respective HTTPS Render URLs with Forward Logistics in Shadowfax360. Use independent random secrets (32 characters minimum) in Render's SHADOWFAX_WEBHOOK_SECRET and SHADOWFAX_STAGING_WEBHOOK_SECRET. Configure the corresponding callback header as Authorization: Bearer <secret>. Never use the outbound API token as the webhook secret. Generate each locally with node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))".
+
+Ask Shadowfax to configure JSON callback keys awb_number, client_order_id, status_id, last_updated (ISO date-time, IST if no offset), and optionally estimatedDeliveryDate. No rider contact, OTP, signature or customer data is stored from callbacks. Only existing AWBs for the correct carrier and environment are updated. Undated/unknown events are reconciled through the tracking API. Existing SHADOWFAX_API_TOKEN and SHADOWFAX_ENV are used for read-only reconciliation; optional SHADOWFAX_STAGING_API_TOKEN enables staging reconciliation while production is active. Active shipments are checked in bounded batches, at least 15 minutes between requests per shipment when the server is running. A sleeping Render service cannot poll. Delivery does not verify COD remittance or change prepaid payment status. Test staging with a dedicated test shipment before production registration.

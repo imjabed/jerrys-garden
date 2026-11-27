@@ -1,3 +1,4 @@
+import CarrierTracking from './CarrierTracking';
 import CustomerCopy from './CustomerCopy';
 import { PRODUCT_SIZE_LABELS, productSizeFor } from '../../shared/productSizes';
 import { useState, useEffect, type FormEvent } from 'react';
@@ -205,6 +206,7 @@ export default function OrderTrackingModal({
                 </div>
               </div>
 
+              <CarrierTracking order={selectedOrder}/>
               {/* Status Stepper: Order Placed | Pending | Delivered | Cancelled */}
               {selectedOrder.status === 'Cancelled' ? (
                 <div className="p-4 rounded-2xl bg-red-50 border border-red-200 flex items-center gap-3 text-red-800">

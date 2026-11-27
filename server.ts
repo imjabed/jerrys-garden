@@ -3,6 +3,7 @@ import { preparationDaysFor, enabledCourierModes, carrierModeCode, carrierShippi
 import { validParcel, estimateParcel, chargeableGrams } from './shared/parcelShipping';
 import type { Parcel } from './shared/parcelShipping';
 import express from 'express';
+import { shadowfaxWebhook, startShadowfaxReconciliation } from './server/shadowfaxTracking.js';
 import crypto from 'crypto';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
@@ -381,6 +382,10 @@ async function startServer() {
     if (!allowLoginAttempt(`api:${String(req.ip || 'unknown')}`, 240)) return res.status(429).json({ success: false, error: 'Too many requests. Please try again later.' });
     next();
   });
+  // Dedicated authenticated server-to-server callbacks, with a small JSON limit.
+  const trackingOrders=async()=> (await getMongoDb())?.collection('orders')??null;
+  app.post('/api/webhooks/shadowfax',express.json({limit:'32kb'}),shadowfaxWebhook('production',trackingOrders));
+  app.post('/api/webhooks/shadowfax/staging',express.json({limit:'32kb'}),shadowfaxWebhook('staging',trackingOrders));
   app.use(express.json({ limit: '10mb' }));
 
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -2052,6 +2057,7 @@ async function startServer() {
     });
   }
 
+  startShadowfaxReconciliation(trackingOrders);
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
   });
