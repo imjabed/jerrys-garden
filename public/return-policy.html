@@ -8,10 +8,13 @@
   <link rel="canonical" href="https://jamebouquets.in/returnpolicy">
   <link rel="icon" href="/favicon.png">
   <style>
-    body { margin: 0; color: #400719; background: #fff7ef; font: 1rem/1.65 system-ui, sans-serif; }
-    header, main, footer { max-width: 44rem; margin: auto; padding: 1.25rem; }
+    body { margin: 0; color: #400719; background: #fff7ef; font: 1rem/1.65 Arial, sans-serif; }
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+    header, main, footer { padding: 1.25rem clamp(1rem, 4vw, 4rem); }
+    main { flex: 1; }
+    main p { max-width: 75ch; }
     header { border-bottom: 1px solid #40071930; }
-    h1, h2 { font-family: Georgia, serif; line-height: 1.2; }
+    h1, h2 { line-height: 1.2; }
     h1 { font-size: clamp(2rem, 6vw, 3.4rem); }
     h2 { margin-top: 2rem; }
     a { color: inherit; text-underline-offset: .2em; overflow-wrap: anywhere; }
