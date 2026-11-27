@@ -1,13 +1,17 @@
+import { useState } from 'react';
 import CustomerCopy from './CustomerCopy';
 interface LogoProps {
   editableBrand?: boolean;
   size?: 'sm' | 'md' | 'lg';
   showSubtitle?: boolean;
   logoUrl?: string;
+  fallbackLogoUrl?: string;
   brandName?: string;
 }
 
-export default function Logo({ size = 'md', showSubtitle = true, logoUrl, brandName = 'Jame Bouquets', editableBrand = false }: LogoProps) {
+export default function Logo({ size = 'md', showSubtitle = true, logoUrl, fallbackLogoUrl, brandName = 'Jame Bouquets', editableBrand = false }: LogoProps) {
+  const [failedUrls, setFailedUrls] = useState<string[]>([]);
+  const imageUrl = [logoUrl?.trim(), fallbackLogoUrl].find((url): url is string => !!url && !failedUrls.includes(url));
   const iconSizes = {
     sm: 'w-7 h-7',
     md: 'w-9 h-9',
@@ -22,8 +26,8 @@ export default function Logo({ size = 'md', showSubtitle = true, logoUrl, brandN
 
   return (
     <div className="flex items-center gap-2.5 group cursor-pointer select-none">
-      {logoUrl ? (
-        <img src={logoUrl} alt="" className={`block shrink-0 rounded-full object-cover border border-white/20 ${size === 'lg' ? 'h-14 w-14' : size === 'sm' ? 'h-8 w-8' : 'h-10 w-10'}`} />
+      {imageUrl ? (
+        <img key={imageUrl} src={imageUrl} alt="" decoding="async" onError={() => setFailedUrls(prev => prev.includes(imageUrl) ? prev : [...prev, imageUrl])} className={`block shrink-0 rounded-full object-contain border border-white/20 ${size === 'lg' ? 'h-14 w-14' : size === 'sm' ? 'h-8 w-8' : 'h-10 w-10'}`} />
       ) : (
       // Default handcrafted emblem when no custom image is configured.
 

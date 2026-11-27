@@ -363,7 +363,7 @@ export async function apiUpdateOrderStatus(id: string, status: OrderStatus): Pro
 
 export async function apiGetSettings(): Promise<{ connected: boolean; settings: StoreSettings | null }> {
   try {
-    const res = await fetch(`${API_URL}/api/settings`);
+    const res = await fetch(`${API_URL}/api/settings`, { cache: 'no-store' });
     const data = await parseResponse<any>(res);
     if (!data.connected || !data.settings || typeof data.settings !== 'object') {
       return { connected: false, settings: null };

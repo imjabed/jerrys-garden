@@ -85,7 +85,7 @@ export default function Navbar({
   if(androidApp) return <>
     <header className="sticky top-0 z-40 border-b border-stone-200 bg-white text-stone-900 shadow-sm">
       <div className="flex items-center justify-between px-3 py-2">
-        <button type="button" onClick={()=>{setAppSearchFocused(false);(onNavigateHome||onNavigateToShop)();}} aria-label="Jame Bouquets home"><Logo size="sm" showSubtitle={false} logoUrl={storeSettings.logoUrl} brandName={storeSettings.storeName||'Jame Bouquets'}/></button>
+        <button type="button" onClick={()=>{setAppSearchFocused(false);(onNavigateHome||onNavigateToShop)();}} aria-label="Jame Bouquets home"><Logo size="sm" showSubtitle={false} logoUrl={storeSettings.logoUrl} fallbackLogoUrl="/favicon.png" brandName={storeSettings.storeName||'Jame Bouquets'}/></button>
         <button type="button" id="cart-btn" onClick={()=>{setAppSearchFocused(false);onOpenCart();}} aria-label={`Shopping cart, ${cartCount} items`} className="relative flex h-10 w-10 items-center justify-center rounded-full bg-stone-100">
           {useCustomCartIcon?<img src={cartIconUrl} alt="" className="h-6 w-6 object-contain" onError={()=>setFailedCartIcon(cartIconUrl)}/>:<ShoppingBag size={20}/>}
           {cartCount>0&&<span className="absolute -right-1 -top-1 rounded-full bg-rose-700 px-1.5 py-0.5 text-[10px] font-bold text-white">{cartCount}</span>}
