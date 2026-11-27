@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/returnpolicy",
+      "destination": "/return-policy.html"
+    },
+    {
       "source": "/all-products",
       "destination": "/catalogue.html"
     },

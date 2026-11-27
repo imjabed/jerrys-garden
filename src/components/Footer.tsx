@@ -155,7 +155,11 @@ export default function Footer({
                   ['privacy', 'Privacy notice'],
                   ['terms', 'Ordering terms'],
                 ] as const).map(([policy, label]) => (
-                  <button key={policy} type="button" onClick={() => onOpenPolicy(policy)}
+                  policy === 'returns' ? (
+                    <a key={policy} href="/returnpolicy" className="text-left underline-offset-4 hover:text-white hover:underline">
+                      <CustomerCopy id="footer.returnsPolicy" fallback="Return policy"/>
+                    </a>
+                  ) : <button key={policy} type="button" onClick={() => onOpenPolicy(policy)}
                     className="text-left underline-offset-4 hover:text-white hover:underline"><CustomerCopy id={'footer.'+({delivery:'deliveryPolicy',returns:'returnsPolicy',privacy:'privacyPolicy',terms:'termsPolicy'}[policy])} fallback={label}/></button>
                 ))}
               </div>
